@@ -6,8 +6,7 @@ edition = "2024"
 description = "Rust library for editing Geometry Dash savefiles"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ArrowSlashArrow/gdlib"
-keywords = ["geometrydash", "gd", "fast", "api"]
-categories = ["geometry-dash", "gd"]
+keywords = ["fast", "api"]
 readme = "README.md"
 authors = ["ArrowSlashArrow arrowslasharrow.dev@gmail.com"]
 
