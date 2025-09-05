@@ -12,6 +12,7 @@ fn zlib_compress(s: String) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
+/// Returns the encrypted level string as Vec<u8> from a stringified `GDLevel` object
 pub fn encrypt_level_str(s: String) -> Vec<u8> {
     let compress = zlib_compress(s.clone());
     let mut data = b"H4sIAAAAAA".to_vec();
@@ -29,6 +30,7 @@ pub fn encrypt_level_str(s: String) -> Vec<u8> {
     return header;
 }
 
+/// Returns the encrypted savefile string from a stringified `Levels` struct
 pub fn encrypt_savefile_str(s: String) -> Vec<u8> {
     let compressed = zlib_compress(s.clone());
 
@@ -44,6 +46,13 @@ pub fn encrypt_savefile_str(s: String) -> Vec<u8> {
     return xor(base64.as_bytes().to_vec(), 11);
 }
 
+/// Parses an XML dictionary to a string that matches GD savefile format.
+/// 
+/// # Arguments
+/// * `dict`: plist::Dictionary to parse.
+/// * `root`: Is the input the root dict?
+/// 
+/// Returns the stringified dictionary
 pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
     if dict.is_empty() {
         return "<d />".to_owned();

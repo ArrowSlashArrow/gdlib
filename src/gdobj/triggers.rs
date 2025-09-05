@@ -2,7 +2,22 @@ use serde_json::json;
 
 use crate::{gdobj::{GDObjConfig, GDObject}, utils::properties_from_vec};
 
-// eventually there will be constructors for every trigger here
+/// # ⚠️ Warning
+/// **This file is incomplete. More triggers will be added in the future.**
+
+/// Returns a move trigger object
+/// 
+/// # Arguments
+/// * `config`: General object options, such as positionn and scale
+/// * `dX`: How much to move the target group in the X direction. 
+/// * `dY`: How much to move the target group in the Y direction. 
+/// * `time`: Move time for target object.
+/// * `targetGroup`: Group that the move trigger is moving.
+/// * `targetMode`: Enabled if the group is moving to the location of another group.
+/// * `aim`: The other group that the object would move
+/// 
+/// Returns a GDObject object with the corresponding properties.
+/// 
 pub fn move_trigger(
     config: GDObjConfig,
     dX: i32,

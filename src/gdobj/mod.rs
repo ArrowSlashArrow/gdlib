@@ -7,6 +7,10 @@ use crate::utils::strip_default_vals;
 pub mod triggers;
 pub mod objs;
 
+/// Container for GD Object properties.
+/// * `id`: The object's ID.
+/// * `config`: General properties like position and scale.
+/// * `properties`: Object-specific properties like target group for a move trigger
 #[derive(Clone, Debug)]
 pub struct GDObject {
     id: i32,
@@ -56,6 +60,13 @@ fn get_bool<T: Into<String> + Clone>(properties: &mut HashMap<String, Value>, ke
 }
 
 impl GDObject {
+    /// Parses raw object string to GDObject
+    /// 
+    /// Example:
+    /// ```
+    /// let obj = GDObject::parse_str("1,1,155,1,67,1,64,1,3,15.0,2,15.0;");
+    /// assert_eq!(obj, GDObject::from(1, GDObjConfig::default(), HashMap::new()));
+    /// ```
     pub fn parse_str(s: &str) -> Self {
         let mut properties: HashMap<String, Value> = HashMap::new();
         let mut current_property = String::new();
@@ -107,6 +118,13 @@ impl GDObject {
         }
     }
 
+    /// Returns this object as a property string
+    /// 
+    /// Example:
+    /// ```
+    /// let object_str = GDObject::new(1, GDObjConfig::default(), HashMap::new()).to_string();
+    /// assert_eq!(object_str, "1,1,155,1,67,1,64,1,3,15.0,2,15.0;");
+    /// ```
     pub fn to_string(&self) -> String {
         let mut combined_properties = self.properties.clone();
         combined_properties.extend(self.config.as_properties());
@@ -121,6 +139,7 @@ impl GDObject {
         return raw_str.replace("\"", "") + ";";
     }
 
+    /// Creates a new GDObject from ID, config, and extra proerties
     pub fn new(id: i32, config: GDObjConfig, properties: HashMap<String, Value>) -> Self {
         GDObject {
             id, config, properties: properties
@@ -128,6 +147,10 @@ impl GDObject {
     }
 }
 
+/// Trigger config, used for defining general properties of a trigger object:
+/// * is touch triggerable?
+/// * is spawn triggerable?
+/// * is multitriggerable?
 #[derive(Clone, Debug)]
 pub struct TriggerConfig {
     touchable: bool,
@@ -135,6 +158,12 @@ pub struct TriggerConfig {
     multitriggerable: bool
 }
 
+/// Object config, used for defining general properties of an object:
+/// * position
+/// * scale
+/// * rotation angle
+/// * groups
+/// * trigger_cfg
 #[derive(Clone, Debug)]
 pub struct GDObjConfig {
     pos: (f32, f32),
@@ -152,6 +181,14 @@ fn plist_bool(v: bool) -> String {
 }
 
 impl GDObjConfig {
+    /// Constructor with default properties:
+    /// * position: 0, 0
+    /// * scale: 1.0, 1.0
+    /// * angle: 0.0,
+    /// * groups: none
+    /// * not touch triggerable
+    /// * not spawn triggerable
+    /// * not multi triggerable
     pub fn default() -> Self {
         GDObjConfig { 
             pos: (0.0, 0.0), 
@@ -166,6 +203,7 @@ impl GDObjConfig {
         }
     }
 
+    /// Converts this config to a properties hashmap
     pub fn as_properties(&self) -> HashMap<String, Value> {
         let mut properties = json!({
             "2": self.pos.0,
@@ -192,39 +230,57 @@ impl GDObjConfig {
         return hashmap
     }
 
+    /// Sets groups of this object
     pub fn groups(mut self, groups: Vec<u16>) -> Self {
         self.groups = groups;
         self
     }
+    /// Sets x position of this object
     pub fn x(mut self, x: f32) -> Self {
         self.pos.0 = x;
         self
     }
+    /// Sets y position of this object
     pub fn y(mut self, y: f32) -> Self {
         self.pos.1 = y;
         self
     }
+    /// Sets x and y position of this object
+    pub fn pos(mut self, x: f32, y: f32) -> Self {
+        self.pos = (x, y);
+        self
+    }
+    /// Sets x scale of this object
     pub fn xscale(mut self, xscale: f32) -> Self {
         self.scale.0 = xscale;
         self
     }
+    /// Sets y scale of this object
     pub fn yscale(mut self, yscale: f32) -> Self {
         self.scale.1 = yscale;
         self
     }
+    /// Sets x and y sacle of this object
+    pub fn scale(mut self, x: f32, y: f32) -> Self {
+        self.pos = (x, y);
+        self
+    }
+    /// Sets rotation angle of this object
     pub fn angle(mut self, angle: f32) -> Self {
         self.angle = angle;
         self
     }
+    /// Makes this object touch triggerable
     pub fn touchable(mut self, touchable: bool) -> Self {
         self.trigger_cfg.touchable = touchable;
         self
     }
+    /// Makes this object spawn triggerable
     pub fn spawnable(mut self, spawnable: bool) -> Self {
         self.trigger_cfg.spawnable = spawnable;
         self
     }
-
+    /// Makes this object multi-triggerable
     pub fn multitrigger(mut self, multi: bool) -> Self {
         self.trigger_cfg.multitriggerable = multi;
         self

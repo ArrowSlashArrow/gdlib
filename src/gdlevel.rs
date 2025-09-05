@@ -7,36 +7,54 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{get_local_levels_path, vec_as_str}};
 
-// these probably correspond to bg/fg colours, but i haven't deciphered these yet
+/// This is the default level header 
 pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0;";
 
+/// This struct contains other values found in the levels savefile that aren't of any particular use
 pub struct LevelsFileHeaders {
     llm02: Value,
     llm03: Value
 }
 
+/// This struct contains all the levels of the savefile
+/// Fields:
+/// * `levels`: The levels
+/// * `headers`: other information necessary for re-encoding
 pub struct Levels {
     pub levels: Vec<Level>,
     headers: LevelsFileHeaders
 }
 
+/// This struct contains level data that has not yet been decrypted 
 #[derive(Clone, Debug)]
 pub struct EncryptedLevelData {
     data: String
 }
 
+/// This struct contains the objects of a level and its headers
+/// Fields:
+/// * `objects`: Array of objects
+/// * `headers`: Other important information about the level 
 #[derive(Clone, Debug)]
 pub struct LevelData {
     headers: String,
     objects: Vec<GDObject>
 }
 
+/// Enum that contains either a encrypted level string or decrypted level object 
 #[derive(Clone, Debug)]
 pub enum LevelState {
     Encrypted(EncryptedLevelData),
     Decrypted(LevelData)
 }
 
+/// This struct contains level-specific information
+/// Fields:
+/// * `title`: Title of the level
+/// * `author`: Author of the level
+/// * `description`: Author of the description
+/// * `data`: Encrypted or decrypted level data
+/// * `properties`: Other unspecified properties of this level
 #[derive(Debug)]
 pub struct Level {
     title: Option<String>,
@@ -48,6 +66,7 @@ pub struct Level {
 }
 
 impl Levels {
+    /// Returns the levels in CCLocalLevels.dat if retrievable
     pub fn from_local() -> Result<Self, Box<dyn Error>> {
         match decode_levels_to_string() {
             Ok(v) => Levels::from_decrypted(v),
@@ -55,6 +74,7 @@ impl Levels {
         }
     }
 
+    /// Parses raw savefile string into this struct
     pub fn from_decrypted(s: String) -> Result<Self, Box<dyn Error>> {
         // replace gd plist with proper plist
         // using aho-corasick for single-pass instead of many .replace()s
@@ -95,6 +115,7 @@ impl Levels {
         Ok(levels)
     }
 
+    /// Adds a level to the beginning of `self.levels`
     pub fn add_level(&mut self, level: Level) {
         self.levels.insert(0, level);
     }
@@ -126,6 +147,7 @@ impl Levels {
         return properties
     }
 
+    /// Exports this struct as XML to a String
     pub fn export_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
 
@@ -142,6 +164,7 @@ impl Levels {
         return format!("<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">{}</plist>", stringify_xml(&dict, true));
     }
 
+    /// Exports this struct as encrypted XML to CCLocalLevels.dat
     pub fn write_to_savefile(&mut self) -> Result<(), Box<dyn Error>>{
         let savefile = get_local_levels_path()?;
         let export_str = encrypt_savefile_str(self.export_to_string());
@@ -151,6 +174,12 @@ impl Levels {
 }
 
 impl Level {
+    /// Default constructor
+    /// # Arguments:
+    /// * `title`: Title of the level
+    /// * `author`: Who made the level
+    /// * `desciption`: (Optional) description of the level
+    /// * `song`: (Optional) Song of the level, defaults to stereo madness
     pub fn new<T: Into<String>>(title: T, author: T, description: Option<T>, song: Option<i64>) -> Self {
         Level { 
             title: Some(title.into()), 
@@ -162,6 +191,7 @@ impl Level {
         }
     }
 
+    /// Parses a `plist::dictionary` into a Level object
     pub fn from_dict(d: Dictionary) -> Self {
         // level data kv pairs
         // k2: level name
@@ -207,6 +237,8 @@ impl Level {
         }
     }
 
+    /// Returns the level data as unencrypted. 
+    /// Level data is left unencrypted when parsing the level as it is slow.
     pub fn decrypt_level_data(&mut self) {
         let raw_data = match &self.data {
             Some(data) => match data {
@@ -233,6 +265,7 @@ impl Level {
         self.data = Some(LevelState::Decrypted(LevelData { headers, objects }));
     }
 
+    /// Returns this object as a `plist::dictionary`
     pub fn to_dict(&self) -> Dictionary {
         let mut properties = Dictionary::new();
         if let Some(v) = self.title.clone() {
@@ -262,6 +295,7 @@ impl Level {
         return properties;
     }
 
+    /// Adds a GDObject to `self.objects`
     pub fn add_object(&mut self, object: GDObject) {
         if let Some(data) = &mut self.data {
             match data {
