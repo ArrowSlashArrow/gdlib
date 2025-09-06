@@ -1,9 +1,9 @@
-use serde_json::json;
+//! # ⚠️ Warning
+//! **This file is incomplete. More triggers will be added in the future.**
 
+use serde_json::json;
 use crate::{gdobj::{GDObjConfig, GDObject}, utils::properties_from_vec};
 
-/// # ⚠️ Warning
-/// **This file is incomplete. More triggers will be added in the future.**
 
 /// Returns a move trigger object
 /// 
