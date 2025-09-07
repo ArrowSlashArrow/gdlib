@@ -1,10 +1,10 @@
-use std::{collections::HashMap, env, error::Error, fs, path::{self, Path, PathBuf}, time::Instant};
-
+//! This module contains various utilities for debugging and processing structs
+use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
 use serde_json::Value;
 
 /// Default values of GD object properties
 /// (property, type, value) 
-const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
+pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
     ("6", "float", 0.0),
     ("128", "float", 1.0),
     ("129", "float", 1.0),
@@ -27,8 +27,9 @@ pub fn dbg_write<T: Into<String>>(val: T) {
     fs::write(".debug", val.into()).unwrap();
 }
 
-/// desc: descriptor for benchmark
-/// inst: when benchmark timer was started 
+/// Benchmark struct, used for recording execution time
+/// `desc`: descriptor for benchmark
+/// `inst`: when benchmark timer was started 
 pub struct Benchmark {
     inst: Instant,
     desc: String
@@ -56,7 +57,7 @@ macro_rules! timer {
     };
 }
 
-/// Converts Vec<u8> utf8 to String
+/// Converts `Vec<u8>` utf8 to String
 pub fn vec_as_str(v: &Vec<u8>) -> String {
     String::from_utf8(v.to_owned()).unwrap()
 }

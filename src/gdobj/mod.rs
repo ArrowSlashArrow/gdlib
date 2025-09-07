@@ -1,7 +1,7 @@
+//! This module contains the GDObject struct, used for parsing to/from raw object strings
+//! This module also contains the GDObjConfig struct for creating new GDObjects
 use std::{collections::HashMap, str::FromStr};
-
 use serde_json::{json, Value};
-
 use crate::utils::strip_default_vals;
 
 pub mod triggers;
@@ -13,23 +13,11 @@ pub mod objs;
 /// * `properties`: Object-specific properties like target group for a move trigger
 #[derive(Clone, Debug)]
 pub struct GDObject {
-    id: i32,
-    config: GDObjConfig,
-    properties: HashMap<String, Value>
+    pub id: i32,
+    pub config: GDObjConfig,
+    pub properties: HashMap<String, Value>
 }
 
-fn get_property<T: FromStr, U: Into<String> + Clone>(properties: &mut HashMap<String, String>, key: U, default: T) -> T {
-    match properties.get_mut(&key.clone().into()) {
-        Some(v) => {
-            let val = v.parse::<T>().unwrap_or(default);
-            properties.remove(&key.clone().into());
-            val
-        },
-        None => default
-    }
-}
-
-// specialised funcs for fast int/float casting
 fn get_float<T: Into<String> + Clone>(properties: &mut HashMap<String, Value>, key: T) -> f32 {
     match properties.get_mut(&key.clone().into()) {
         Some(v) => {
@@ -89,6 +77,7 @@ impl GDObject {
         let spawnable = get_bool(&mut properties, "62");
         let multitriggerable = get_bool(&mut properties, "87");
 
+        // groups are stored as "1.2.3.4" -> groups 1, 2, 3, 4
         let groups = match properties.get_mut("57") {
             Some(v) => {
                 let groups = v.to_string().split(".").filter_map(|g| match g.is_empty() {
@@ -153,9 +142,9 @@ impl GDObject {
 /// * is multitriggerable?
 #[derive(Clone, Debug)]
 pub struct TriggerConfig {
-    touchable: bool,
-    spawnable: bool,
-    multitriggerable: bool
+    pub touchable: bool,
+    pub spawnable: bool,
+    pub multitriggerable: bool
 }
 
 /// Object config, used for defining general properties of an object:
@@ -166,19 +155,12 @@ pub struct TriggerConfig {
 /// * trigger_cfg
 #[derive(Clone, Debug)]
 pub struct GDObjConfig {
-    pos: (f32, f32),
-    scale: (f32, f32),
-    angle: f32,
-    groups: Vec<u16>,
-    trigger_cfg: TriggerConfig
+    pub pos: (f32, f32),
+    pub scale: (f32, f32),
+    pub angle: f32,
+    pub groups: Vec<u16>,
+    pub trigger_cfg: TriggerConfig
 } 
-
-fn plist_bool(v: bool) -> String {
-    match v {
-        true => "1",
-        false => "0"
-    }.to_owned()
-}
 
 impl GDObjConfig {
     /// Constructor with default properties:

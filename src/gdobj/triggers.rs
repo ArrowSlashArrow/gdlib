@@ -1,3 +1,4 @@
+//! This file contains constructors for trigger objects.
 //! # ⚠️ Warning
 //! **This file is incomplete. More triggers will be added in the future.**
 

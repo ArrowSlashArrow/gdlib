@@ -1,7 +1,7 @@
 # GDLib
 A library to interface with GD savefiles built in rust.
  
-## Features
+## Capabilities
 * Create and edit levels with full control
 * Make objects with custom properties
 * Read and write to Geometry Dash .dat savefiles

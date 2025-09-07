@@ -1,4 +1,5 @@
-use std::{collections::HashMap, error::Error, fs::write, io::Cursor};
+//! This file contains the necessary structs for interfacing with the level(s) themselves
+use std::{collections::HashMap, error::Error, fs::{read, write}, io::Cursor};
 
 use aho_corasick::AhoCorasick;
 use base64::Engine;
@@ -12,8 +13,8 @@ pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_
 
 /// This struct contains other values found in the levels savefile that aren't of any particular use
 pub struct LevelsFileHeaders {
-    llm02: Value,
-    llm03: Value
+    pub llm02: Value,
+    pub llm03: Value
 }
 
 /// This struct contains all the levels of the savefile
@@ -22,13 +23,13 @@ pub struct LevelsFileHeaders {
 /// * `headers`: other information necessary for re-encoding
 pub struct Levels {
     pub levels: Vec<Level>,
-    headers: LevelsFileHeaders
+    pub headers: LevelsFileHeaders
 }
 
 /// This struct contains level data that has not yet been decrypted 
 #[derive(Clone, Debug)]
 pub struct EncryptedLevelData {
-    data: String
+    pub data: String
 }
 
 /// This struct contains the objects of a level and its headers
@@ -37,8 +38,8 @@ pub struct EncryptedLevelData {
 /// * `headers`: Other important information about the level 
 #[derive(Clone, Debug)]
 pub struct LevelData {
-    headers: String,
-    objects: Vec<GDObject>
+    pub headers: String,
+    pub objects: Vec<GDObject>
 }
 
 /// Enum that contains either a encrypted level string or decrypted level object 
@@ -57,12 +58,12 @@ pub enum LevelState {
 /// * `properties`: Other unspecified properties of this level
 #[derive(Debug)]
 pub struct Level {
-    title: Option<String>,
-    author: Option<String>,
-    description: Option<String>,
-    data: Option<LevelState>,
-    song: Option<i64>,
-    properties: HashMap<String, Value>
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub description: Option<String>,
+    pub data: Option<LevelState>,
+    pub song: Option<i64>,
+    pub properties: HashMap<String, Value>
 }
 
 impl Levels {
@@ -167,6 +168,17 @@ impl Levels {
     /// Exports this struct as encrypted XML to CCLocalLevels.dat
     pub fn write_to_savefile(&mut self) -> Result<(), Box<dyn Error>>{
         let savefile = get_local_levels_path()?;
+        let export_str = encrypt_savefile_str(self.export_to_string());
+        write(savefile, export_str)?;
+        Ok(())
+    }
+
+    /// Exports this struct as encrypted XML to CCLocalLevels.dat and creates a backup, CCLocalLevels.dat.bak
+    pub fn write_to_savefile_with_backup(&mut self) -> Result<(), Box<dyn Error>>{
+        let savefile = get_local_levels_path()?;
+        let backup_path = format!("{}.bak", savefile.to_string_lossy());
+        write(backup_path, read(&savefile)?)?;
+
         let export_str = encrypt_savefile_str(self.export_to_string());
         write(savefile, export_str)?;
         Ok(())

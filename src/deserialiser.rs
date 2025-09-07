@@ -1,3 +1,4 @@
+//! Here lies the decryption functions for GD savefiles 
 use std::{error::Error, fs, io::Read};
 
 use base64::{engine::general_purpose, Engine};
@@ -5,18 +6,18 @@ use flate2::read::{DeflateDecoder};
 
 use crate::utils::{get_local_levels_path, vec_as_str};
 
-/// Xor's every byte of `bytes` with `key`, returns the resulting Vec<u8>
+/// Xor's every byte of `bytes` with `key`, returns the resulting `Vec<u8>`
 pub fn xor(bytes: Vec<u8>, key: u8) -> Vec<u8> {
     let xored = bytes.iter().map(|c| *c ^ key).collect();
     xored
 }
 
-/// Decompresses a Vec<u8> of a base64ed gzip-compressed payload.
+/// Decompresses a `Vec<u8>` of a base64ed gzip-compressed payload.
 /// 
 /// # Arguments
 /// * `data`: compressed input data
 /// 
-/// Returns decompressed base64ed gzip as a Vec<u8> if it sucessfully decoded, otherwise return Error
+/// Returns decompressed base64ed gzip as a `Vec<u8>` if it sucessfully decoded, otherwise return Error
 pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     // convert from url-safe base64
     let replaced = data.iter().filter_map(|c| match c {
@@ -48,7 +49,7 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
 /// # Arguments
 /// * `data`: encrypted payload
 /// 
-/// Returns the raw file contents as a Vec<u8>
+/// Returns the raw file contents as a `Vec<u8>`
 pub fn decrypt(data: Vec<u8>) -> Vec<u8> {
     decompress(xor(data, 11)).unwrap()
 }

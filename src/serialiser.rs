@@ -1,3 +1,4 @@
+//! This module contains all of the encryption code for GD savefiles.
 use std::{io::Write};
 
 use base64::Engine;
@@ -12,7 +13,7 @@ fn zlib_compress(s: String) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
-/// Returns the encrypted level string as Vec<u8> from a stringified `GDLevel` object
+/// Returns the encrypted level string as `Vec<u8>` from a stringified `GDLevel` object
 pub fn encrypt_level_str(s: String) -> Vec<u8> {
     let compress = zlib_compress(s.clone());
     let mut data = b"H4sIAAAAAA".to_vec();
