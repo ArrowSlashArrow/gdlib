@@ -2,16 +2,7 @@
 use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
 use serde_json::Value;
 
-/// Default values of GD object properties
-/// (property, type, value) 
-pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
-    ("6", "float", 0.0),
-    ("128", "float", 1.0),
-    ("129", "float", 1.0),
-    ("11", "bool", 0.0), 
-    ("62", "bool", 0.0), 
-    ("87", "bool", 0.0), 
-];
+use crate::gdobj::DEFAULT_PROPERTY_VALUES;
 
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
 pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
@@ -63,7 +54,7 @@ pub fn vec_as_str(v: &Vec<u8>) -> String {
 }
 
 /// Converts properties in `serde_json::Value` dict to a `HashMap<String, Value>` 
-pub fn properties_from_vec(vals: Value) -> HashMap<String, Value> {
+pub fn properties_from_json(vals: Value) -> HashMap<String, Value> {
     vals.as_object().unwrap().into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 

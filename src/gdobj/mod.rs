@@ -1,11 +1,39 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{collections::HashMap, str::FromStr};
-use serde_json::{json, Value};
+use std::{collections::HashMap, fmt::{Debug, Display}};
+use serde_json::{json, Number, Value};
 use crate::utils::strip_default_vals;
 
 pub mod triggers;
-pub mod objs;
+pub mod general;
+
+/// Default values of GD object properties
+/// (property, type, value) 
+pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
+    ("6", "float", 0.0),
+    ("128", "float", 1.0),
+    ("129", "float", 1.0),
+    ("11", "bool", 0.0), 
+    ("62", "bool", 0.0), 
+    ("87", "bool", 0.0), 
+];
+
+pub const OBJ_NAMES: &[(i32, &str)] = &[
+    (1, "Default block"),
+    (899, "Colour trigger"),
+    (901, "Move trigger"),
+    (914, "Text object"),
+    (1049, "Toggle trigger"),
+    (1268, "Spawn trigger"),
+    (1615, "Counter"),
+    (1616, "Stop trigger"),
+    (1815, "Collision trigger"),
+    (1816, "Collision block"),
+    (1935, "Time warp trigger"),
+    (3619, "Item edit trigger"),
+    (3620, "Item compare trigger"),
+    (3641, "Persistent item trigger")
+];
 
 /// Container for GD Object properties.
 /// * `id`: The object's ID.
@@ -18,32 +46,77 @@ pub struct GDObject {
     pub properties: HashMap<String, Value>
 }
 
-fn get_float<T: Into<String> + Clone>(properties: &mut HashMap<String, Value>, key: T) -> f32 {
-    match properties.get_mut(&key.clone().into()) {
-        Some(v) => {
-            let val = v.as_f64().unwrap() as f32;
-            properties.remove(&key.clone().into());
-            val
+fn as_number(value: Value) -> Option<Number> {
+    match value {
+        Value::Number(n) => Some(n),
+        Value::String(s) => {
+            if let Ok(int) = s.parse::<i64>() {
+                Some(Number::from(int))
+            } else if let Ok(float) = s.parse::<f64>() {
+                Number::from_f64(float)
+            } else {
+                None
+            }
         },
-        None => 0.0f32
+        Value::Null => Some(Number::from(0)),
+        _ => None
     }
 }
 
-fn get_int<T: Into<String> + Clone>(properties: &mut HashMap<String, Value>, key: T) -> i32 {
-    match properties.get_mut(&key.clone().into()) {
+fn get_num(properties: &mut HashMap<String, Value>, key: &str) -> Option<Number> {
+    match properties.get_mut(key) {
         Some(v) => {
-            let val = v.as_i64().unwrap() as i32;
-            properties.remove(&key.clone().into());
-            val
+            // return val if known
+            let val = as_number(v.clone()).unwrap();
+            properties.remove(key);
+            Some(val)
         },
-        None => 0i32
+        None => {
+            // otherwise try return known default
+            match DEFAULT_PROPERTY_VALUES.iter().find(|(p, _t, _v)| *p == key) {
+                Some((_key, _type, fallback)) => {
+                    as_number(Value::from(*fallback))
+                },
+                None => None
+            }
+        }
     }
 }
 
-fn get_bool<T: Into<String> + Clone>(properties: &mut HashMap<String, Value>, key: T) -> bool {
-    match properties.get_mut(&key.clone().into()) {
+fn get_float(properties: &mut HashMap<String, Value>, key: &str) -> f32 {
+    get_num(properties, key).unwrap().as_f64().unwrap() as f32
+}
+
+fn get_int(properties: &mut HashMap<String, Value>, key: &str) -> i32 {
+    get_num(properties, key).unwrap().as_i64().unwrap() as i32
+}
+
+fn get_bool(properties: &mut HashMap<String, Value>, key: &str) -> bool {
+    match properties.get_mut(key) {
         Some(_) => true,
         None => false
+    }
+}
+
+impl Display for GDObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let group_str = match self.config.groups.len() > 0 {
+            true => {
+                &format!(" with groups: {}",
+                    self.config.groups.iter().map(|g| format!("{g}")).collect::<Vec<String>>().join(", ")
+                )
+            }
+            false => ""
+        };
+
+        write!(f, "{} @ ({}, {}) scaled to ({}, {}){}", 
+            self.name(), 
+            self.config.pos.0, 
+            self.config.pos.1, 
+            self.config.scale.0, 
+            self.config.scale.1,
+            group_str
+        )
     }
 }
 
@@ -56,6 +129,7 @@ impl GDObject {
     /// assert_eq!(obj, GDObject::from(1, GDObjConfig::default(), HashMap::new()));
     /// ```
     pub fn parse_str(s: &str) -> Self {
+        dbg!(s);
         let mut properties: HashMap<String, Value> = HashMap::new();
         let mut current_property = String::new();
         for (idx, val) in s[..s.len() - 1].split(",").into_iter().enumerate() {
@@ -126,6 +200,11 @@ impl GDObject {
         };
 
         return raw_str.replace("\"", "") + ";";
+    }
+
+    pub fn name(&self) -> String {
+        OBJ_NAMES.iter().find(|&o| o.0 == self.id)
+            .unwrap_or(&(0, format!("Object {}", self.id).as_str())).1.to_string()
     }
 
     /// Creates a new GDObject from ID, config, and extra proerties

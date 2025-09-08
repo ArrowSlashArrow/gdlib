@@ -13,7 +13,7 @@ fn zlib_compress(s: String) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
-/// Returns the encrypted level string as `Vec<u8>` from a stringified `GDLevel` object
+/// Returns the encrypted level string as `Vec<u8>` from a `GDLevel` object string
 pub fn encrypt_level_str(s: String) -> Vec<u8> {
     let compress = zlib_compress(s.clone());
     let mut data = b"H4sIAAAAAA".to_vec();

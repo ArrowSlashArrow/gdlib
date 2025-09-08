@@ -9,9 +9,7 @@ pub mod utils;
 #[cfg(test)]
 mod tests {
     use crate::{
-        deserialiser::{decode_levels_to_string}, 
-        gdlevel::{Level, Levels}, 
-        gdobj::{self, GDObjConfig}
+        deserialiser::decode_levels_to_string, gdlevel::{Level, LevelState, Levels}, gdobj::{self, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -36,9 +34,21 @@ mod tests {
             GDObjConfig::default().groups(vec![1234]), 10, 10, 0.5, 2, false, 0
         ));
 
-        new_level.add_object(gdobj::objs::default_block(GDObjConfig::default().x(15.0).y(15.0)));
+        new_level.add_object(gdobj::general::default_block(GDObjConfig::default().x(15.0).y(15.0)));
         
         levels.add_level(new_level);
-        levels.write_to_savefile().unwrap();
+        // levels.write_to_savefile_with_backup().unwrap();
+    }
+
+    #[test]
+    fn read_objs() {
+        let mut levels = Levels::from_local().unwrap();
+        let first_level = levels.levels.first_mut().unwrap();
+        let data = first_level.get_decrypted_data().unwrap();
+
+        for (idx, obj) in data.objects.iter().enumerate() {
+            println!("{idx}: {obj}");
+        }
+        
     }
 }

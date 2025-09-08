@@ -19,7 +19,7 @@ pub struct LevelsFileHeaders {
 
 /// This struct contains all the levels of the savefile
 /// Fields:
-/// * `levels`: The levels
+/// * `levels`: The levels. Ones at the beginning are the most recently created.
 /// * `headers`: other information necessary for re-encoding
 pub struct Levels {
     pub levels: Vec<Level>,
@@ -56,7 +56,7 @@ pub enum LevelState {
 /// * `description`: Author of the description
 /// * `data`: Encrypted or decrypted level data
 /// * `properties`: Other unspecified properties of this level
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Level {
     pub title: Option<String>,
     pub author: Option<String>,
@@ -275,6 +275,21 @@ impl Level {
             }
         }).collect::<Vec<GDObject>>();
         self.data = Some(LevelState::Decrypted(LevelData { headers, objects }));
+    }
+
+    /// Returns the decrypted level data as a `LevelData` object if there is data. 
+    pub fn get_decrypted_data(&mut self) -> Option<&mut LevelData> {
+        self.decrypt_level_data();
+        match &mut self.data {
+            Some(d) => {
+                if let LevelState::Decrypted(data) = d {
+                    Some(data)
+                } else {
+                    None
+                }
+            },
+            None => return None
+        }
     }
 
     /// Returns this object as a `plist::dictionary`

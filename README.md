@@ -13,16 +13,16 @@ Install this crate through `cargo add gdlib`
 Example code:
 ```
 // Fetch levels from your CCLocalLevels.dat file
-let mut levels = gdobj::gdlevel::Levels::from_local().unwrap();
+let mut levels = gdlib::gdlevel::Levels::from_local().unwrap();
 
 // Create a new Level object
-let mut new_level = gdobj::gdlevel::Level::new("New Level", "You", None, None);
+let mut new_level = gdlib::gdlevel::Level::new("New Level", "You", None, None);
 
 // Add objects to new_level
-new_level.add_object(gdobj::triggers::move_trigger(
+new_level.add_object(gdlib::gdobj::triggers::move_trigger(
     GDObjConfig::default().groups(vec![1234]), 10, 10, 0.5, 2, false, 0
 ));
-new_level.add_object(gdobj::objs::default_block(GDObjConfig::default().pos(15.0, 15.0)));
+new_level.add_object(gdlib::gdobj::general::default_block(GDObjConfig::default().pos(15.0, 15.0)));
 
 // Add level to master Levels object and export back to savefile
 levels.add_level(new_level);
