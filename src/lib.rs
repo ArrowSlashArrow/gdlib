@@ -52,4 +52,10 @@ mod tests {
             println!("{idx}: {obj}");
         }   
     }
+
+    #[test]
+    fn gmd_conversion() {
+        let level = Level::from_gmd("GMDS/level.gmd").unwrap();
+        level.export_to_gmd("GMDS/level_export.gmd").unwrap();
+    }
 }

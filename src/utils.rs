@@ -1,5 +1,6 @@
 //! This module contains various utilities for debugging and processing structs
 use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
+use aho_corasick::AhoCorasick;
 use serde_json::Value;
 
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
@@ -54,4 +55,20 @@ pub fn vec_as_str(v: &Vec<u8>) -> String {
 /// Converts properties in `serde_json::Value` dict to a `HashMap<String, Value>` 
 pub fn properties_from_json(vals: Value) -> HashMap<String, Value> {
     vals.as_object().unwrap().into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+}
+
+pub fn proper_plist_tags(s: String) -> String {
+    // replace gd plist with proper plist
+    // using aho-corasick for single-pass instead of many .replace()s
+    let find = &[
+        "<k>", "</k>", "<i>", "</i>", "<d>", "</d>", "<d />","<t/>", "<f/>", 
+        "<t />", "<f />", "<s>", "</s>", "<r>", "</r>"  
+    ];
+    let replace = &[
+        "<key>", "</key>", "<integer>", "</integer>", "<dict>", "</dict>", "<dict />","<true/>", "<false/>", 
+        "<true />", "<false />", "<string>", "</string>", "<real>", "</real>"  
+    ];
+    let ac = AhoCorasick::new(find).unwrap();
+    let plist = ac.replace_all(&s, replace);
+    return plist
 }

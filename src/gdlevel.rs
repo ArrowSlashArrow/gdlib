@@ -1,12 +1,11 @@
 //! This file contains the necessary structs for interfacing with the level(s) themselves
-use std::{collections::HashMap, error::Error, fs::{read, write}, io::Cursor};
+use std::{collections::HashMap, error::Error, fs::{self, read, write}, io::Cursor, path::PathBuf};
 
-use aho_corasick::AhoCorasick;
 use base64::Engine;
 use plist::{Dictionary, Value};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{get_local_levels_path, vec_as_str}};
+use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{get_local_levels_path, proper_plist_tags, vec_as_str}};
 
 /// This is the default level header 
 pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0;";
@@ -77,21 +76,9 @@ impl Levels {
 
     /// Parses raw savefile string into this struct
     pub fn from_decrypted(s: String) -> Result<Self, Box<dyn Error>> {
-        // replace gd plist with proper plist
-        // using aho-corasick for single-pass instead of many .replace()s
-        let find = &[
-            "<k>", "</k>", "<i>", "</i>", "<d>", "</d>", "<d />","<t/>", "<f/>", 
-            "<t />", "<f />", "<s>", "</s>", "<r>", "</r>"  
-        ];
-        let replace = &[
-            "<key>", "</key>", "<integer>", "</integer>", "<dict>", "</dict>", "<dict />","<true/>", "<false/>", 
-            "<true />", "<false />", "<string>", "</string>", "<real>", "</real>"  
-        ];
-        let ac = AhoCorasick::new(find).unwrap();
-        let plist = ac.replace_all(&s, replace);
-
-        let xmltree = Value::from_reader_xml(Cursor::new(plist.as_bytes()))?
-            .as_dictionary_mut().unwrap().clone();
+        let xmltree = Value::from_reader_xml(
+            Cursor::new(proper_plist_tags(s).as_bytes())
+        )?.as_dictionary_mut().unwrap().clone();
         
 
         let levels_dict = xmltree.get("LLM_01").unwrap().clone().as_dictionary().unwrap().clone();
@@ -201,6 +188,26 @@ impl Level {
             song, 
             properties: Levels::default_properties()
         }
+    }
+
+    /// Parses a .gmd file to a `Level` object
+    pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, Box<dyn Error>> {
+        let file = proper_plist_tags(vec_as_str(&fs::read(path.into())?));
+        let xmltree = Value::from_reader_xml(
+            Cursor::new(file.as_bytes())
+        )?.as_dictionary_mut().unwrap().clone();
+
+        return Ok(Level::from_dict(xmltree));
+    }
+
+    pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), Box<dyn Error>> {
+        let export_str =  format!(
+            "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">{}</plist>", 
+            stringify_xml(&self.to_dict(), true)
+        );
+
+        fs::write(path.into(), export_str)?;
+        Ok(())
     }
 
     /// Parses a `plist::dictionary` into a Level object
