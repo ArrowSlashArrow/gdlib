@@ -3,7 +3,7 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use serde_json::json;
-use crate::{gdobj::{GDObjConfig, GDObject}, utils::properties_from_json};
+use crate::{gdobj::{GDObjConfig, GDObjProperties, GDObject}};
 
 
 /// Returns a move trigger object
@@ -48,5 +48,5 @@ pub fn move_trigger(
         })
     };
 
-    GDObject::new(901, config, properties_from_json(properties))
+    GDObject::new(901, config, GDObjProperties::from_json(properties))
 }

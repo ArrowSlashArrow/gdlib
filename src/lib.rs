@@ -9,7 +9,9 @@ pub mod utils;
 #[cfg(test)]
 mod tests {
     use crate::{
-        deserialiser::decode_levels_to_string, gdlevel::{Level, LevelState, Levels}, gdobj::{self, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        deserialiser::decode_levels_to_string, 
+        gdlevel::{Level, Levels},
+        gdobj::{triggers, misc, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -30,11 +32,11 @@ mod tests {
         let mut levels = Levels::from_local().unwrap();
         let mut new_level = Level::new("rust websocket tutorial 2", "arrowslasharrow", Some("dont use rust"), Some(857925));
         
-        new_level.add_object(gdobj::triggers::move_trigger(
+        new_level.add_object(triggers::move_trigger(
             GDObjConfig::default().groups(vec![1234]), 10, 10, 0.5, 2, false, 0
         ));
 
-        new_level.add_object(gdobj::general::default_block(GDObjConfig::default().x(15.0).y(15.0)));
+        new_level.add_object(misc::default_block(GDObjConfig::default().x(15.0).y(15.0)));
         
         levels.add_level(new_level);
         // levels.write_to_savefile_with_backup().unwrap();
@@ -48,7 +50,6 @@ mod tests {
 
         for (idx, obj) in data.objects.iter().enumerate() {
             println!("{idx}: {obj}");
-        }
-        
+        }   
     }
 }

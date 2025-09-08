@@ -2,8 +2,6 @@
 use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
 use serde_json::Value;
 
-use crate::gdobj::DEFAULT_PROPERTY_VALUES;
-
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
 pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") && Path::new(&local_appdata).exists(){
@@ -56,26 +54,4 @@ pub fn vec_as_str(v: &Vec<u8>) -> String {
 /// Converts properties in `serde_json::Value` dict to a `HashMap<String, Value>` 
 pub fn properties_from_json(vals: Value) -> HashMap<String, Value> {
     vals.as_object().unwrap().into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
-}
-
-/// Removes default values from a property hashmap
-pub fn strip_default_vals(properties: HashMap<String, Value>) -> HashMap<String, Value> {
-    properties.into_iter().map(|(k, v)| {
-        let property_values = match DEFAULT_PROPERTY_VALUES.iter().find(|&&p| p.0 == k) {
-            Some(p) => p,
-            None => return Some((k, v))
-        };
-        let default_value = match property_values.1 {
-            "bool" => Value::from(property_values.2 != 0.0),
-            "float" => Value::from(property_values.2),
-            "int" => Value::from(property_values.2 as i32),
-            _ => return None
-        };
-
-        if v == default_value {
-            return None
-        }
-
-        Some((k, v))
-    }).flatten().collect::<HashMap<String, Value>>()
 }

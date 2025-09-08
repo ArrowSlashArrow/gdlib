@@ -2,10 +2,11 @@
 //! This module also contains the GDObjConfig struct for creating new GDObjects
 use std::{collections::HashMap, fmt::{Debug, Display}};
 use serde_json::{json, Number, Value};
-use crate::utils::strip_default_vals;
+
+use crate::utils::properties_from_json;
 
 pub mod triggers;
-pub mod general;
+pub mod misc;
 
 /// Default values of GD object properties
 /// (property, type, value) 
@@ -39,11 +40,11 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
 /// * `id`: The object's ID.
 /// * `config`: General properties like position and scale.
 /// * `properties`: Object-specific properties like target group for a move trigger
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GDObject {
     pub id: i32,
     pub config: GDObjConfig,
-    pub properties: HashMap<String, Value>
+    pub properties: GDObjProperties
 }
 
 fn as_number(value: Value) -> Option<Number> {
@@ -98,6 +99,56 @@ fn get_bool(properties: &mut HashMap<String, Value>, key: &str) -> bool {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct GDObjProperties {
+    properties: HashMap<String, Value>
+}
+
+impl GDObjProperties {
+    pub fn new() -> Self {
+        GDObjProperties { properties: HashMap::new() }
+    }
+
+    /// Removes default values from a property hashmap
+    pub fn strip_default_vals(&mut self) {
+        self.properties = self.properties.clone().into_iter().map(|(k, v)| {
+            let property_values = match DEFAULT_PROPERTY_VALUES.iter().find(|&&p| p.0 == k) {
+                Some(p) => p,
+                None => return Some((k, v))
+            };
+            let default_value = match property_values.1 {
+                "bool" => Value::from(property_values.2 != 0.0),
+                "float" => Value::from(property_values.2),
+                "int" => Value::from(property_values.2 as i32),
+                _ => return None
+            };
+
+            if v == default_value {
+                return None
+            }
+
+            Some((k, v))
+        }).flatten().collect::<HashMap<String, Value>>();
+    }
+
+    pub fn to_string(&mut self) -> String {
+        let mut raw_str = String::new();
+        let mut sorted: Vec<_> = self.properties.iter().collect();
+        sorted.sort_by_key(|&(k, _)| k);
+
+        for (k, v) in sorted.iter() {
+            raw_str += &format!(",{k},{}", v.to_string());
+        };
+        return raw_str[1..].to_string()
+    }
+
+    pub fn from_json(json: Value) -> Self {
+        GDObjProperties {
+            properties: properties_from_json(json)
+        }
+    }
+}
+
 impl Display for GDObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let group_str = match self.config.groups.len() > 0 {
@@ -125,8 +176,10 @@ impl GDObject {
     /// 
     /// Example:
     /// ```
-    /// let obj = GDObject::parse_str("1,1,155,1,67,1,64,1,3,15.0,2,15.0;");
-    /// assert_eq!(obj, GDObject::from(1, GDObjConfig::default(), HashMap::new()));
+    /// use gdlib::gdobj::{GDObject, GDObjConfig, GDObjProperties};
+    /// 
+    /// let obj = GDObject::parse_str("1,1,2,0,3,0;");
+    /// assert_eq!(obj, GDObject::new(1, GDObjConfig::default(), GDObjProperties::new()));
     /// ```
     pub fn parse_str(s: &str) -> Self {
         dbg!(s);
@@ -154,15 +207,21 @@ impl GDObject {
         // groups are stored as "1.2.3.4" -> groups 1, 2, 3, 4
         let groups = match properties.get_mut("57") {
             Some(v) => {
-                let groups = v.to_string().split(".").filter_map(|g| match g.is_empty() {
+                let str = v.to_string().replace("\"", "");
+                let groups = str.split(".").filter_map(|g| match g.is_empty() {
                     true => None,
-                    false => Some(g.parse::<u16>().unwrap())
+                    false => {
+                        Some(g.parse::<u16>().unwrap())
+                    }
                 }).collect::<Vec<u16>>();
                 properties.remove("57");
                 groups
             },
             None => vec![]
         };
+
+        let mut properties_obj = GDObjProperties::new();
+        properties_obj.properties = properties;
         
         GDObject { 
             id,
@@ -177,7 +236,7 @@ impl GDObject {
                     multitriggerable 
                 }
             }, 
-            properties
+            properties: properties_obj
         }
     }
 
@@ -185,20 +244,17 @@ impl GDObject {
     /// 
     /// Example:
     /// ```
-    /// let object_str = GDObject::new(1, GDObjConfig::default(), HashMap::new()).to_string();
-    /// assert_eq!(object_str, "1,1,155,1,67,1,64,1,3,15.0,2,15.0;");
+    /// use gdlib::gdobj::{GDObject, GDObjConfig, GDObjProperties};
+    /// 
+    /// let object_str = GDObject::new(1, GDObjConfig::default(), GDObjProperties::new()).to_string();
+    /// assert_eq!(object_str, "1,1,155,1,2,0.0,3,0.0,64,1,67,1;");
     /// ```
     pub fn to_string(&self) -> String {
         let mut combined_properties = self.properties.clone();
-        combined_properties.extend(self.config.as_properties());
-        combined_properties = strip_default_vals(combined_properties);
+        combined_properties.properties.extend(self.config.as_properties());
+        combined_properties.strip_default_vals();
 
-        let mut raw_str = format!("1,{}", self.id);
-
-        for (k, v) in combined_properties.iter() {
-            raw_str += &format!(",{k},{}", v.to_string());
-        };
-
+        let raw_str = format!("1,{},{}", self.id, combined_properties.to_string());
         return raw_str.replace("\"", "") + ";";
     }
 
@@ -208,9 +264,9 @@ impl GDObject {
     }
 
     /// Creates a new GDObject from ID, config, and extra proerties
-    pub fn new(id: i32, config: GDObjConfig, properties: HashMap<String, Value>) -> Self {
+    pub fn new(id: i32, config: GDObjConfig, properties: GDObjProperties) -> Self {
         GDObject {
-            id, config, properties: properties
+            id, config, properties
         }
     }
 }
@@ -219,7 +275,7 @@ impl GDObject {
 /// * is touch triggerable?
 /// * is spawn triggerable?
 /// * is multitriggerable?
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TriggerConfig {
     pub touchable: bool,
     pub spawnable: bool,
@@ -232,7 +288,7 @@ pub struct TriggerConfig {
 /// * rotation angle
 /// * groups
 /// * trigger_cfg
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GDObjConfig {
     pub pos: (f32, f32),
     pub scale: (f32, f32),
