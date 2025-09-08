@@ -17,7 +17,7 @@ pub struct LevelsFileHeaders {
 }
 
 /// This struct contains all the levels of the savefile
-/// Fields:
+/// # Fields:
 /// * `levels`: The levels. Ones at the beginning are the most recently created.
 /// * `headers`: other information necessary for re-encoding
 pub struct Levels {
@@ -32,7 +32,7 @@ pub struct EncryptedLevelData {
 }
 
 /// This struct contains the objects of a level and its headers
-/// Fields:
+/// # Fields:
 /// * `objects`: Array of objects
 /// * `headers`: Other important information about the level 
 #[derive(Clone, Debug)]
@@ -49,7 +49,7 @@ pub enum LevelState {
 }
 
 /// This struct contains level-specific information
-/// Fields:
+/// # Fields:
 /// * `title`: Title of the level
 /// * `author`: Author of the level
 /// * `description`: Author of the description
@@ -210,7 +210,7 @@ impl Level {
         Ok(())
     }
 
-    /// Parses a `plist::dictionary` into a Level object
+    /// Parses a `plist::Dictionary` into a Level object
     pub fn from_dict(d: Dictionary) -> Self {
         // level data kv pairs
         // k2: level name
@@ -299,7 +299,7 @@ impl Level {
         }
     }
 
-    /// Returns this object as a `plist::dictionary`
+    /// Returns this object as a `plist::Dictionary`
     pub fn to_dict(&self) -> Dictionary {
         let mut properties = Dictionary::new();
         if let Some(v) = self.title.clone() {

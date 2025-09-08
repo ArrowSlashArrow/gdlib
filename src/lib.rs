@@ -49,7 +49,7 @@ mod tests {
         let data = first_level.get_decrypted_data().unwrap();
 
         for (idx, obj) in data.objects.iter().enumerate() {
-            println!("{idx}: {obj}");
+            println!("{idx}: {obj:?}");
         }   
     }
 

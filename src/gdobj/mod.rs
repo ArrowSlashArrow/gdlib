@@ -8,7 +8,7 @@ use crate::utils::properties_from_json;
 pub mod triggers;
 pub mod misc;
 
-/// Default values of GD object properties
+/// Default values of GD object properties: 
 /// (property, type, value) 
 pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
     ("6", "float", 0.0),
@@ -17,6 +17,23 @@ pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
     ("11", "bool", 0.0), 
     ("62", "bool", 0.0), 
     ("87", "bool", 0.0), 
+];
+
+// TODO: fill in all the properties
+// btw, if anyone has a better idea to represent property descriptors (they differ from object to object), lmk
+/// Names of properties (INCOMPLETE): 
+/// (property, name)
+pub const PROPERTY_NAMES: &[(&str, &str)] = &[
+    ("2", "x pos"),
+    ("3", "y pos"),
+    ("31", "Base64-encoded text"),
+    ("80", "Group/item 1"),
+    ("95", "Group/item 2"),
+    ("51", "Target group/item"),
+    ("476", "First item type"),
+    ("477", "Second item type"),
+    ("479", "Modifier"),
+    ("483", "Second modifier"),
 ];
 
 pub const OBJ_NAMES: &[(i32, &str)] = &[
@@ -40,7 +57,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
 /// * `id`: The object's ID.
 /// * `config`: General properties like position and scale.
 /// * `properties`: Object-specific properties like target group for a move trigger
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct GDObject {
     pub id: i32,
     pub config: GDObjConfig,
@@ -68,7 +85,10 @@ fn get_num(properties: &mut HashMap<String, Value>, key: &str) -> Option<Number>
     match properties.get_mut(key) {
         Some(v) => {
             // return val if known
-            let val = as_number(v.clone()).unwrap();
+            let val = match as_number(v.clone()) {
+                None => return None,
+                Some(v) => v
+            };
             properties.remove(key);
             Some(val)
         },
@@ -84,19 +104,21 @@ fn get_num(properties: &mut HashMap<String, Value>, key: &str) -> Option<Number>
     }
 }
 
-fn get_float(properties: &mut HashMap<String, Value>, key: &str) -> f32 {
-    get_num(properties, key).unwrap().as_f64().unwrap() as f32
-}
-
-fn get_int(properties: &mut HashMap<String, Value>, key: &str) -> i32 {
-    get_num(properties, key).unwrap().as_i64().unwrap() as i32
-}
-
-fn get_bool(properties: &mut HashMap<String, Value>, key: &str) -> bool {
-    match properties.get_mut(key) {
-        Some(_) => true,
-        None => false
+fn get_float(properties: &mut HashMap<String, Value>, key: &str, default: f32) -> f32 {
+    match get_num(properties, key) {
+        Some(n) => n.as_f64().unwrap() as f32,
+        None => default
     }
+}
+
+fn get_int(properties: &mut HashMap<String, Value>, key: &str, default: i32) -> i32 {
+    match get_num(properties, key) {
+        Some(n) => n.as_i64().unwrap() as i32,
+        None => default
+    }
+}
+fn get_bool(properties: &mut HashMap<String, Value>, key: &str) -> bool {
+    properties.get_mut(key).is_some()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -160,13 +182,43 @@ impl Display for GDObject {
             false => ""
         };
 
-        write!(f, "{} @ ({}, {}) scaled to ({}, {}){}", 
+        let mut trigger_conf_str = String::new();
+        if self.config.trigger_cfg.spawnable || self.config.trigger_cfg.touchable {
+            if self.config.trigger_cfg.multitriggerable {
+                trigger_conf_str += "Multi"
+            }
+            if self.config.trigger_cfg.touchable {
+                trigger_conf_str += "touchable "
+            } else if self.config.trigger_cfg.spawnable {
+                trigger_conf_str += "spawnable "
+            }
+        }
+
+        write!(f, "{trigger_conf_str}{} @ ({}, {}) scaled to ({}, {}){} angled {}°", 
             self.name(), 
             self.config.pos.0, 
             self.config.pos.1, 
             self.config.scale.0, 
             self.config.scale.1,
-            group_str
+            group_str,
+            self.config.angle
+        )
+    }
+}
+
+impl Debug for GDObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut property_str = String::new();
+        for (pname, value) in self.properties.properties.iter() {
+            let descriptor = match PROPERTY_NAMES.iter().find(|&p| p.0 == pname) {
+                Some(v) => v.1,
+                None => &pname
+            };
+            property_str += &format!("\n    - {descriptor}: {value}");
+        }  
+
+        write!(f, "{} with properties:{property_str}", 
+            <Self as ToString>::to_string(self),
         )
     }
 }
@@ -182,7 +234,6 @@ impl GDObject {
     /// assert_eq!(obj, GDObject::new(1, GDObjConfig::default(), GDObjProperties::new()));
     /// ```
     pub fn parse_str(s: &str) -> Self {
-        dbg!(s);
         let mut properties: HashMap<String, Value> = HashMap::new();
         let mut current_property = String::new();
         for (idx, val) in s[..s.len() - 1].split(",").into_iter().enumerate() {
@@ -193,12 +244,14 @@ impl GDObject {
             }
         }
 
-        let id = get_int(&mut properties, "1");
-        let xpos = get_float(&mut properties, "2");
-        let ypos = get_float(&mut properties, "3");
-        let xscale = get_float(&mut properties, "128");
-        let yscale = get_float(&mut properties, "129");
-        let angle = get_float(&mut properties, "6");
+        // TODO: USE THE DEFAULT VALUES VEC!!!!!!!! IF THERE ISNT A 129 IN THE OBJ STR, THIS FN CANT FIND IT!!
+
+        let id = get_int(&mut properties, "1", 0);
+        let xpos = get_float(&mut properties, "2", 0.0);
+        let ypos = get_float(&mut properties, "3", 0.0);
+        let xscale = get_float(&mut properties, "128", 0.0);
+        let yscale = get_float(&mut properties, "129", 0.0);
+        let angle = get_float(&mut properties, "6", 0.0);
 
         let touchable = get_bool(&mut properties, "11");
         let spawnable = get_bool(&mut properties, "62");
