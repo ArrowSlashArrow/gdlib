@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::{decode_levels_to_string, decompress, decrypt}, 
         gdlevel::{Level, LevelData, LevelState, Levels},
-        gdobj::{misc, triggers::{self, alpha_trigger, colour_trigger, start_pos, stop_trigger, toggle_trigger}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -59,13 +59,19 @@ mod tests {
         level.export_to_gmd("GMDS/level_export.gmd").unwrap();
     }
 
-    // #[test]
-    // fn trigger() {
-    //     let mut levels = Levels::from_local().unwrap();
-    //     let level = levels.levels.first_mut().unwrap();
-    //     let objects = &level.get_decrypted_data().unwrap().objects;
-    //     for obj in objects {
-    //         println!("{obj:?}");
-    //     }
-    // }
+    #[test]
+    fn trigger() {
+        let mut levels = Levels::from_local().unwrap();
+        let level = levels.levels.first_mut().unwrap();
+        let objects = &level.get_decrypted_data().unwrap().objects;
+        for obj in objects {
+            println!("{obj:?}");
+        }
+
+        level.add_object(triggers::transition_object(GDObjConfig::new().pos(45.0, 45.0), 
+            triggers::TransitionType::AwayToRight, triggers::TransitionMode::Both, None
+        ));
+
+        levels.export_to_savefile().unwrap();
+    }
 }

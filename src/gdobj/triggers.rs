@@ -26,6 +26,33 @@ pub enum StopMode {
     Resume = 2
 }
 
+/// Enum for transition object enter/exit config
+#[repr(i32)]
+#[derive(PartialEq)]
+pub enum TransitionMode {
+    Both = 0,
+    Enter = 1,
+    Exit = 2
+}
+
+/// Enum for transition object type (from top, from bottom, etc.)
+#[repr(i32)]
+pub enum TransitionType {
+    Fade = 22,
+    FromBottom = 23,
+    FromTop = 24,
+    FromLeft = 25,
+    FromRight = 26,
+    ScaleIn = 27,
+    ScaleOut = 28,
+    Random = 55,
+    AwayToLeft = 56,
+    AwayToRight = 57,
+    AwayFromMiddle = 58,
+    TowardsMiddle = 59,
+    None = 1915
+}
+
 // tehcnically this aint the full thing but yk its good enough (for now...)
 /// Returns a move trigger object
 /// 
@@ -275,10 +302,38 @@ pub fn toggle_trigger(
     GDObject::new(1049, config, GDObjProperties::from_json(properties))
 }
 
+
+/// Returns a transition object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `transition`: Type of transition. See `TransitionType` struct
+/// * `mode`: Mode for transition (enter/exit only). See `TransitionMode` struct
+/// * `target_channel`: Optional target channel argument which specifies a channel for this transition.
+pub fn transition_object(
+    config: GDObjConfig,
+    transition: TransitionType,
+    mode: TransitionMode,
+    target_channel: Option<i32>
+) -> GDObject {
+    let mut properties = json!({});
+    let map = properties.as_object_mut().unwrap();
+
+    if mode != TransitionMode::Both {
+        map.insert("217".to_string(), Value::from(mode as i32));
+    }
+    if let Some(channel) = target_channel {
+        map.insert("344".to_string(), Value::from(channel));
+    }
+    
+    GDObject::new(transition as i32, config, GDObjProperties::from_json(properties))
+}
+
 /* TODO: trigger constructors
- * move trigger (all options)
+ * 2nd part of basics
  * pulse trigger
- * spawn trigger 
+ * 
+ * Animation triggers
+ * move trigger (all options)
  * rotate trigger
  * scale trigger
  * follow trigger
@@ -287,9 +342,11 @@ pub fn toggle_trigger(
  * frame trigger
  * follor player y
  * advanced follow
- * edit advanced follor
- * re target advanced follow
+ * edit advanced follow
+ * re-target advanced follow
  * keyframe setup trigger
+ * 
+ * Area triggers
  * area move
  * area rotate
  * area scale
@@ -307,24 +364,38 @@ pub fn toggle_trigger(
  * enter area tint
  * enter area stop
  * area stop
+ * 
+ * Background triggers
  * switch bg
  * sdwitch ground
  * switch mg
+ * middleground config
+ * bg speed config
+ * mg speed config
+ * bg effect on
+ * bg effect off
+ * 
+ * Item triggers
+ * counter object
  * touch trigger
  * count trigger
  * instant count trigger
  * pickup trigger
- * time trigger
- * time event trigger
- * time control trigger
  * item edit
  * item compare
- * persistnet item
+ * persistent item
+ * 
+ * Spawner triggers
+ * spawn trigger 
  * random trigger
  * advanced random
  * sequence
+ * event trigger
  * spawn particle
  * reset
+ * on death
+ * 
+ * Camera
  * zoom camera
  * static camera
  * offset camera
@@ -332,39 +403,48 @@ pub fn toggle_trigger(
  * rotate camera
  * edge camera
  * camera mode
+ * 
+ * Gameplay triggers
  * reverse gameplay
  * rotate gameplay
+ * 
+ * Sound triggers
  * song trigger
  * edit song trigger
  * sfx trigger
  * edit sfx trigger
- * event trigger
+ * 
+ * Time triggers
  * timewarp
- * middleground config
- * bg speed config
- * mg speed config
- * counter
+ * time trigger
+ * time event trigger
+ * time control trigger
+ * 
+ * Misc.
  * ui config
  * link visible
+ * end trigger
+ * bpm marker
+ * gradient
+ * 
+ * Collision blocks
  * collision trigger
  * instant collision
  * state block
  * collision block
  * toggle block
- * on death
+ * 
+ * Player triggers
  * disable player trail
  * enable player trail
  * show player
  * hide player
- * bg effect on
- * bg effect off
- * end trigger
  * player control
  * options
- * bpm marker
- * gradient
  * gravity trigger
  * teleport trigger
+ * 
+ * Shaders
  * shader setup
  * shock wave shader
  * shock line shader
@@ -383,17 +463,4 @@ pub fn toggle_trigger(
  * hue shader
  * edit colour shader
  * split screen shader
- * no block transitions
- * object from top transition
- * object from bottom transition
- * object from left transition
- * object from right transition
- * object scale in transition
- * object scale out transition
- * object random direction transition
- * object away left transition
- * object away right transition
- * object from middle transition
- * object to middle transition
- * no object transition
  */

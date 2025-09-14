@@ -29,12 +29,13 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("7", "Red"),
     ("8", "Green"),
     ("9", "Blue"),
-    ("10", "Fade time"),
+    ("10", "Fade time/duration"),
     ("15", "Using player colour 1"),
     ("16", "Using player colour 2"),
     ("17", "Blending enabled"),
     ("31", "Base64-encoded text"),
     ("35", "Opacity"),
+    ("36", "Is active trigger?"),
     ("80", "Group/item 1"),
     ("95", "Group/item 2"),
     ("49", "Copy colour specs"),
@@ -42,6 +43,8 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("51", "Target group/item"),
     ("60", "Copy opacity"),
     ("210", "No legacy HSV"),
+    ("217", "Enter/Exit transition config"),
+    ("344", "Target transition channel"),
     ("476", "First item type"),
     ("477", "Second item type"),
     ("479", "Modifier"),
@@ -63,6 +66,20 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
 /// Map of all object ids to names: (id, name)
 pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1, "Default block"),
+    (8, "Spike"),
+    (39, "Small spike"),
+    (22, "No block transition object"),
+    (23, "Blocks from top transition object"),
+    (24, "Blocks from bottom transition object"),
+    (25, "Blocks from left transition object"),
+    (26, "Blocks from right transition object"),
+    (27, "Scale in transition object"),
+    (28, "Scale out transition object"),
+    (55, "Random direction transition object"),
+    (56, "Away to left transition object"),
+    (57, "Away to right transition object"),
+    (58, "Away from middle transition object"),
+    (59, "Away to middle transition object"),
     (31, "Start pos"),
     (899, "Colour trigger"),
     (901, "Move trigger"),
@@ -74,6 +91,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1616, "Stop trigger"),
     (1815, "Collision trigger"),
     (1816, "Collision block"),
+    (1915, "Don't fade + don't enter transition object"),
     (1935, "Time warp trigger"),
     (3619, "Item edit trigger"),
     (3620, "Item compare trigger"),
@@ -264,15 +282,13 @@ impl GDObject {
     pub fn parse_str(s: &str) -> Self {
         let mut properties: HashMap<String, Value> = HashMap::new();
         let mut current_property = String::new();
-        for (idx, val) in s[..s.len() - 1].split(",").into_iter().enumerate() {
+        for (idx, val) in s.trim_end_matches(';').split(",").into_iter().enumerate() {
             if idx % 2 == 0 { // key
                 current_property = val.to_string();
             } else { // value
                 properties.insert(current_property.clone(), Value::from(val));
             }
         }
-
-        // TODO: USE THE DEFAULT VALUES VEC!!!!!!!! IF THERE ISNT A 129 IN THE OBJ STR, THIS FN CANT FIND IT!!
 
         let id = get_int(&mut properties, "1", 0);
         let xpos = get_float(&mut properties, "2", 0.0);

@@ -153,7 +153,7 @@ impl Levels {
     }
 
     /// Exports this struct as encrypted XML to CCLocalLevels.dat
-    pub fn write_to_savefile(&mut self) -> Result<(), Box<dyn Error>>{
+    pub fn export_to_savefile(&mut self) -> Result<(), Box<dyn Error>>{
         let savefile = get_local_levels_path()?;
         let export_str = encrypt_savefile_str(self.export_to_string());
         write(savefile, export_str)?;
@@ -161,7 +161,7 @@ impl Levels {
     }
 
     /// Exports this struct as encrypted XML to CCLocalLevels.dat and creates a backup, CCLocalLevels.dat.bak
-    pub fn write_to_savefile_with_backup(&mut self) -> Result<(), Box<dyn Error>>{
+    pub fn export_to_savefile_with_backup(&mut self) -> Result<(), Box<dyn Error>>{
         let savefile = get_local_levels_path()?;
         let backup_path = format!("{}.bak", savefile.to_string_lossy());
         write(backup_path, read(&savefile)?)?;
