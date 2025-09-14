@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::{decode_levels_to_string, decompress, decrypt}, 
         gdlevel::{Level, LevelData, LevelState, Levels},
-        gdobj::{misc, triggers::{self, colour_trigger, start_pos, stop_trigger}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers::{self, alpha_trigger, colour_trigger, start_pos, stop_trigger}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -68,7 +68,7 @@ mod tests {
             println!("{obj:?}");
         }
 
-        level.add_object(stop_trigger(GDObjConfig::default(), 50, triggers::StopMode::Resume, false));
+        level.add_object(alpha_trigger(GDObjConfig::default(), 50, 0.676767, 0.898989));
 
         levels.write_to_savefile().unwrap();
     }

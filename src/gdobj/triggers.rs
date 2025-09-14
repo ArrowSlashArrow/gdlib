@@ -232,9 +232,21 @@ pub fn stop_trigger(
     GDObject::new(1616, config, properties)
 }
 
+pub fn alpha_trigger(
+    config: GDObjConfig,
+    target_group: i32,
+    opacity: f32,
+    fade_time: f32
+) -> GDObject {
+    GDObject::new(1007, config, GDObjProperties::from_json(json!({
+        "10": fade_time,
+        "35": opacity,
+        "51": target_group
+    })))
+}
+
 /* TODO: trigger constructors
  * move trigger (all options)
- * stop trigger
  * pulse trigger
  * alpha trigger
  * toggle trigger

@@ -67,6 +67,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (899, "Colour trigger"),
     (901, "Move trigger"),
     (914, "Text object"),
+    (1007, "Alpha trigger"),
     (1049, "Toggle trigger"),
     (1268, "Spawn trigger"),
     (1615, "Counter"),
