@@ -210,7 +210,7 @@ pub fn colour_trigger(
     GDObject::new(899, config, GDObjProperties::from_json(properties))
 }
 
-/// Returns a colour trigger
+/// Returns a stop trigger
 /// 
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -232,6 +232,13 @@ pub fn stop_trigger(
     GDObject::new(1616, config, properties)
 }
 
+/// Returns an alpha trigger
+/// 
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: Target group to stop/pause/resume
+/// * `opacity`: Opacity to set group at
+/// * `fade_time`: Time to fade to the opacity
 pub fn alpha_trigger(
     config: GDObjConfig,
     target_group: i32,
@@ -245,11 +252,32 @@ pub fn alpha_trigger(
     })))
 }
 
+/// Returns a toggle trigger
+/// 
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: Target group to stop/pause/resume
+/// * `activate_group`: Active group instead of deactivating?
+pub fn toggle_trigger(
+    config: GDObjConfig,
+    target_group: i32,
+    activate_group: bool
+) -> GDObject {
+    let mut properties = json!({
+        "51": target_group,
+        "64": "1",
+        "67": ""
+    });
+    let map = properties.as_object_mut().unwrap();
+    if activate_group {
+        map.insert("56".to_string(), Value::from("1"));
+    }
+    GDObject::new(1049, config, GDObjProperties::from_json(properties))
+}
+
 /* TODO: trigger constructors
  * move trigger (all options)
  * pulse trigger
- * alpha trigger
- * toggle trigger
  * spawn trigger 
  * rotate trigger
  * scale trigger
