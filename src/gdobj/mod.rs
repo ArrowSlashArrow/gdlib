@@ -26,7 +26,12 @@ pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
 pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("2", "x pos"),
     ("3", "y pos"),
+    ("7", "Red"),
+    ("8", "Green"),
+    ("9", "Blue"),
+    ("10", "Fade time"),
     ("31", "Base64-encoded text"),
+    ("35", "Opacity"),
     ("80", "Group/item 1"),
     ("95", "Group/item 2"),
     ("51", "Target group/item"),

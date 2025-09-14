@@ -18,6 +18,7 @@ pub enum Gamemode {
     Swing = 7
 }
 
+// tehcnically this aint the full thing but yk its good enough (for now...)
 /// Returns a move trigger object
 /// 
 /// # Arguments
@@ -150,9 +151,33 @@ pub fn start_pos(
     GDObject::new(31, config, GDObjProperties::from_json(properties))
 }
 
+/// Returns a colour trigger
+/// 
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `colour`: (R, G, B) tuple of `u8`s
+/// * `fade_time`: Time to fade into the colour
+/// * `opacity`: Opacity of colour 
+pub fn colour_trigger(
+    config: GDObjConfig,
+    colour: (u8, u8, u8),
+    fade_time: f32,
+    opacity: f32
+) -> GDObject {
+    let properties = GDObjProperties::from_json(json!({
+        "155": "1",
+        "36": "1",
+        "7": colour.0,
+        "8": colour.1,
+        "9": colour.2,
+        "10": fade_time,
+        "35": opacity
+    }));
+
+    GDObject::new(899, config, properties)
+}
 
 /* TODO: trigger constructors
- * colour trigger
  * move trigger (all options)
  * stop trigger
  * pulse trigger
