@@ -2,7 +2,7 @@
 //! # ⚠️ Warning
 //! **This file is incomplete. More triggers will be added in the future.**
 
-use serde_json::json;
+use serde_json::{json, Value};
 use crate::{gdobj::{GDObjConfig, GDObjProperties, GDObject}, utils::clamp_to_values};
 
 /// Enum for the GD gamemodes corresponding to their internal values
@@ -16,6 +16,14 @@ pub enum Gamemode {
     Robot = 5,
     Spider = 6,
     Swing = 7
+}
+
+/// Enum for stop trigger modes
+#[repr(i32)]
+pub enum StopMode {
+    Stop = 0,
+    Pause = 1,
+    Resume = 2
 }
 
 // tehcnically this aint the full thing but yk its good enough (for now...)
@@ -84,7 +92,6 @@ pub fn move_trigger(
 /// # ⚠️ Warning
 /// This object is VERY WEIRD. There are 25 properties that serve an unknown purpose. 
 /// This is also the only object with non-integer properties (kA1, kA2, ...)
-/// It will randomly not generate/replace other startposes. 
 /// The reverse gameplay option is always on for some unknown reason. USE AT YOUR OWN RISK!!
 pub fn start_pos(
     config: GDObjConfig,
@@ -121,8 +128,6 @@ pub fn start_pos(
         "kA26": target_channel,
         "kA35": reset_camera as i32,
         // and then whatever the fuck these are
-        "155": "1",
-        "36": "1",
         "kA10": "0",
         "kA11": "",
         "kA20": "1",
@@ -158,23 +163,73 @@ pub fn start_pos(
 /// * `colour`: (R, G, B) tuple of `u8`s
 /// * `fade_time`: Time to fade into the colour
 /// * `opacity`: Opacity of colour 
+/// * `blending`: Use blending? 
+/// * `use_player_col_1`: Use player colour 1 instead of the specified colour. 
+/// * `use_player_col_2`: Use player colour 2 instead of the specified colour. 
+/// * `copy_colour`: None: Don't copy colour; Some: Copy colour with this configuation: 
+/// (original channel, hue shift, saturation multiplier, brightness multiplier, use legacy hsv?, copy opacity?) 
 pub fn colour_trigger(
     config: GDObjConfig,
     colour: (u8, u8, u8),
     fade_time: f32,
-    opacity: f32
+    opacity: f32,
+    blending: bool,
+    use_player_col_1: bool,
+    use_player_col_2: bool,
+    copy_colour: Option<(i32, i32, f32, f32, bool, bool)>
 ) -> GDObject {
-    let properties = GDObjProperties::from_json(json!({
-        "155": "1",
-        "36": "1",
+    let mut properties = json!({
         "7": colour.0,
         "8": colour.1,
         "9": colour.2,
         "10": fade_time,
+        "15": use_player_col_1 as i32,
+        "16": use_player_col_2 as i32,
         "35": opacity
+    });
+
+    let map = properties.as_object_mut().unwrap();
+
+    if blending {
+        map.insert("17".to_string(), Value::from(""));
+    }
+
+    if let Some((channel, hue, saturation, lightness, legacy_hsv, copy_opacity)) = copy_colour {
+        let mut cfg_string = format!("{hue}a{saturation}a{lightness}a0a");
+        if !legacy_hsv {
+            cfg_string += "0";
+            map.insert("210".to_string(), Value::from(""));
+        }
+        if copy_opacity {
+            map.insert("60".to_string(), Value::from("1"));
+        }
+        map.insert("49".to_string(), Value::from(cfg_string));
+        map.insert("50".to_string(), Value::from(channel));
+    }
+
+    GDObject::new(899, config, GDObjProperties::from_json(properties))
+}
+
+/// Returns a colour trigger
+/// 
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: Target group to stop/pause/resume
+/// * `stop_mode`: Stop mode (see `StopMode` struct)
+/// * `use_control_id`: Only stops certain triggers within a group if enabled.
+pub fn stop_trigger(
+    config: GDObjConfig,
+    target_group: i32,
+    stop_mode: StopMode,
+    use_control_id: bool
+) -> GDObject {
+    let properties = GDObjProperties::from_json(json!({
+        "51": target_group,
+        "535": use_control_id as i32,
+        "580": stop_mode as i32
     }));
 
-    GDObject::new(899, config, properties)
+    GDObject::new(1616, config, properties)
 }
 
 /* TODO: trigger constructors

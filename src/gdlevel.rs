@@ -343,10 +343,10 @@ impl Level {
 }
 
 impl LevelData {
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         let objstr = self.objects.iter()
             .map(|obj| obj.to_string()).collect::<Vec<String>>().join("");
-        let unencrypted = self.headers.clone() + &objstr;
+        let unencrypted = format!("{};{objstr}", self.headers.clone());
         return vec_as_str(&encrypt_level_str(unencrypted))
     }
 }

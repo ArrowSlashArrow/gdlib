@@ -9,9 +9,9 @@ pub mod utils;
 #[cfg(test)]
 mod tests {
     use crate::{
-        deserialiser::decode_levels_to_string, 
-        gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, start_pos}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        deserialiser::{decode_levels_to_string, decompress, decrypt}, 
+        gdlevel::{Level, LevelData, LevelState, Levels},
+        gdobj::{misc, triggers::{self, colour_trigger, start_pos, stop_trigger}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -67,5 +67,9 @@ mod tests {
         for obj in objects {
             println!("{obj:?}");
         }
+
+        level.add_object(stop_trigger(GDObjConfig::default(), 50, triggers::StopMode::Resume, false));
+
+        levels.write_to_savefile().unwrap();
     }
 }
