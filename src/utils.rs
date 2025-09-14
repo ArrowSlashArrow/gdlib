@@ -1,5 +1,5 @@
 //! This module contains various utilities for debugging and processing structs
-use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
+use std::{collections::HashMap, env, error::Error, fs, ops::Sub, path::{Path, PathBuf}, time::Instant};
 use aho_corasick::AhoCorasick;
 use serde_json::Value;
 
@@ -71,4 +71,12 @@ pub fn proper_plist_tags(s: String) -> String {
     let ac = AhoCorasick::new(find).unwrap();
     let plist = ac.replace_all(&s, replace);
     return plist
+}
+
+pub fn clamp_to_values(val: f64, clamps: &[f64]) -> f64 {
+    clamps.iter().min_by(|&&a, &&b| {
+        let dist_a = (a - val).abs();
+        let dist_b = (b - val).abs();
+        dist_a.partial_cmp(&dist_b).unwrap()
+    }).unwrap().clone()
 }

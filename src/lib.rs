@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{triggers, misc, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers::{self, start_pos}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -57,5 +57,15 @@ mod tests {
     fn gmd_conversion() {
         let level = Level::from_gmd("GMDS/level.gmd").unwrap();
         level.export_to_gmd("GMDS/level_export.gmd").unwrap();
+    }
+
+    #[test]
+    fn trigger() {
+        let mut levels = Levels::from_local().unwrap();
+        let level = levels.levels.first_mut().unwrap();
+        let objects = &level.get_decrypted_data().unwrap().objects;
+        for obj in objects {
+            println!("{obj:?}");
+        }
     }
 }

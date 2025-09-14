@@ -1,6 +1,6 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{collections::HashMap, fmt::{Debug, Display}};
+use std::{collections::{BTreeMap, HashMap}, fmt::{Debug, Display}};
 use serde_json::{json, Number, Value};
 
 use crate::utils::properties_from_json;
@@ -34,10 +34,24 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("477", "Second item type"),
     ("479", "Modifier"),
     ("483", "Second modifier"),
+    // these are all startpos properties:
+    ("kA4", "Starting speed"),
+    ("kA2", "Starting gamemode"),
+    ("kA3", "Starting in mini mode?"),
+    ("kA8", "Starting in dual mode?"),
+    ("kA21", "Is disabled?"),
+    ("kA28", "Starting in mirror mode?"),
+    ("kA29", "Rotate gameplay?"),
+    ("kA20", "Reverse gameplay?"),
+    ("kA19", "Target order"),
+    ("kA26", "Target channel"),
+    ("kA35", "Reset camera?")
 ];
 
+/// Map of all object ids to names: (id, name)
 pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1, "Default block"),
+    (31, "Start pos"),
     (899, "Colour trigger"),
     (901, "Move trigger"),
     (914, "Text object"),
@@ -209,8 +223,9 @@ impl Display for GDObject {
 impl Debug for GDObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut property_str = String::new();
-        for (pname, value) in self.properties.properties.iter() {
-            let descriptor = match PROPERTY_NAMES.iter().find(|&p| p.0 == pname) {
+        let sorted: BTreeMap<_, _> = self.properties.properties.iter().collect();
+        for (pname, value) in sorted.iter() {
+            let descriptor = match PROPERTY_NAMES.iter().find(|&p| p.0 == *pname) {
                 Some(v) => v.1,
                 None => &pname
             };
@@ -371,6 +386,11 @@ impl GDObjConfig {
                 multitriggerable: false 
             }
         }
+    }
+
+    /// Alias for default
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Converts this config to a properties hashmap
