@@ -45,10 +45,22 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("210", "No legacy HSV"),
     ("217", "Enter/Exit transition config"),
     ("344", "Target transition channel"),
+    ("392", "Song ID"),
+    ("399", "Prep?"),
+    ("400", "Load Prep?"),
+    ("404", "Song speed"),
+    ("406", "Song volume"),
+    ("408", "Start offset in ms"),
+    ("409", "Fade in time in ms"),
+    ("410", "End offset in ms"),
+    ("411", "Fade out time in ms"),
+    ("413", "Loop song?"),
+    ("432", "Song channel"),
     ("476", "First item type"),
     ("477", "Second item type"),
     ("479", "Modifier"),
     ("483", "Second modifier"),
+    ("595", "Don't stop song on death"),
     // these are all startpos properties:
     ("kA4", "Starting speed"),
     ("kA2", "Starting gamemode"),
@@ -92,10 +104,13 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1815, "Collision trigger"),
     (1816, "Collision block"),
     (1915, "Don't fade + don't enter transition object"),
+    (1917, "Reverse gameplay"),
+    (1934, "Song trigger"),
     (1935, "Time warp trigger"),
     (3619, "Item edit trigger"),
     (3620, "Item compare trigger"),
-    (3641, "Persistent item trigger")
+    (3641, "Persistent item trigger"),
+    (3662, "Link visible trigger"),
 ];
 
 /// Container for GD Object properties.

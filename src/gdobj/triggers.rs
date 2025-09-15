@@ -302,7 +302,6 @@ pub fn toggle_trigger(
     GDObject::new(1049, config, GDObjProperties::from_json(properties))
 }
 
-
 /// Returns a transition object
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -327,6 +326,29 @@ pub fn transition_object(
     
     GDObject::new(transition as i32, config, GDObjProperties::from_json(properties))
 }
+
+/// Returns a reverse gameplay trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn reverse_gameplay(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1917, config, GDObjProperties::new())
+}
+
+/// Returns a link visible trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: group that is linked visibly
+pub fn link_visible(
+    config: GDObjConfig,
+    target_group: i32
+) -> GDObject {
+    GDObject::new(3662, config, GDObjProperties::from_json(json!({
+        "51": target_group
+    })))
+}
+
 
 /* TODO: trigger constructors
  * 2nd part of basics
@@ -405,7 +427,6 @@ pub fn transition_object(
  * camera mode
  * 
  * Gameplay triggers
- * reverse gameplay
  * rotate gameplay
  * 
  * Sound triggers
@@ -422,7 +443,6 @@ pub fn transition_object(
  * 
  * Misc.
  * ui config
- * link visible
  * end trigger
  * bpm marker
  * gradient

@@ -68,10 +68,10 @@ mod tests {
             println!("{obj:?}");
         }
 
-        level.add_object(triggers::transition_object(GDObjConfig::new().pos(45.0, 45.0), 
-            triggers::TransitionType::AwayToRight, triggers::TransitionMode::Both, None
-        ));
+        // level.add_object(triggers::transition_object(GDObjConfig::new().pos(45.0, 45.0), 
+        //     triggers::TransitionType::AwayToRight, triggers::TransitionMode::Both, None
+        // ));
 
-        levels.export_to_savefile().unwrap();
+        // levels.export_to_savefile().unwrap();
     }
 }
