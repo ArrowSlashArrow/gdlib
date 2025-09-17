@@ -435,7 +435,7 @@ pub fn group_reset(
     config: GDObjConfig,
     target_group: i32
 ) -> GDObject {
-    GDObject::new(3662, config, GDObjProperties::from_json(json!({
+    GDObject::new(3618, config, GDObjProperties::from_json(json!({
         "51": target_group
     })))
 }
@@ -568,6 +568,26 @@ pub fn item_edit(
     })))
 }
 
+/// Returns a random trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `chance`: chance to trigger group 1
+/// * `target_group1`: target group 1
+/// * `target_group1`: target group 2
+pub fn random_trigger(
+    config: GDObjConfig,
+    chance: f32,
+    target_group1: i32,
+    target_group2: i32
+) -> GDObject {
+    GDObject::new(1912, config, GDObjProperties::from_json(json!({
+        "51": target_group1,
+        "71": target_group2,
+        "10": chance
+    })))
+}
+
+
 /* TODO: trigger constructors
  * 2nd part of basics
  * pulse trigger
@@ -629,7 +649,6 @@ pub fn item_edit(
  * sequence
  * event trigger
  * spawn particle
- * reset
  * on death
  * 
  * Camera

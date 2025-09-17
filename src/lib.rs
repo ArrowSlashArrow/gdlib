@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn trigger() {
-        let mut level = Level::from_gmd("GMD_tests/Unnamed 25.gmd").unwrap();
+        let mut level = Level::from_gmd("GMDS/Unnamed 25.gmd").unwrap();
         let objects = &level.get_decrypted_data().unwrap().objects;
         for obj in objects {
             println!("{obj:?}");
