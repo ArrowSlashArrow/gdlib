@@ -11,7 +11,7 @@ A library to interface with GD savefiles built in rust.
 Install this crate through `cargo add gdlib`
 
 Example code:
-```
+```rs
 use gdlib::gdlevel::{Level, Levels};
 use gdlib::gdobj::{misc, triggers, GDObjConfig};
 

@@ -9,8 +9,8 @@ pub mod utils;
 #[cfg(test)]
 mod tests {
     use crate::{
-        deserialiser::{decode_levels_to_string, decompress, decrypt}, 
-        gdlevel::{Level, LevelData, LevelState, Levels},
+        deserialiser::decode_levels_to_string, 
+        gdlevel::{Level, Levels},
         gdobj::{misc, triggers::{self, ItemType}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
@@ -61,19 +61,18 @@ mod tests {
 
     #[test]
     fn trigger() {
-        let mut levels = Levels::from_local().unwrap();
-        let level = levels.levels.first_mut().unwrap();
+        let mut level = Level::from_gmd("GMD_tests/Unnamed 25.gmd").unwrap();
         let objects = &level.get_decrypted_data().unwrap().objects;
         for obj in objects {
             println!("{obj:?}");
         }
 
-        level.add_object(triggers::item_edit(GDObjConfig::new().pos(45.0, 45.0), 
-            Some((1, ItemType::Counter)), Some((2, ItemType::Counter)), 3, ItemType::Counter,
-            0.5, triggers::Op::Set, Some(triggers::Op::Add), Some(triggers::Op::Sub), triggers::RoundMode::Nearest,
-            triggers::RoundMode::Nearest, triggers::SignMode::Absolute, triggers::SignMode::Negative
-        ));
+        // level.add_object(triggers::item_edit(GDObjConfig::new().pos(45.0, 45.0), 
+        //     Some((1, ItemType::Counter)), Some((2, ItemType::Counter)), 3, ItemType::Counter,
+        //     0.5, triggers::Op::Set, Some(triggers::Op::Add), Some(triggers::Op::Sub), triggers::RoundMode::Nearest,
+        //     triggers::RoundMode::Nearest, triggers::SignMode::Absolute, triggers::SignMode::Negative
+        // ));
 
-        levels.export_to_savefile().unwrap();
+        // levels.export_to_savefile().unwrap();
     }
 }

@@ -262,7 +262,8 @@ pub fn start_pos(
 /// * `use_player_col_1`: Use player colour 1 instead of the specified colour. 
 /// * `use_player_col_2`: Use player colour 2 instead of the specified colour. 
 /// * `copy_colour`: None: Don't copy colour; Some: Copy colour with this configuation: 
-/// (original channel, hue shift, saturation multiplier, brightness multiplier, use legacy hsv?, copy opacity?) 
+/// (original channel, hue shift, saturation multiplier, brightness multiplier, static saturation scalar?, 
+/// static brightness scalar?, use legacy hsv?, copy opacity?) 
 pub fn colour_trigger<T: Into<i32>>(
     config: GDObjConfig,
     colour: (u8, u8, u8),
@@ -272,7 +273,7 @@ pub fn colour_trigger<T: Into<i32>>(
     blending: bool,
     use_player_col_1: bool,
     use_player_col_2: bool,
-    copy_colour: Option<(i32, i32, f32, f32, bool, bool)>
+    copy_colour: Option<(T, i32, f32, f32, bool, bool, bool, bool)>
 ) -> GDObject {
     let mut properties = json!({
         "7": colour.0,
@@ -291,17 +292,17 @@ pub fn colour_trigger<T: Into<i32>>(
         map.insert("17".to_string(), Value::from(""));
     }
 
-    if let Some((channel, hue, saturation, lightness, legacy_hsv, copy_opacity)) = copy_colour {
-        let mut cfg_string = format!("{hue}a{saturation}a{lightness}a0a");
+    if let Some((channel, hue, saturation, lightness, static_sat_scalar, static_brightness_scalar, legacy_hsv, copy_opacity)) = copy_colour {
+        let mut cfg_string = format!("{hue}a{saturation}a{lightness}a{}a", static_sat_scalar as i32);
         if !legacy_hsv {
-            cfg_string += "0";
+            cfg_string += &format!("{}", static_brightness_scalar as i32);
             map.insert("210".to_string(), Value::from(""));
         }
         if copy_opacity {
             map.insert("60".to_string(), Value::from("1"));
         }
         map.insert("49".to_string(), Value::from(cfg_string));
-        map.insert("50".to_string(), Value::from(channel));
+        map.insert("50".to_string(), Value::from(channel.into()));
     }
 
     GDObject::new(899, config, GDObjProperties::from_json(properties))
@@ -372,6 +373,11 @@ pub fn toggle_trigger(
     GDObject::new(1049, config, GDObjProperties::from_json(properties))
 }
 
+/// docs later
+pub fn pulse_trigger(
+    config: GDObjConfig
+) {}
+
 /// Returns a transition object
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -413,6 +419,19 @@ pub fn reverse_gameplay(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is linked visibly
 pub fn link_visible(
+    config: GDObjConfig,
+    target_group: i32
+) -> GDObject {
+    GDObject::new(3662, config, GDObjProperties::from_json(json!({
+        "51": target_group
+    })))
+}
+
+/// Returns a group reset trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: group that is to be reset
+pub fn group_reset(
     config: GDObjConfig,
     target_group: i32
 ) -> GDObject {

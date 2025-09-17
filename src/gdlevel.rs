@@ -109,9 +109,9 @@ impl Levels {
     }
 
     fn default_properties() -> HashMap<String, Value> {
-        let mut kI6_dict = Dictionary::new();
+        let mut ki6_dict = Dictionary::new();
         for i in 0..15 {
-            kI6_dict.insert(format!("{i}"), Value::from("0"));
+            ki6_dict.insert(format!("{i}"), Value::from("0"));
         }
 
         // genuienly have no clue wht any of these are
@@ -129,7 +129,7 @@ impl Levels {
             ("kI1", Value::from(100.0)),
             ("kI2", Value::from(100.0)),
             ("kI3", Value::from(1.0)),
-            ("kI6", Value::from(kI6_dict))
+            ("kI6", Value::from(ki6_dict))
         ].into_iter().map(|(k, v)| (k.to_string(), v)).collect::<HashMap<String, Value>>();
 
         return properties
