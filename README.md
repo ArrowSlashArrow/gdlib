@@ -34,6 +34,17 @@ levels.write_to_savefile().unwrap();
 
 ## Changelog
 
+### Update 0.2.1
+ * Added constructors for objects:
+    * Transition objects
+    * Reverse gameplay trigger
+    * Link visible trigger
+    * Counter object
+    * Spawn trigger
+    * Item edit trigger
+ * Bugfixes:
+    * Trailing char of object string no longer gets chopped off if it isn't a semicolon
+
 ### Update 0.2.0
  * Added constructors for some of the basic triggers:
     * Start pos
