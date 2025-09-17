@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::{decode_levels_to_string, decompress, decrypt}, 
         gdlevel::{Level, LevelData, LevelState, Levels},
-        gdobj::{misc, triggers, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers::{self, ItemType}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -68,10 +68,12 @@ mod tests {
             println!("{obj:?}");
         }
 
-        // level.add_object(triggers::transition_object(GDObjConfig::new().pos(45.0, 45.0), 
-        //     triggers::TransitionType::AwayToRight, triggers::TransitionMode::Both, None
-        // ));
+        level.add_object(triggers::item_edit(GDObjConfig::new().pos(45.0, 45.0), 
+            Some((1, ItemType::Counter)), Some((2, ItemType::Counter)), 3, ItemType::Counter,
+            0.5, triggers::Op::Set, Some(triggers::Op::Add), Some(triggers::Op::Sub), triggers::RoundMode::Nearest,
+            triggers::RoundMode::Nearest, triggers::SignMode::Absolute, triggers::SignMode::Negative
+        ));
 
-        // levels.export_to_savefile().unwrap();
+        levels.export_to_savefile().unwrap();
     }
 }

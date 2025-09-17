@@ -33,6 +33,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("15", "Using player colour 1"),
     ("16", "Using player colour 2"),
     ("17", "Blending enabled"),
+    ("23", "Colour channel"),
     ("31", "Base64-encoded text"),
     ("35", "Opacity"),
     ("36", "Is active trigger?"),

@@ -26,6 +26,22 @@ pub enum StopMode {
     Resume = 2
 }
 
+/// Enum for item alignments
+#[repr(i32)]
+pub enum ItemAlign {
+    Center = 0,
+    Left = 1,
+    Right = 2
+}
+
+/// Enum for counter modes
+#[repr(i32)]
+pub enum CounterMode {
+    Attempts = -3,
+    Points = -2,
+    MainTime = -1
+}
+
 /// Enum for transition object enter/exit config
 #[repr(i32)]
 #[derive(PartialEq)]
@@ -51,6 +67,58 @@ pub enum TransitionType {
     AwayFromMiddle = 58,
     TowardsMiddle = 59,
     None = 1915
+}
+
+/// Enum for counter types
+#[repr(i32)]
+pub enum ItemType {
+    Counter = 1,
+    Timer = 2,
+    Points = 3,
+    MainTime = 4,
+    Attempts = 5
+}
+
+/// Enum for operators
+#[repr(i32)]
+pub enum Op {
+    Set = 0,
+    Add = 1,
+    Sub = 2,
+    Mul = 3,
+    Div = 4
+}
+
+/// Enum for round modes
+#[repr(i32)]
+pub enum RoundMode {
+    None = 0,
+    Nearest = 1,
+    Floor = 2,
+    Ceiling = 3
+}
+
+/// Enum for sign modes
+#[repr(i32)]
+pub enum SignMode {
+    None = 0,
+    Absolute = 1,
+    Negative = 2
+}
+
+/// Enum for colour channels
+#[repr(i32)]
+pub enum ColourChannel {
+    Background = 1000,
+    Ground1 = 1001,
+    Ground2 = 1009,
+    Line = 1002,
+    Object = 1004,
+    ThreeDLine = 1003,
+    MiddleGround = 1013,
+    MiddleGround2 = 1014,
+    P1 = 1005,
+    P2 = 1006
 }
 
 // tehcnically this aint the full thing but yk its good enough (for now...)
@@ -195,9 +263,10 @@ pub fn start_pos(
 /// * `use_player_col_2`: Use player colour 2 instead of the specified colour. 
 /// * `copy_colour`: None: Don't copy colour; Some: Copy colour with this configuation: 
 /// (original channel, hue shift, saturation multiplier, brightness multiplier, use legacy hsv?, copy opacity?) 
-pub fn colour_trigger(
+pub fn colour_trigger<T: Into<i32>>(
     config: GDObjConfig,
     colour: (u8, u8, u8),
+    channel: T,
     fade_time: f32,
     opacity: f32,
     blending: bool,
@@ -211,6 +280,7 @@ pub fn colour_trigger(
         "9": colour.2,
         "10": fade_time,
         "15": use_player_col_1 as i32,
+        "23": channel.into(),
         "16": use_player_col_2 as i32,
         "35": opacity
     });
@@ -327,6 +397,8 @@ pub fn transition_object(
     GDObject::new(transition as i32, config, GDObjProperties::from_json(properties))
 }
 
+// misc stuff
+
 /// Returns a reverse gameplay trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -349,6 +421,133 @@ pub fn link_visible(
     })))
 }
 
+// items and counters
+
+/// Returns a counter object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `item_id`: ID of the counter
+/// * `timer`: Is a timer?
+/// * `align`: Visual alignment of counter object. See `ItemAlign` struct.
+/// * `seconds_only`: Show only seconds if timer?
+/// * `special_mode`: Other special mode of timer. See `CounterMode` struct.
+pub fn counter_object(
+    config: GDObjConfig,
+    item_id: i32,
+    timer: bool,
+    align: ItemAlign,
+    seconds_only: bool,
+    special_mode: Option<CounterMode>
+) -> GDObject {
+    let mut properties = json!({
+        "80": item_id,
+        "389": seconds_only as i32,
+        "391": align as i32,
+        "466": timer as i32
+    });
+
+    let map = properties.as_object_mut().unwrap();
+    if let Some(mode) = special_mode {
+        map.insert("390".to_string(), Value::from(mode as i32));
+    }
+
+    GDObject::new(1615, config, GDObjProperties::from_json(properties))
+}
+
+/// Returns a spawn trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `spawn_id`: Spawns this group
+/// * `delay`: Delay between beign triggered and spawning the group
+/// * `delay_variation`: Random variation on delay
+/// * `reset_remap`: does something
+/// * `spawn_ordered`: Spawns constituents of group in the order of x-position
+/// * `preview_disable`: also does something
+pub fn spawn_trigger(
+    config: GDObjConfig,
+    spawn_id: i32,
+    delay: f32,
+    delay_variation: f32,
+    reset_remap: bool,
+    spawn_ordered: bool,
+    preview_disable: bool
+) -> GDObject {
+    GDObject::new(1268, config, GDObjProperties::from_json(json!({
+        "51": spawn_id,
+        "63": delay,
+        "102": preview_disable as i32,
+        "441": spawn_ordered as i32,
+        "556": delay_variation,
+        "581": reset_remap as i32
+    })))
+}
+
+/// Returns an item edit trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `operand1`: Optional first operand, tuple of (ID, item type)
+/// * `operand2`: Optional second operand, tuple of (ID, item type)
+/// * `target_id`: Target item id
+/// * `target_type`: Target item type
+/// * `modifier`: f32 modifier; default is 1.0
+/// * `assign_op`: operator for assigning to result; see `Op` enum.
+/// * `mod_op`: operator for applying mod to result; see `Op` enum.
+/// * `id_op`: operator between operands 1 and 2; see `Op` enum.
+/// * `id_rounding`: operand rounding function; see `RoundMode` enum.
+/// * `result_rounding`: final rounding function; see `RoundMode` enum.
+/// * `id_sign`: operand signing function; see `SignMode` enum.
+/// * `result_sign`: final signing function; see `SignMode` enum.
+pub fn item_edit(
+    config: GDObjConfig, 
+    operand1: Option<(i32, ItemType)>,
+    operand2: Option<(i32, ItemType)>,
+    target_id: i32,
+    target_type: ItemType,
+    modifier: f32,
+    assign_op: Op,
+    mod_op: Option<Op>,
+    id_op: Option<Op>,
+    id_rounding: RoundMode,
+    result_rounding: RoundMode,
+    id_sign: SignMode,
+    result_sign: SignMode
+) -> GDObject {
+    let mod_op = match mod_op {
+        Some(op) => op,
+        None => Op::Mul
+    };
+    let id_op = match id_op {
+        Some(op) => op,
+        None => Op::Add
+    };
+
+    let op_1 = match operand1 {
+        Some(cfg) => cfg,
+        None => (0, ItemType::Counter)
+    };
+    let op_2 = match operand2 {
+        Some(cfg) => cfg,
+        None => (0, ItemType::Counter)
+    };
+
+    GDObject::new(3619, config, GDObjProperties::from_json(json!({
+        "36": 1,
+        "51": target_id,
+        "80": op_1.0,
+        "95": op_2.0,
+        "476": op_1.1 as i32,
+        "477": op_2.1 as i32,
+        "478": target_type as i32,
+        "479": modifier,
+        "480": assign_op as i32,
+        "481": id_op as i32,
+        "482": mod_op as i32,
+        "485": id_rounding as i32,
+        "486": result_rounding as i32,
+        "578": id_sign as i32,
+        "579": result_sign as i32,
+    })))
+}
 
 /* TODO: trigger constructors
  * 2nd part of basics
@@ -398,17 +597,14 @@ pub fn link_visible(
  * bg effect off
  * 
  * Item triggers
- * counter object
  * touch trigger
  * count trigger
  * instant count trigger
  * pickup trigger
- * item edit
  * item compare
  * persistent item
  * 
  * Spawner triggers
- * spawn trigger 
  * random trigger
  * advanced random
  * sequence
