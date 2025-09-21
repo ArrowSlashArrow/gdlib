@@ -49,6 +49,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("80", "Group/item 1"),
     ("84", "Shake interval"),
     ("86", "Exclusive pulse mode"),
+    ("94", "Dynamic block?"),
     ("95", "Group/item 2"),
     ("210", "No legacy HSV"),
     ("217", "Enter/Exit transition config"),

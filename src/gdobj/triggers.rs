@@ -624,6 +624,23 @@ pub fn hide_player(
     GDObject::new(1612, config, GDObjProperties::new())
 }
 
+/// Returns a collision block object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `id`: Collision block ID
+/// * `dynamic`: Does this block register collisions with other collision blocks? 
+pub fn collision_block(
+    config: GDObjConfig,
+    id: i32,
+    dynamic: bool
+) -> GDObject {
+    GDObject::new(1816, config, GDObjProperties::from_json(json!({
+        "80": id,
+        "94": dynamic
+    })))
+}
+
+
 /* TODO: trigger constructors
  * 2nd part of basics
  * pulse trigger
@@ -720,7 +737,6 @@ pub fn hide_player(
  * collision trigger
  * instant collision
  * state block
- * collision block
  * toggle block
  * 
  * Player triggers
