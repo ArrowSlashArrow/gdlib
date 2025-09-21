@@ -427,6 +427,25 @@ pub fn link_visible(
     })))
 }
 
+/// Returns a trigger that shows the player
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn show_player(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1613, config, GDObjProperties::new())
+}
+
+/// Returns a trigger that hides the player
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn hide_player(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1612, config, GDObjProperties::new())
+}
+
+
 /// Returns a group reset trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -606,23 +625,7 @@ pub fn random_trigger(
     })))
 }
 
-/// Returns a trigger that shows the player
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-pub fn show_player(
-    config: GDObjConfig
-) -> GDObject {
-    GDObject::new(1613, config, GDObjProperties::new())
-}
-
-/// Returns a trigger that hides the player
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-pub fn hide_player(
-    config: GDObjConfig
-) -> GDObject {
-    GDObject::new(1612, config, GDObjProperties::new())
-}
+// collision blocks
 
 /// Returns a collision block object
 /// # Arguments
@@ -637,6 +640,24 @@ pub fn collision_block(
     GDObject::new(1816, config, GDObjProperties::from_json(json!({
         "80": id,
         "94": dynamic
+    })))
+}
+
+// time triggers
+
+/// Returns a time control trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `id`: Timer ID
+/// * `stop`: If enabled, stops the timer; otherwise, starts the timer. 
+pub fn time_control(
+    config: GDObjConfig,
+    id: i32,
+    stop: bool
+) -> GDObject {
+    GDObject::new(3617, config, GDObjProperties::from_json(json!({
+        "80": id,
+        "472": stop
     })))
 }
 
