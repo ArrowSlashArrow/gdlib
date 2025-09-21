@@ -373,7 +373,7 @@ pub fn toggle_trigger(
     GDObject::new(1049, config, GDObjProperties::from_json(properties))
 }
 
-/// docs later
+/// dont call this
 pub fn pulse_trigger(
     config: GDObjConfig
 ) {}
@@ -437,6 +437,25 @@ pub fn group_reset(
 ) -> GDObject {
     GDObject::new(3618, config, GDObjProperties::from_json(json!({
         "51": target_group
+    })))
+}
+
+/// Returns a shake trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `strength`: Strength of shake
+/// * `interval`: Interval in seconds between each shake
+/// * `duration`: Total duration of shaking
+pub fn shake_trigger(
+    config: GDObjConfig,
+    strength: i32,
+    interval: f32,
+    duration: f32
+) -> GDObject {
+    GDObject::new(1520, config, GDObjProperties::from_json(json!({
+        "75": strength,
+        "84": interval,
+        "10": duration
     })))
 }
 
@@ -587,6 +606,23 @@ pub fn random_trigger(
     })))
 }
 
+/// Returns a trigger that shows the player
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn show_player(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1613, config, GDObjProperties::new())
+}
+
+/// Returns a trigger that hides the player
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn hide_player(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1612, config, GDObjProperties::new())
+}
 
 /* TODO: trigger constructors
  * 2nd part of basics
@@ -597,7 +633,6 @@ pub fn random_trigger(
  * rotate trigger
  * scale trigger
  * follow trigger
- * shake trigger
  * animate trigger
  * frame trigger
  * follor player y
@@ -691,8 +726,6 @@ pub fn random_trigger(
  * Player triggers
  * disable player trail
  * enable player trail
- * show player
- * hide player
  * player control
  * options
  * gravity trigger
