@@ -639,7 +639,7 @@ pub fn collision_block(
 ) -> GDObject {
     GDObject::new(1816, config, GDObjProperties::from_json(json!({
         "80": id,
-        "94": dynamic
+        "94": dynamic as i32
     })))
 }
 
@@ -657,7 +657,29 @@ pub fn time_control(
 ) -> GDObject {
     GDObject::new(3617, config, GDObjProperties::from_json(json!({
         "80": id,
-        "472": stop
+        "472": stop as i32
+    })))
+}
+
+/// Returns a time control trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `id`: Timer ID
+/// * `target_group`: If enabled, stops the timer; otherwise, starts the timer. 
+/// * `target_time`: At what time the timer should be to activate objects in `target_group`. 
+/// * `multi_activate`: Should this event be triggerable multiple times? 
+pub fn time_event(
+    config: GDObjConfig,
+    id: i32,
+    target_group: i32,
+    target_time: f32,
+    multi_activate: bool
+) -> GDObject {
+    GDObject::new(3615, config, GDObjProperties::from_json(json!({
+        "80": id,
+        "51": target_group,
+        "473": target_time,
+        "475": multi_activate as i32
     })))
 }
 
