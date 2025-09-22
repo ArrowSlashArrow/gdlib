@@ -511,34 +511,6 @@ pub fn counter_object(
     GDObject::new(1615, config, GDObjProperties::from_json(properties))
 }
 
-/// Returns a spawn trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `spawn_id`: Spawns this group
-/// * `delay`: Delay between beign triggered and spawning the group
-/// * `delay_variation`: Random variation on delay
-/// * `reset_remap`: does something
-/// * `spawn_ordered`: Spawns constituents of group in the order of x-position
-/// * `preview_disable`: also does something
-pub fn spawn_trigger(
-    config: GDObjConfig,
-    spawn_id: i32,
-    delay: f32,
-    delay_variation: f32,
-    reset_remap: bool,
-    spawn_ordered: bool,
-    preview_disable: bool
-) -> GDObject {
-    GDObject::new(1268, config, GDObjProperties::from_json(json!({
-        "51": spawn_id,
-        "63": delay,
-        "102": preview_disable as i32,
-        "441": spawn_ordered as i32,
-        "556": delay_variation,
-        "581": reset_remap as i32
-    })))
-}
-
 /// Returns an item edit trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -606,6 +578,8 @@ pub fn item_edit(
     })))
 }
 
+// spawners
+
 /// Returns a random trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -622,6 +596,50 @@ pub fn random_trigger(
         "51": target_group1,
         "71": target_group2,
         "10": chance
+    })))
+}
+
+/// Returns a spawn trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `spawn_id`: Spawns this group
+/// * `delay`: Delay between beign triggered and spawning the group
+/// * `delay_variation`: Random variation on delay
+/// * `reset_remap`: does something
+/// * `spawn_ordered`: Spawns constituents of group in the order of x-position
+/// * `preview_disable`: also does something
+pub fn spawn_trigger(
+    config: GDObjConfig,
+    spawn_id: i32,
+    delay: f32,
+    delay_variation: f32,
+    reset_remap: bool,
+    spawn_ordered: bool,
+    preview_disable: bool
+) -> GDObject {
+    GDObject::new(1268, config, GDObjProperties::from_json(json!({
+        "51": spawn_id,
+        "63": delay,
+        "102": preview_disable as i32,
+        "441": spawn_ordered as i32,
+        "556": delay_variation,
+        "581": reset_remap as i32
+    })))
+}
+
+/// Returns an on-death trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: Spawns this group
+/// * `activate_group`: Activate this group (instead of toggling off)?
+pub fn on_death(
+    config: GDObjConfig,
+    target_group: i32,
+    activate_group: bool
+) -> GDObject {
+    GDObject::new(1812, config, GDObjProperties::from_json(json!({
+        "51": target_group,
+        "56": activate_group as i32
     })))
 }
 
@@ -642,6 +660,44 @@ pub fn collision_block(
         "94": dynamic as i32
     })))
 }
+
+// /// TODO
+// pub fn toggle_block(
+//     config: GDObjConfig
+// ) -> GDObject {
+
+// }
+
+/// Returns a collision block object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `state_on`: Group that is activated when the player enters this block's hitbox
+/// * `state_off`: Group that is activated when the player exits this block's hitbox
+pub fn state_block(
+    config: GDObjConfig,
+    state_on: i32,
+    state_off: i32
+) -> GDObject {
+    GDObject::new(3640, config, GDObjProperties::from_json(json!({
+        "51": state_on,
+        "71": state_off
+    })))
+}
+
+// /// TODO
+// pub fn collision_trigger(
+//     config: GDObjConfig
+// ) -> GDObject {
+
+// }
+
+// /// TODO
+// pub fn instant_coll_trigger(
+//     config: GDObjConfig
+// ) -> GDObject {
+
+// }
+
 
 // time triggers
 
@@ -744,7 +800,6 @@ pub fn time_event(
  * sequence
  * event trigger
  * spawn particle
- * on death
  * 
  * Camera
  * zoom camera
@@ -767,8 +822,6 @@ pub fn time_event(
  * Time triggers
  * timewarp
  * time trigger
- * time event trigger
- * time control trigger
  * 
  * Misc.
  * ui config

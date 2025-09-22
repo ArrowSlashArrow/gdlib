@@ -43,6 +43,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("49", "Copy colour specs"),
     ("50", "Copy colour from channel"),
     ("51", "Target group/item/channel"),
+    ("56", "Activate group"),
     ("60", "Copy opacity"),
     ("71", "Target group 2"),
     ("75", "Shake strength"),
@@ -129,6 +130,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (3618, "Reset group trigger"),
     (3619, "Item edit trigger"),
     (3620, "Item compare trigger"),
+    (3640, "Collision state block"),
     (3641, "Persistent item trigger"),
     (3662, "Link visible trigger"),
 ];
@@ -274,7 +276,7 @@ impl Display for GDObject {
             }
         }
 
-        write!(f, "{trigger_conf_str}{} @ ({}, {}) scaled to ({}, {}){} angled {}°", 
+        write!(f, "{trigger_conf_str}{} @ ({}, {}) scaled to ({}, {}){} angled to {}°", 
             self.name(), 
             self.config.pos.0, 
             self.config.pos.1, 
