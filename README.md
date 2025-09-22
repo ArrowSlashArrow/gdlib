@@ -31,24 +31,3 @@ new_level.add_object(misc::default_block(GDObjConfig::default().pos(15.0, 15.0))
 levels.add_level(new_level);
 levels.write_to_savefile().unwrap();
 ```
-
-## Changelog
-
-### Update 0.2.1
- * Added constructors for objects:
-    * Transition objects
-    * Reverse gameplay trigger
-    * Link visible trigger
-    * Counter object
-    * Spawn trigger
-    * Item edit trigger
- * Bugfixes:
-    * Trailing char of object string no longer gets chopped off if it isn't a semicolon
-
-### Update 0.2.0
- * Added constructors for some of the basic triggers:
-    * Start pos
-    * Colour trigger
-    * Alpha trigger
-    * Stop trigger
-    * Toggle trigger
