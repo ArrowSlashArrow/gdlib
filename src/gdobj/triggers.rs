@@ -661,14 +661,32 @@ pub fn collision_block(
     })))
 }
 
-// /// TODO
-// pub fn toggle_block(
-//     config: GDObjConfig
-// ) -> GDObject {
+/// Returns a toggle block object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `target_group`: Spawns this group
+/// * `activate_group`: Activate/spawn group instead of deactivating?
+/// * `claim_touch`: Disable buffer clicking?
+/// * `multi_activate`: Allow multiple activations? 
+/// * `spawn_only`: Spawn only without toggling?
+pub fn toggle_block(
+    config: GDObjConfig,
+    target_group: i32,
+    activate_group: bool,
+    claim_touch: bool,
+    multi_activate: bool,
+    spawn_only: bool
+) -> GDObject {
+    GDObject::new(3643, config, GDObjProperties::from_json(json!({
+        "51": target_group,
+        "56": activate_group as i32,
+        "99": multi_activate as i32,
+        "445": claim_touch as i32,
+        "504": spawn_only as i32,
+    })))
+}
 
-// }
-
-/// Returns a collision block object
+/// Returns a state block object
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `state_on`: Group that is activated when the player enters this block's hitbox

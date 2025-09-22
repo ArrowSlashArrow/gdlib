@@ -52,6 +52,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("86", "Exclusive pulse mode"),
     ("94", "Dynamic block?"),
     ("95", "Group/item 2"),
+    ("99", "Multi activate"),
     ("210", "No legacy HSV"),
     ("217", "Enter/Exit transition config"),
     ("344", "Target transition channel"),
@@ -66,6 +67,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("411", "Fade out time in ms"),
     ("413", "Loop song?"),
     ("432", "Song channel"),
+    ("445", "Claim touch?"),
     ("472", "Stop time counter?"),
     ("473", "Target time for event"),
     ("475", "Multiactivatable time event"),
@@ -73,6 +75,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("477", "Second item type"),
     ("479", "Modifier"),
     ("483", "Second modifier"),
+    ("504", "Spawn only"),
     ("595", "Don't stop song on death"),
     // these are all startpos properties:
     ("kA4", "Starting speed"),
@@ -100,6 +103,8 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (26, "Blocks from right transition object"),
     (27, "Scale in transition object"),
     (28, "Scale out transition object"),
+    (32, "Enable player trail"),
+    (33, "Disable player trail"),
     (55, "Random direction transition object"),
     (56, "Away to left transition object"),
     (57, "Away to right transition object"),
@@ -132,6 +137,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (3620, "Item compare trigger"),
     (3640, "Collision state block"),
     (3641, "Persistent item trigger"),
+    (3643, "Toggle block"),
     (3662, "Link visible trigger"),
 ];
 
