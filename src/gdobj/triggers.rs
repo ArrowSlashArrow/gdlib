@@ -513,6 +513,39 @@ pub fn shake_trigger(
     })))
 }
 
+/// Returns a background speed config trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `mod_x`: X-axis speed of BG in terms of player speed. Default is 0.3 
+/// * `mod_y`: Y-axis speed of BG in terms of player speed. Default is 0.5
+pub fn bg_speed(
+    config: GDObjConfig,
+    mod_x: f32,
+    mod_y: f32
+) -> GDObject {
+    GDObject::new(3606, config, GDObjProperties::from_json(json!({
+        "143": mod_x,
+        "144": mod_y
+    })))
+}
+
+/// Returns a middleground speed config trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `mod_x`: X-axis speed of MG in terms of player speed. Default is 0.3 
+/// * `mod_y`: Y-axis speed of MG in terms of player speed. Default is 0.5
+pub fn mg_speed(
+    config: GDObjConfig,
+    mod_x: f32,
+    mod_y: f32
+) -> GDObject {
+    GDObject::new(3612, config, GDObjProperties::from_json(json!({
+        "143": mod_x,
+        "144": mod_y
+    })))
+}
+
+
 // items and counters
 
 /// Returns a counter object
@@ -834,8 +867,6 @@ pub fn time_event(
  * sdwitch ground
  * switch mg
  * middleground config
- * bg speed config
- * mg speed config
  * 
  * Item triggers
  * touch trigger

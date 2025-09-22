@@ -132,6 +132,8 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1934, "Song trigger"),
     (1935, "Time warp trigger"),
     (3600, "End trigger"),
+    (3606, "BG speed config"),
+    (3612, "MG speed config"),
     (3615, "Time event trigger"),
     (3617, "Time control trigger"),
     (3618, "Reset group trigger"),
