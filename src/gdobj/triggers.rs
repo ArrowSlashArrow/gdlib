@@ -463,6 +463,23 @@ pub fn hide_player_trail(
     GDObject::new(33, config, GDObjProperties::new())
 }
 
+/// Returns a trigger that enables the background effect
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn bg_effect_on(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1818, config, GDObjProperties::new())
+}
+
+/// Returns a trigger that disables the background effect
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn bg_effect_off(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(1819, config, GDObjProperties::new())
+}
 
 /// Returns a group reset trigger
 /// # Arguments
@@ -819,8 +836,6 @@ pub fn time_event(
  * middleground config
  * bg speed config
  * mg speed config
- * bg effect on
- * bg effect off
  * 
  * Item triggers
  * touch trigger
@@ -868,12 +883,8 @@ pub fn time_event(
  * Collision blocks
  * collision trigger
  * instant collision
- * state block
- * toggle block
  * 
  * Player triggers
- * disable player trail
- * enable player trail
  * player control
  * options
  * gravity trigger

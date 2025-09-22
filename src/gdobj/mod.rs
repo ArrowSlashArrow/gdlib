@@ -124,6 +124,8 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1812, "On death trigger"),
     (1815, "Collision trigger"),
     (1816, "Collision block"),
+    (1818, "BG effect on"),
+    (1819, "BG effect off"),
     (1912, "Random trigger"),
     (1915, "Don't fade + don't enter transition object"),
     (1917, "Reverse gameplay"),
