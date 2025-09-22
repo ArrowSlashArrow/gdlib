@@ -445,6 +445,24 @@ pub fn hide_player(
     GDObject::new(1612, config, GDObjProperties::new())
 }
 
+/// Returns a trigger that shows the player trail
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn show_player_trail(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(32, config, GDObjProperties::new())
+}
+
+/// Returns a trigger that hides the player trail
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn hide_player_trail(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(33, config, GDObjProperties::new())
+}
+
 
 /// Returns a group reset trigger
 /// # Arguments
