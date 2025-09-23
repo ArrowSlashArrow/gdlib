@@ -53,6 +53,10 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("94", "Dynamic block?"),
     ("95", "Group/item 2"),
     ("99", "Multi activate"),
+    ("138", "Controlling player 1"),
+    ("148", "Gravity"),
+    ("200", "Controlling player 2"),
+    ("201", "Controlling target player"),
     ("210", "No legacy HSV"),
     ("217", "Enter/Exit transition config"),
     ("344", "Target transition channel"),
@@ -76,6 +80,10 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("479", "Modifier"),
     ("483", "Second modifier"),
     ("504", "Spawn only"),
+    ("540", "Stop player jump"),
+    ("541", "Stop player movement"),
+    ("542", "Stop player rotation"),
+    ("543", "Stop player sliding"),
     ("595", "Don't stop song on death"),
     // these are all startpos properties:
     ("kA4", "Starting speed"),
@@ -129,6 +137,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (1912, "Random trigger"),
     (1915, "Don't fade + don't enter transition object"),
     (1917, "Reverse gameplay"),
+    (1932, "Gravity trigger"),
     (1934, "Song trigger"),
     (1935, "Time warp trigger"),
     (3600, "End trigger"),
@@ -497,8 +506,8 @@ impl GDObjConfig {
     }
 
     /// Sets groups of this object
-    pub fn groups(mut self, groups: Vec<u16>) -> Self {
-        self.groups = groups;
+    pub fn groups<T: IntoIterator<Item = u16>>(mut self, groups: T) -> Self {
+        self.groups = groups.into_iter().collect();
         self
     }
     /// Sets x position of this object

@@ -23,7 +23,7 @@ let mut new_level = Level::new("New Level", "You", None, None);
 
 // Add objects to new_level
 new_level.add_object(triggers::move_trigger(
-    GDObjConfig::default().groups(vec![1234]), 10, 10, 0.5, 2, false, 0
+    GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
 ));
 new_level.add_object(misc::default_block(GDObjConfig::default().pos(15.0, 15.0)));
 

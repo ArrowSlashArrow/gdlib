@@ -33,7 +33,7 @@ mod tests {
         let mut new_level = Level::new("rust websocket tutorial 2", "arrowslasharrow", Some("dont use rust"), Some(857925));
         
         new_level.add_object(triggers::move_trigger(
-            GDObjConfig::default().groups(vec![1234]), 10, 10, 0.5, 2, false, 0
+            GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
         ));
 
         new_level.add_object(misc::default_block(GDObjConfig::default().x(15.0).y(15.0)));

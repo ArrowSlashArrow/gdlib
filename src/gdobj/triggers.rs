@@ -121,6 +121,15 @@ pub enum ColourChannel {
     P2 = 1006
 }
 
+/// Enum for target player in gravity trigger
+
+#[repr(i32)]
+pub enum TargetPlayer {
+    Player1 = 138,
+    Player2 = 200,
+    PlayerTarget = 201
+}
+
 // tehcnically this aint the full thing but yk its good enough (for now...)
 /// Returns a move trigger object
 /// 
@@ -545,6 +554,54 @@ pub fn mg_speed(
     })))
 }
 
+/// Returns a player control trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `p1`: Enables these controls for player 1
+/// * `p2`: Enables these controls for player 2
+/// * `stop_jump`: Cancel's the player's current jump
+/// * `stop_move`: Stops the player from moving
+/// * `stop_rotation`: Stops the player's rotation
+/// * `stop_slide`: Stops the player from sliding after a force
+pub fn player_control(
+    config: GDObjConfig,
+    p1: bool,
+    p2: bool,
+    stop_jump: bool,
+    stop_move: bool,
+    stop_rotation: bool,
+    stop_slide: bool
+) -> GDObject {
+    GDObject::new(1932, config, GDObjProperties::from_json(json!({
+        "138": p1 as i32,
+        "200": p2 as i32,
+        "540": stop_jump as i32,
+        "541": stop_move as i32,
+        "542": stop_rotation as i32,
+        "543": stop_slide as i32,
+    })))
+}
+
+/// Returns a gravity trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `gravity`: how much gravity.
+/// * `target_player`: (Optional) Player target for this gravity trigger
+pub fn gravity_trigger(
+    config: GDObjConfig,
+    gravity: f32,
+    target_player: Option<TargetPlayer>
+) -> GDObject {
+    let mut properties= json!({
+        "148": gravity
+    });
+    let props = properties.as_object_mut().unwrap();
+    if let Some(player) = target_player {
+        props.insert(format!("{}", player as i32), Value::from("1"));
+    }
+    GDObject::new(3662, config, GDObjProperties::from_json(properties))
+}
+
 
 // items and counters
 
@@ -916,9 +973,7 @@ pub fn time_event(
  * instant collision
  * 
  * Player triggers
- * player control
  * options
- * gravity trigger
  * teleport trigger
  * 
  * Shaders
