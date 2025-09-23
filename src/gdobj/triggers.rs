@@ -599,9 +599,42 @@ pub fn gravity_trigger(
     if let Some(player) = target_player {
         props.insert(format!("{}", player as i32), Value::from("1"));
     }
-    GDObject::new(3662, config, GDObjProperties::from_json(properties))
+    GDObject::new(2066, config, GDObjProperties::from_json(properties))
 }
 
+/// Returns an end trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `spawn_id`: Optional group to spawn once this trigger is activated
+/// * `target_pos`: Optional target end position group
+/// * `no_effects`: Disables visual end effects
+/// * `instant`: Teleoprts the player instead of doing the default end pull animation
+/// * `no_sfx`: Disables end sound effects
+pub fn end_trigger(
+    config: GDObjConfig,
+    spawn_id: Option<i32>,
+    target_pos: Option<i32>,
+    no_effects: bool,
+    instant: bool,
+    no_sfx: bool
+) -> GDObject {
+    let mut properties= json!({
+        "460": no_effects as i32,
+        "461": instant as i32,
+        "467": no_sfx as i32
+    });
+    let props = properties.as_object_mut().unwrap();
+
+    if let Some(id) = spawn_id {
+        props.insert("51".to_string(), Value::from(id));
+    }
+
+    if let Some(pos) = target_pos {
+        props.insert("71".to_string(), Value::from(pos));
+    }
+
+    GDObject::new(3600, config, GDObjProperties::from_json(properties))
+}
 
 // items and counters
 
@@ -964,7 +997,6 @@ pub fn time_event(
  * 
  * Misc.
  * ui config
- * end trigger
  * bpm marker
  * gradient
  * 
