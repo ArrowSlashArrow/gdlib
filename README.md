@@ -22,12 +22,19 @@ let mut levels = Levels::from_local().unwrap();
 let mut new_level = Level::new("New Level", "You", None, None);
 
 // Add objects to new_level
-new_level.add_object(triggers::move_trigger(
-    GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
-));
+new_level.add_object(triggers::triggers::move_trigger(
+    GDObjConfig::default().pos(45.0, 45.0).groups([1234]), 
+    triggers::MoveMode::Default(triggers::DefaultMove {
+        dx: 45.0,
+        dy: 54.0,
+        x_lock: None,
+        y_lock: None
+    }), 
+    0.50, 1, false, true, Some((MoveEasing::ElasticInOut, 1.50))
+);
 new_level.add_object(misc::default_block(GDObjConfig::default().pos(15.0, 15.0)));
 
 // Add level to master Levels object and export back to savefile
 levels.add_level(new_level);
-levels.write_to_savefile().unwrap();
+levels.export_to_savefile_with_backup().unwrap();
 ```

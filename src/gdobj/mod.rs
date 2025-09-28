@@ -68,6 +68,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("99", "Multi activate"),
     ("100", "Target move mode"),
     ("101", "Target move mode axis lock"),
+    ("120", "Timewarp amount"),
     ("128", "X scale"),
     ("129", "Y scale"),
     ("138", "Controlling player 1"),

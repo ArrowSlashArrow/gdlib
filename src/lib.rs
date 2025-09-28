@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, DirectionalMove, ItemType, MoveEasing, TargetMove, POS_PLAYER1}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
     };
 
     #[test]
@@ -32,15 +32,21 @@ mod tests {
         let mut levels = Levels::from_local().unwrap();
         let mut new_level = Level::new("rust websocket tutorial 2", "arrowslasharrow", Some("dont use rust"), Some(857925));
         
-        // todo: update to new constructor
-        // new_level.add_object(triggers::move_trigger(
-        //     GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
-        // ));
+        new_level.add_object(triggers::move_trigger(
+            GDObjConfig::default().pos(45.0, 45.0).groups([1234]), 
+            triggers::MoveMode::Default(triggers::DefaultMove {
+                dx: 45.0,
+                dy: 54.0,
+                x_lock: None,
+                y_lock: None
+            }), 
+            0.50, 1, false, true, Some((MoveEasing::ElasticInOut, 1.50))
+        ));
 
         new_level.add_object(misc::default_block(GDObjConfig::default().x(15.0).y(15.0)));
         
         levels.add_level(new_level);
-        // levels.write_to_savefile_with_backup().unwrap();
+        levels.export_to_savefile_with_backup().unwrap();
     }
 
     #[test]
@@ -78,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn move_trigger_test() {
+    fn move_constructor_test() {
         let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
         level.add_object(move_trigger(
             GDObjConfig::default().pos(45.0, 45.0), 
@@ -95,6 +101,6 @@ mod tests {
             Some((MoveEasing::ElasticInOut, 1.50))
         ));
 
-        level.export_to_gmd("GMDS/gyat.gmd").unwrap();
+        level.export_to_gmd("GMD_tests/move_trigger.gmd").unwrap();
     }
 }

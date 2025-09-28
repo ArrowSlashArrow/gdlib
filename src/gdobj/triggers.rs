@@ -566,6 +566,19 @@ pub fn link_visible(
     })))
 }
 
+/// Returns a timewarp trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `time_scale`: How much to speed up/slow down time by. 1.0 is the default
+pub fn timewarp(
+    config: GDObjConfig,
+    time_scale: f32
+) -> GDObject {
+    GDObject::new(1935, config, GDObjProperties::from_json(json!({
+        "120": time_scale
+    })))
+}
+
 /// Returns a trigger that shows the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -1023,7 +1036,7 @@ pub fn time_control(
     })))
 }
 
-/// Returns a time control trigger
+/// Returns a time event trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `id`: Timer ID
