@@ -1064,7 +1064,7 @@ pub fn time_event(
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `zoom`: Resulting camera zoom. Default is 1.0
-/// * `time` Time to zoom
+/// * `time`: Time to zoom
 /// * `easing`: Zoom easing config. See [`MoveEasing`] struct.
 pub fn camera_zoom(
     config: GDObjConfig,
@@ -1083,6 +1083,28 @@ pub fn camera_zoom(
         map.insert("85".to_string(), Value::from(rate));
     }
     GDObject::new(1913, config, GDObjProperties::from_json(properties))
+}
+
+/// Returns a camera guide object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `zoom`: Zoom of camera guide
+/// * `offset_x`: Center offset from this object in x axis
+/// * `offset_y`: Center offset from this object in y axis
+/// * `opacity`: Opacity of guidelines 
+pub fn camera_guide(
+    config: GDObjConfig,
+    zoom: f32,
+    offset_x: i32,
+    offset_y: i32,
+    opacity: f32,
+) -> GDObject {
+    GDObject::new(1913, config, GDObjProperties::from_json(json!({
+        "28": offset_x,
+        "29": offset_y,
+        "371": zoom,
+        "506": opacity
+    })))
 }
 
 /* TODO: trigger constructors
@@ -1143,7 +1165,6 @@ pub fn camera_zoom(
  * spawn particle
  * 
  * Camera
- * zoom camera
  * static camera
  * offset camera
  * gameplay offset camera
