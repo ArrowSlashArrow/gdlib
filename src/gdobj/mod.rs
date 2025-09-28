@@ -82,6 +82,7 @@ pub const PROPERTY_NAMES: &[(&str, &str)] = &[
     ("210", "No legacy HSV"),
     ("217", "Enter/Exit transition config"),
     ("344", "Target transition channel"),
+    ("371", "Camera zoom"),
     ("392", "Song ID"),
     ("393", "Small step"), // this is a UI-only property. interally, move distances are stored the same regardless.
     ("394", "Directional move mode"), 

@@ -1058,6 +1058,32 @@ pub fn time_event(
     })))
 }
 
+// camera triggers
+
+/// Returns a camera zoom trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `zoom`: Resulting camera zoom. Default is 1.0
+/// * `time` Time to zoom
+/// * `easing`: Zoom easing config. See [`MoveEasing`] struct.
+pub fn camera_zoom(
+    config: GDObjConfig,
+    zoom: f32,
+    time: f32,
+    easing: Option<(MoveEasing, f32)>
+) -> GDObject {
+    let mut properties = json!({
+        "10": time,
+        "371": zoom
+    });
+
+    let map = properties.as_object_mut().unwrap();
+    if let Some((easing, rate)) = easing {
+        map.insert("30".to_string(), Value::from(easing as i32));
+        map.insert("85".to_string(), Value::from(rate));
+    }
+    GDObject::new(1913, config, GDObjProperties::from_json(properties))
+}
 
 /* TODO: trigger constructors
  * 2nd part of basics
@@ -1135,7 +1161,6 @@ pub fn time_event(
  * edit sfx trigger
  * 
  * Time triggers
- * timewarp
  * time trigger
  * 
  * Misc.
