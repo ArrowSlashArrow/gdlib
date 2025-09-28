@@ -879,6 +879,31 @@ pub fn item_edit(
     })))
 }
 
+/// Returns a persistent item trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `item_id`: Target item ID
+/// * `timer`: Targets a timer with the corresponding ID if enabled
+/// * `persistent`: make this item persistent?
+/// * `target_all`: Target all persistent items?
+/// * `reset`: Reset item(s) to 0?
+pub fn persistent_item(
+    config: GDObjConfig,
+    item_id: i32,
+    timer: bool,
+    persistent: bool,
+    target_all: bool,
+    reset: bool
+) -> GDObject {
+    GDObject::new(3641, config, GDObjProperties::from_json(json!({
+        "51": item_id,
+        "491": persistent as i32,
+        "492": target_all as i32,
+        "493": reset as i32,
+        "494": timer as i32,
+    })))
+}
+
 // spawners
 
 /// Returns a random trigger
@@ -1155,7 +1180,6 @@ pub fn camera_guide(
  * instant count trigger
  * pickup trigger
  * item compare
- * persistent item
  * 
  * Spawner triggers
  * random trigger
