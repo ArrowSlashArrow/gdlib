@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, ItemType}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
+        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, DirectionalMove, ItemType, MoveEasing, TargetMove, POS_PLAYER1}, GDObjConfig}, serialiser::encrypt_level_str, utils::vec_as_str
     };
 
     #[test]
@@ -32,9 +32,10 @@ mod tests {
         let mut levels = Levels::from_local().unwrap();
         let mut new_level = Level::new("rust websocket tutorial 2", "arrowslasharrow", Some("dont use rust"), Some(857925));
         
-        new_level.add_object(triggers::move_trigger(
-            GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
-        ));
+        // todo: update to new constructor
+        // new_level.add_object(triggers::move_trigger(
+        //     GDObjConfig::default().groups([1234]), 10, 10, 0.5, 2, false, 0
+        // ));
 
         new_level.add_object(misc::default_block(GDObjConfig::default().x(15.0).y(15.0)));
         
@@ -74,5 +75,26 @@ mod tests {
         // ));
 
         // levels.export_to_savefile().unwrap();
+    }
+
+    #[test]
+    fn move_trigger_test() {
+        let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
+        level.add_object(move_trigger(
+            GDObjConfig::default().pos(45.0, 45.0), 
+            triggers::MoveMode::Default(DefaultMove {
+                dx: 45.0,
+                dy: 54.0,
+                x_lock: None,
+                y_lock: None
+            }), 
+            17.38, 
+            679, 
+            false, 
+            true, 
+            Some((MoveEasing::ElasticInOut, 1.50))
+        ));
+
+        level.export_to_gmd("GMDS/gyat.gmd").unwrap();
     }
 }

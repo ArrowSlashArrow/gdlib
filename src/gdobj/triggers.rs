@@ -5,6 +5,16 @@
 use serde_json::{json, Value};
 use crate::{gdobj::{GDObjConfig, GDObjProperties, GDObject}, utils::clamp_to_values};
 
+/// Constant distinct arbitrary value for player 1 position. 
+pub const POS_PLAYER1: i32 = 99999;
+/// Constant distinct arbitrary value for player 2 position. 
+pub const POS_PLAYER2: i32 = 99998;
+
+/// Constant distinct value for X-axis move lock. 
+pub const MOVE_X_ONLY: i32 = 1;
+/// Constant distinct value for Y-axis move lock. 
+pub const MOVE_Y_ONLY: i32 = 2;
+
 /// Enum for the GD gamemodes corresponding to their internal values
 #[repr(i32)]
 pub enum Gamemode {
@@ -79,7 +89,7 @@ pub enum ItemType {
     Attempts = 5
 }
 
-/// Enum for operators
+/// Enum for item operators
 #[repr(i32)]
 pub enum Op {
     Set = 0,
@@ -89,7 +99,7 @@ pub enum Op {
     Div = 4
 }
 
-/// Enum for round modes
+/// Enum for item round modes
 #[repr(i32)]
 pub enum RoundMode {
     None = 0,
@@ -98,7 +108,7 @@ pub enum RoundMode {
     Ceiling = 3
 }
 
-/// Enum for sign modes
+/// Enum for item sign modes
 #[repr(i32)]
 pub enum SignMode {
     None = 0,
@@ -106,7 +116,7 @@ pub enum SignMode {
     Negative = 2
 }
 
-/// Enum for colour channels
+/// Enum for colour channels and their IDs
 #[repr(i32)]
 pub enum ColourChannel {
     Background = 1000,
@@ -122,7 +132,6 @@ pub enum ColourChannel {
 }
 
 /// Enum for target player in gravity trigger
-
 #[repr(i32)]
 pub enum TargetPlayer {
     Player1 = 138,
@@ -130,47 +139,169 @@ pub enum TargetPlayer {
     PlayerTarget = 201
 }
 
-// tehcnically this aint the full thing but yk its good enough (for now...)
+/// Enum for move mode setting. See structs [`DefaultMove`], [`TargetMove`], and [`DirectionalMove`]
+pub enum MoveMode {
+    Default(DefaultMove),
+    Targeting(TargetMove),
+    Directional(DirectionalMove)
+}
+
+/// Enum for lock config: player or camera
+pub enum MoveLock {
+    Player,
+    Camera
+}
+
+/// Config struct for default movement
+/// # Fields
+/// * `dx`: Units to move in x-axis. Used as multiplier of player/camera movement if `x_lock` is used
+/// * `dy`: Units to move in y-axis. Used as multiplier of player/camera movement if `y_lock` is used
+/// * `x_lock`: Optional lock on x movement which allows the object to move relative to either the player or the camera
+/// * `y_lock`: Optional lock on y movement which allows the object to move relative to either the player or the camera
+pub struct DefaultMove {
+    pub dx: f64,
+    pub dy: f64,
+    pub x_lock: Option<MoveLock>,
+    pub y_lock: Option<MoveLock>
+}
+
+/// Config struct for moving to a specific target.
+/// # Fields
+/// * `target_group_id`: Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+/// * `center_group_id`: (Optional) The objects that represent the center of the group that is moving
+/// * `axis_only`: Optional axis restriction. Use constants `MOVE_X_ONLY` and `MOVE_Y_ONLY` to specify axis.
+pub struct TargetMove {
+    pub target_group_id: i32,
+    pub center_group_id: Option<i32>,
+    pub axis_only: Option<i32>
+}
+
+/// Config struct for moving to a specific target.
+/// # Fields
+/// * `target_group_id`: Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+/// * `center_group_id`: (Optional) The objects that represent the center of the group that is moving
+/// * `distance`: Distance in units to move in the direction of the target objects.
+pub struct DirectionalMove {
+    pub target_group_id: i32,
+    pub center_group_id: Option<i32>,
+    pub distance: i32
+}
+
+/// Enum for all the move easings 
+#[repr(i32)]
+pub enum MoveEasing {
+    EaseInOut = 1,
+    EaseIn = 2,
+    EaseOut = 3,
+    ElasticInOut = 4,
+    ElasticIn = 5,
+    ElasticOut = 6,
+    BounceInOut = 7,
+    BounceIn = 8,
+    BounceOut = 9,
+    ExponentialInOut = 10,
+    ExponentialIn = 11,
+    ExponentialOut = 12,
+    SineInOut = 13,
+    SineIn = 14,
+    SineOut = 15,
+    BackInOut = 16,
+    BackIn = 17,
+    BackOut = 18
+}
+
 /// Returns a move trigger object
 /// 
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-/// * `dX`: How much to move the target group in the X direction. 
-/// * `dY`: How much to move the target group in the Y direction. 
-/// * `time`: Move time for target object.
-/// * `targetGroup`: Group that the move trigger is moving.
-/// * `targetMode`: Enabled if the group is moving to the location of another group.
-/// * `aim`: The other group that the object would move
-/// 
-/// Returns a GDObject object with the corresponding properties.
+/// * `move_config`: Details for the movement of the target group. See [`MoveMode`] struct
+/// * `time`: Move time of group. 
+/// * `target_group`: Group that is moving.
+/// * `silent`: Skips collision checking with the player(s) in the path of its motion. Useful for reducing lag. Collision blocks are unaffected. 
+/// * `dynamic`: Updates location of the target group in real time for target/directional move modes.
+/// * `easing`: Optional easing and easing rate (default: 2) tuple.
 pub fn move_trigger(
     config: GDObjConfig,
-    dx: i32,
-    dy: i32,
+    move_config: MoveMode,
     time: f32,
     target_group: i32,
-    target_mode: bool,
-    aim: i32
+    silent: bool,
+    dynamic: bool,
+    easing: Option<(MoveEasing, f32)>
 ) -> GDObject { 
-    let properties = if target_mode {
-        json!({
-            "28": 0,
-            "29": 0,
-            "30": 0,
-            "85": 2,
-            "71": aim,
-            "100": 1,
-            "51": target_group,
-            "10": time
-        })
-    } else {
-        json!({
-            "28": dx,
-            "29": dy,
-            "51": target_group,
-            "10": time
-        })
-    };
+    // aim: target group 2
+    let mut properties = json!({
+        "51": target_group,
+        "10": time,
+        "393": 1, // small step option
+        "397": dynamic as i32,
+        "544": silent as i32
+    });
+    let map = properties.as_object_mut().unwrap();
+    if let Some((easing, rate)) = easing {
+        map.insert("30".to_string(), Value::from(easing as i32));
+        map.insert("85".to_string(), Value::from(rate));
+    }
+
+    match move_config {
+        MoveMode::Default(config) => {
+            if let Some(lock) = config.x_lock {
+                map.insert(
+                    match lock {
+                        MoveLock::Player => "58",
+                        MoveLock::Camera => "141"
+                    }.to_string(), 
+                    Value::from(1)
+                );
+                map.insert("143".to_string(), Value::from(config.dx as f32));
+            } else {
+                map.insert("28".to_string(), Value::from(config.dx as i32));
+            }
+
+            if let Some(lock) = config.y_lock {
+                map.insert(
+                    match lock {
+                        MoveLock::Player => "59",
+                        MoveLock::Camera => "142"
+                    }.to_string(), 
+                    Value::from(1)
+                );
+                map.insert("144".to_string(), Value::from(config.dy as f32));
+            } else {
+                map.insert("29".to_string(), Value::from(config.dy as i32));
+            }
+        },
+        MoveMode::Targeting(config) => {
+            map.insert("100D".to_string(), Value::from(1));
+            if let Some(id) = config.center_group_id {
+                map.insert("395".to_string(), Value::from(id));
+            }
+            
+            if let Some(axis) = config.axis_only {
+                map.insert("101".to_string(), Value::from(axis));
+            }
+
+            match config.target_group_id {
+                POS_PLAYER1 => map.insert("138".to_string(), Value::from(1)),
+                POS_PLAYER2 => map.insert("200".to_string(), Value::from(1)),
+                id => map.insert("71".to_string(), Value::from(id)),
+            };
+        },
+        MoveMode::Directional(config) => {
+        if let Some(id) = config.center_group_id {  
+                map.insert("395".to_string(), Value::from(id));
+            }
+
+            match config.target_group_id {
+                POS_PLAYER1 => map.insert("138".to_string(), Value::from(1)),
+                POS_PLAYER2 => map.insert("200".to_string(), Value::from(1)),
+                id => map.insert("71".to_string(), Value::from(id)),
+            };
+
+            map.insert("394".to_string(), Value::from(1));
+            map.insert("396".to_string(), Value::from(config.distance));
+        },
+    }
 
     GDObject::new(901, config, GDObjProperties::from_json(properties))
 }
@@ -191,12 +322,11 @@ pub fn move_trigger(
 /// * `target_channel`: Target channel (once again, I don't know); Default: 0
 /// * `disabled`: Disabled startpos? Default: false
 /// * **NOTE**: Defaults are the default values of a startpos, they are NOT filled in for you. 
-/// Returns a GDObject object with the corresponding properties.
 /// 
 /// # ⚠️ Warning
 /// This object is VERY WEIRD. There are 25 properties that serve an unknown purpose. 
 /// This is also the only object with non-integer properties (kA1, kA2, ...)
-/// The reverse gameplay option is always on for some unknown reason. USE AT YOUR OWN RISK!!
+/// The reverse gameplay option is always on when generated with GDLib for some unknown reason. USE AT YOUR OWN RISK!!
 pub fn start_pos(
     config: GDObjConfig,
     start_speed: f64, 
@@ -322,7 +452,7 @@ pub fn colour_trigger<T: Into<i32>>(
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Target group to stop/pause/resume
-/// * `stop_mode`: Stop mode (see `StopMode` struct)
+/// * `stop_mode`: Stop mode (see [`StopMode`] struct)
 /// * `use_control_id`: Only stops certain triggers within a group if enabled.
 pub fn stop_trigger(
     config: GDObjConfig,
@@ -390,8 +520,8 @@ pub fn pulse_trigger(
 /// Returns a transition object
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-/// * `transition`: Type of transition. See `TransitionType` struct
-/// * `mode`: Mode for transition (enter/exit only). See `TransitionMode` struct
+/// * `transition`: Type of transition. See [`TransitionType`] struct
+/// * `mode`: Mode for transition (enter/exit only). See [`TransitionMode`] struct
 /// * `target_channel`: Optional target channel argument which specifies a channel for this transition.
 pub fn transition_object(
     config: GDObjConfig,
@@ -643,9 +773,9 @@ pub fn end_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `item_id`: ID of the counter
 /// * `timer`: Is a timer?
-/// * `align`: Visual alignment of counter object. See `ItemAlign` struct.
+/// * `align`: Visual alignment of counter object. See [`ItemAlign`] struct.
 /// * `seconds_only`: Show only seconds if timer?
-/// * `special_mode`: Other special mode of timer. See `CounterMode` struct.
+/// * `special_mode`: Other special mode of timer. See [`CounterMode`] struct.
 pub fn counter_object(
     config: GDObjConfig,
     item_id: i32,
@@ -677,13 +807,13 @@ pub fn counter_object(
 /// * `target_id`: Target item id
 /// * `target_type`: Target item type
 /// * `modifier`: f32 modifier; default is 1.0
-/// * `assign_op`: operator for assigning to result; see `Op` enum.
-/// * `mod_op`: operator for applying mod to result; see `Op` enum.
-/// * `id_op`: operator between operands 1 and 2; see `Op` enum.
-/// * `id_rounding`: operand rounding function; see `RoundMode` enum.
-/// * `result_rounding`: final rounding function; see `RoundMode` enum.
-/// * `id_sign`: operand signing function; see `SignMode` enum.
-/// * `result_sign`: final signing function; see `SignMode` enum.
+/// * `assign_op`: operator for assigning to result; see [`Op`] enum.
+/// * `mod_op`: operator for applying mod to result; see [`Op`] enum.
+/// * `id_op`: operator between operands 1 and 2; see [`Op`] enum.
+/// * `id_rounding`: operand rounding function; see [`RoundMode`] enum.
+/// * `result_rounding`: final rounding function; see [`RoundMode`] enum.
+/// * `id_sign`: operand signing function; see [`SignMode`] enum.
+/// * `result_sign`: final signing function; see [`SignMode`] enum.
 pub fn item_edit(
     config: GDObjConfig, 
     operand1: Option<(i32, ItemType)>,
