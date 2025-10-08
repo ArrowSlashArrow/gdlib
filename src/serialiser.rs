@@ -5,7 +5,7 @@ use base64::Engine;
 use flate2::{write::ZlibEncoder, Compression};
 use plist::{Dictionary, Value};
 
-use crate::deserialiser::xor;
+use crate::{deserialiser::xor, utils::b64_encode};
 
 fn zlib_compress(s: String) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -23,7 +23,7 @@ pub fn encrypt_level_str(s: String) -> Vec<u8> {
 
     data.extend_from_slice(&crc_checksum);
     data.extend_from_slice(&size);
-    let base64 = base64::engine::general_purpose::STANDARD.encode(data)
+    let base64 = b64_encode(data)
         .replace("+", "-").replace("/", "_");
 
     let mut header = b"H4sIAAAAAAAAC".to_vec();
@@ -43,7 +43,7 @@ pub fn encrypt_savefile_str(s: String) -> Vec<u8> {
     gzip_signature.extend_from_slice(&deflate);
     gzip_signature.extend_from_slice(&crc_checksum);
     gzip_signature.extend_from_slice(&size);
-    let base64 = base64::engine::general_purpose::URL_SAFE.encode(gzip_signature);
+    let base64 = b64_encode(gzip_signature);
     return xor(base64.as_bytes().to_vec(), 11);
 }
 

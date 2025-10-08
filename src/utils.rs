@@ -1,6 +1,7 @@
 //! This module contains various utilities for debugging and processing structs
-use std::{collections::HashMap, env, error::Error, fs, path::{Path, PathBuf}, time::Instant};
+use std::{collections::HashMap, env, error::Error, fmt::Debug, fs, path::{Path, PathBuf}, time::Instant};
 use aho_corasick::AhoCorasick;
+use base64::Engine;
 use serde_json::Value;
 
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
@@ -79,4 +80,12 @@ pub fn clamp_to_values(val: f64, clamps: &[f64]) -> f64 {
         let dist_b = (b - val).abs();
         dist_a.partial_cmp(&dist_b).unwrap()
     }).unwrap().clone()
+}
+
+pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
+    base64::engine::general_purpose::URL_SAFE.decode(encoded).unwrap()
+}
+
+pub fn b64_encode(encoded: Vec<u8>) -> String {
+    base64::engine::general_purpose::URL_SAFE.encode(encoded)
 }

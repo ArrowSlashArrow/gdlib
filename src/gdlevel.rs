@@ -1,11 +1,11 @@
 //! This file contains the necessary structs for interfacing with the level(s) themselves
-use std::{collections::HashMap, error::Error, fs::{self, read, write}, io::Cursor, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Display, fs::{self, read, write}, io::Cursor, path::PathBuf};
 
 use base64::Engine;
 use plist::{Dictionary, Value};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{get_local_levels_path, proper_plist_tags, vec_as_str}};
+use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{b64_decode, b64_encode, get_local_levels_path, proper_plist_tags, vec_as_str}};
 
 /// This is the default level header 
 pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0;";
@@ -183,7 +183,7 @@ impl Level {
         Level { 
             title: Some(title.into()), 
             author: Some(author.into()), 
-            description: description.map(|desc| base64::engine::general_purpose::STANDARD.encode(desc.into())), 
+            description: description.map(|desc| b64_encode(desc.into().as_bytes().to_vec())), 
             data: Some(LevelState::Decrypted(LevelData { headers: DEFAULT_LEVEL_HEADERS.to_string(), objects: vec![] })), 
             song, 
             properties: Levels::default_properties()
@@ -339,6 +339,33 @@ impl Level {
                 LevelState::Encrypted(_) => return
             };
         }
+    }
+}
+
+impl Display for Level {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let info_str = match &self.data {
+            Some(d) => match d {
+                LevelState::Encrypted(enc) => {
+                    &format!("{} Bytes", enc.data.len())
+                },
+                LevelState::Decrypted(dec) => {
+                    &format!("{} Objects", dec.objects.len())
+                }
+            },
+            None => "Empty"
+        };
+
+        write!(
+            f, 
+            "\"{}\" ({}) by {} using song {}; {info_str}", 
+            self.title.clone().unwrap_or("<No title>".to_string()), 
+            vec_as_str(&b64_decode(
+                self.description.clone().unwrap_or("PE5vIGRlc2NyaXB0aW9uPg==".to_string())
+            .as_bytes().to_vec())),
+            self.author.clone().unwrap_or("<Unknown author>".to_string()),
+            self.song.unwrap_or(0)
+        )
     }
 }
 

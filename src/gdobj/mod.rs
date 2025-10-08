@@ -574,9 +574,9 @@ impl GDObjConfig {
         self.scale.1 = yscale;
         self
     }
-    /// Sets x and y sacle of this object
+    /// Sets x and y scale of this object
     pub fn scale(mut self, x: f32, y: f32) -> Self {
-        self.pos = (x, y);
+        self.scale = (x, y);
         self
     }
     /// Sets rotation angle of this object

@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
+        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}, utils::{b64_decode, vec_as_str}
     };
 
     #[test]
@@ -102,5 +102,13 @@ mod tests {
         ));
 
         level.export_to_gmd("GMD_tests/move_trigger.gmd").unwrap();
+    }
+
+    #[test]
+    fn _temp_level_display_test() {
+        let levels = Levels::from_local().unwrap();
+        for level in levels.levels {
+            println!("{level}");
+        }
     }
 }
