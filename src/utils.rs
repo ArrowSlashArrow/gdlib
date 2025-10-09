@@ -58,6 +58,7 @@ pub fn properties_from_json(vals: Value) -> HashMap<String, Value> {
     vals.as_object().unwrap().into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
+/// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
 pub fn proper_plist_tags(s: String) -> String {
     // replace gd plist with proper plist
     // using aho-corasick for single-pass instead of many .replace()s
@@ -74,6 +75,7 @@ pub fn proper_plist_tags(s: String) -> String {
     return plist
 }
 
+/// Quick function for clamping `val` to the nearest value in `clamps`
 pub fn clamp_to_values(val: f64, clamps: &[f64]) -> f64 {
     clamps.iter().min_by(|&&a, &&b| {
         let dist_a = (a - val).abs();
@@ -82,10 +84,12 @@ pub fn clamp_to_values(val: f64, clamps: &[f64]) -> f64 {
     }).unwrap().clone()
 }
 
+/// Quick function for decoding base64 bytes
 pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
     base64::engine::general_purpose::URL_SAFE.decode(encoded).unwrap()
 }
 
+/// Quick function for encoding base64 bytes
 pub fn b64_encode(encoded: Vec<u8>) -> String {
     base64::engine::general_purpose::URL_SAFE.encode(encoded)
 }

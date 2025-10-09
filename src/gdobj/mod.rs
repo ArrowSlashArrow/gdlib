@@ -8,131 +8,140 @@ use crate::utils::properties_from_json;
 pub mod triggers;
 pub mod misc;
 
-/// Default values of GD object properties: 
-/// (property, type, value) 
-pub const DEFAULT_PROPERTY_VALUES: &[(&str, &str, f32)] = &[
-    ("6", "float", 0.0),
-    ("128", "float", 1.0),
-    ("129", "float", 1.0),
-    ("11", "bool", 0.0), 
-    ("62", "bool", 0.0), 
-    ("87", "bool", 0.0), 
-];
+// todo: use these in the property names array
+pub enum GDObjPropType {
+    Int,
+    Float,
+    Text,
+    Bool,
+    Group,
+    Item,
+    Easing,
+    ColourChannel,
+    Unknown
+}
+
+pub struct GDObjProperty {
+    pub name: &'static str,
+    pub desc: &'static str,
+    pub arg_type: GDObjPropType,
+    pub default: Option<f32>
+}
 
 // TODO: fill in all the properties
 // btw, if anyone has a better idea to represent property descriptors (they differ from object to object), lmk
 /// Names of properties (INCOMPLETE): 
 /// (property, name)
-pub const PROPERTY_NAMES: &[(&str, &str)] = &[
-    ("1", "object ID"),
-    ("2", "x pos"),
-    ("3", "y pos"),
-    ("4", "is flipped horizontally?"),
-    ("5", "is flipped vertically?"),
-    ("6", "rotation"),
-    ("7", "Red"),
-    ("8", "Green"),
-    ("9", "Blue"),
-    ("10", "Fade time / chance to trigger group 1"),
-    ("11", "Touch triggerable"),
-    ("15", "Using player colour 1"),
-    ("16", "Using player colour 2"),
-    ("17", "Blending enabled"),
-    ("23", "Colour channel"),
-    ("28", "Move units x"),
-    ("29", "Move units y"),
-    ("30", "Move easing"),
-    ("31", "Base64-encoded text"),
-    ("35", "Opacity"),
-    ("36", "Is active trigger?"),
-    ("45", "Pulse fade in time"),
-    ("46", "Pulse hold time"),
-    ("47", "Pulse fade out time"),
-    ("49", "Copy colour specs"),
-    ("50", "Copy colour from channel"),
-    ("51", "Target group/item/channel"),
-    ("56", "Activate group"),
-    ("58", "Follow player's x movement"),
-    ("59", "Follow player's y movement"),
-    ("60", "Copy opacity"),
-    ("62", "Spawn triggerable"),
-    ("71", "Target group 2"),
-    ("75", "Shake strength"),
-    ("80", "Group/item 1"),
-    ("84", "Shake interval"),
-    ("85", "Easing rate"),
-    ("86", "Exclusive pulse mode"),
-    ("87", "Multitriggerable"),
-    ("94", "Dynamic block?"),
-    ("95", "Group/item 2"),
-    ("99", "Multi activate"),
-    ("100", "Target move mode"),
-    ("101", "Target move mode axis lock"),
-    ("120", "Timewarp amount"),
-    ("128", "X scale"),
-    ("129", "Y scale"),
-    ("138", "Controlling player 1"),
-    ("141", "Follow camera's x movement"),
-    ("142", "Follow camera's y movement"),
-    ("143", "X movement multiplier"),
-    ("144", "Y movement multiplier"),
-    ("148", "Gravity"),
-    ("200", "Controlling player 2"),
-    ("201", "Controlling target player"),
-    ("210", "No legacy HSV"),
-    ("217", "Enter/Exit transition config"),
-    ("344", "Target transition channel"),
-    ("371", "Camera zoom"),
-    ("392", "Song ID"),
-    ("393", "Small step"), // this is a UI-only property. interally, move distances are stored the same regardless.
-    ("394", "Directional move mode"), 
-    ("395", "Center group id"), 
-    ("397", "Dynamic move"), 
-    ("399", "Prep?"),
-    ("400", "Load Prep?"),
-    ("404", "Song speed"),
-    ("406", "Song volume"),
-    ("408", "Start offset in ms"),
-    ("409", "Fade in time in ms"),
-    ("410", "End offset in ms"),
-    ("411", "Fade out time in ms"),
-    ("413", "Loop song?"),
-    ("432", "Song channel"),
-    ("445", "Claim touch?"),
-    ("460", "No end effects?"),
-    ("461", "Instant end?"),
-    ("467", "No end sound effects?"),
-    ("472", "Stop time counter?"),
-    ("473", "Target time for event"),
-    ("475", "Multiactivatable time event"),
-    ("476", "First item type"),
-    ("477", "Second item type"),
-    ("479", "Modifier"),
-    ("483", "Second modifier"),
-    ("491", "Set persistent item"),
-    ("492", "Target all persistent items"),
-    ("493", "Reset item to 0"),
-    ("494", "Timer"),
-    ("504", "Spawn only"),
-    ("506", "Camera guide preview opacity"),
-    ("540", "Stop player jump"),
-    ("541", "Stop player movement"),
-    ("542", "Stop player rotation"),
-    ("543", "Stop player sliding"),
-    ("544", "Silent move"),
-    ("595", "Don't stop song on death"),
+pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
+    GDObjProperty{name: "1", desc: "object ID", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "2", desc: "x pos", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "3", desc: "y pos", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "4", desc: "is flipped horizontally?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "5", desc: "is flipped vertically?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "6", desc: "rotation", arg_type: GDObjPropType::Float, default: Some(0.0)},
+    GDObjProperty{name: "7", desc: "Red", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "8", desc: "Green", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "9", desc: "Blue", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "10", desc: "Fade time / chance to trigger group 1", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "11", desc: "Touch triggerable", arg_type: GDObjPropType::Bool, default: Some(0.0)},
+    GDObjProperty{name: "15", desc: "Using player colour 1", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "16", desc: "Using player colour 2", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "17", desc: "Blending enabled", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "23", desc: "Colour channel", arg_type: GDObjPropType::ColourChannel, default: None},
+    GDObjProperty{name: "28", desc: "Move units x", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "29", desc: "Move units y", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "30", desc: "Move easing", arg_type: GDObjPropType::Easing, default: None},
+    GDObjProperty{name: "31", desc: "Base64-encoded text", arg_type: GDObjPropType::Text, default: None},
+    GDObjProperty{name: "35", desc: "Opacity", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "36", desc: "Is active trigger?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "45", desc: "Pulse fade in time", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "46", desc: "Pulse hold time", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "47", desc: "Pulse fade out time", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "49", desc: "Copy colour specs", arg_type: GDObjPropType::Text, default: None},
+    GDObjProperty{name: "50", desc: "Copy colour from channel", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "51", desc: "Target group/item/channel", arg_type: GDObjPropType::Group, default: None},
+    GDObjProperty{name: "56", desc: "Activate group", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "58", desc: "Follow player's x movement", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "59", desc: "Follow player's y movement", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "60", desc: "Copy opacity", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "62", desc: "Spawn triggerable", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "71", desc: "Target group 2", arg_type: GDObjPropType::Group, default: None},
+    GDObjProperty{name: "75", desc: "Shake strength", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "80", desc: "Group/item 1", arg_type: GDObjPropType::Item, default: None},
+    GDObjProperty{name: "84", desc: "Shake interval", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "85", desc: "Easing rate", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "86", desc: "Exclusive pulse mode", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "87", desc: "Multitriggerable", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "94", desc: "Dynamic block?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "95", desc: "Group/item 2", arg_type: GDObjPropType::Item, default: None},
+    GDObjProperty{name: "99", desc: "Multi activate", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "100", desc: "Target move mode", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "101", desc: "Target move mode axis lock", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "120", desc: "Timewarp amount", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "128", desc: "X scale", arg_type: GDObjPropType::Float, default: Some(1.0)},
+    GDObjProperty{name: "129", desc: "Y scale", arg_type: GDObjPropType::Float, default: Some(1.0)},
+    GDObjProperty{name: "138", desc: "Controlling player 1", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "141", desc: "Follow camera's x movement", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "142", desc: "Follow camera's y movement", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "143", desc: "X movement multiplier", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "144", desc: "Y movement multiplier", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "148", desc: "Gravity", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "200", desc: "Controlling player 2", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "201", desc: "Controlling target player", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "210", desc: "No legacy HSV", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "217", desc: "Enter/Exit transition config", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "344", desc: "Target transition channel", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "371", desc: "Camera zoom", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "392", desc: "Song ID", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "393", desc: "Small step", arg_type: GDObjPropType::Bool, default: None}, // this is a UI-only property. interally, move distances are stored the same regardless.
+    GDObjProperty{name: "394", desc: "Directional move mode", arg_type: GDObjPropType::Bool, default: None} ,
+    GDObjProperty{name: "395", desc: "Center group id", arg_type: GDObjPropType::Group, default: None},
+    GDObjProperty{name: "397", desc: "Dynamic move", arg_type: GDObjPropType::Bool, default: None}, 
+    GDObjProperty{name: "399", desc: "Prep?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "400", desc: "Load Prep?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "404", desc: "Song speed", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "406", desc: "Song volume", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "408", desc: "Start offset in ms", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "409", desc: "Fade in time in ms", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "410", desc: "End offset in ms", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "411", desc: "Fade out time in ms", arg_type: GDObjPropType::Int, default: None},
+    GDObjProperty{name: "413", desc: "Loop song?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "432", desc: "Song channel", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "445", desc: "Claim touch?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "460", desc: "No end effects?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "461", desc: "Instant end?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "467", desc: "No end sound effects?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "472", desc: "Stop time counter?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "473", desc: "Target time for event", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "475", desc: "Multiactivatable time event", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "476", desc: "First item type", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "477", desc: "Second item type", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "479", desc: "Modifier", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "483", desc: "Second modifier", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "491", desc: "Set persistent item", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "492", desc: "Target all persistent items", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "493", desc: "Reset item to 0", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "494", desc: "Timer", arg_type: GDObjPropType::Item, default: None},
+    GDObjProperty{name: "504", desc: "Spawn only", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "506", desc: "Camera guide preview opacity", arg_type: GDObjPropType::Float, default: None},
+    GDObjProperty{name: "540", desc: "Stop player jump", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "541", desc: "Stop player movement", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "542", desc: "Stop player rotation", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "543", desc: "Stop player sliding", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "544", desc: "Silent move", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "595", desc: "Don't stop song on death", arg_type: GDObjPropType::Bool, default: None},
     // these are all startpos properties:
-    ("kA4", "Starting speed"),
-    ("kA2", "Starting gamemode"),
-    ("kA3", "Starting in mini mode?"),
-    ("kA8", "Starting in dual mode?"),
-    ("kA21", "Is disabled?"),
-    ("kA28", "Starting in mirror mode?"),
-    ("kA29", "Rotate gameplay?"),
-    ("kA20", "Reverse gameplay?"),
-    ("kA19", "Target order"),
-    ("kA26", "Target channel"),
-    ("kA35", "Reset camera?")
+    GDObjProperty{name: "kA4", desc: "Starting speed", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "kA2", desc: "Starting gamemode", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "kA3", desc: "Starting in mini mode?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA8", desc: "Starting in dual mode?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA21", desc: "Is disabled?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA28", desc: "Starting in mirror mode?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA29", desc: "Rotate gameplay?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA20", desc: "Reverse gameplay?", arg_type: GDObjPropType::Bool, default: None},
+    GDObjProperty{name: "kA19", desc: "Target order", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "kA26", desc: "Target channel", arg_type: GDObjPropType::Unknown, default: None},
+    GDObjProperty{name: "kA35", desc: "Reset camera?", arg_type: GDObjPropType::Bool, default: None}
 ];
 
 /// Map of all object ids to names: (id, name)
@@ -234,9 +243,9 @@ fn get_num(properties: &mut HashMap<String, Value>, key: &str) -> Option<Number>
         },
         None => {
             // otherwise try return known default
-            match DEFAULT_PROPERTY_VALUES.iter().find(|(p, _t, _v)| *p == key) {
-                Some((_key, _type, fallback)) => {
-                    as_number(Value::from(*fallback))
+            match OBJECT_PROPERTIES.iter().find(|prop| prop.name == key) {
+                Some(property) => {
+                    as_number(Value::from(property.default.unwrap()))
                 },
                 None => None
             }
@@ -269,28 +278,6 @@ pub struct GDObjProperties {
 impl GDObjProperties {
     pub fn new() -> Self {
         GDObjProperties { properties: HashMap::new() }
-    }
-
-    /// Removes default values from a property hashmap
-    pub fn strip_default_vals(&mut self) {
-        self.properties = self.properties.clone().into_iter().map(|(k, v)| {
-            let property_values = match DEFAULT_PROPERTY_VALUES.iter().find(|&&p| p.0 == k) {
-                Some(p) => p,
-                None => return Some((k, v))
-            };
-            let default_value = match property_values.1 {
-                "bool" => Value::from(property_values.2 != 0.0),
-                "float" => Value::from(property_values.2),
-                "int" => Value::from(property_values.2 as i32),
-                _ => return None
-            };
-
-            if v == default_value {
-                return None
-            }
-
-            Some((k, v))
-        }).flatten().collect::<HashMap<String, Value>>();
     }
 
     pub fn to_string(&mut self) -> String {
@@ -351,8 +338,8 @@ impl Debug for GDObject {
         let mut property_str = String::new();
         let sorted: BTreeMap<_, _> = self.properties.properties.iter().collect();
         for (pname, value) in sorted.iter() {
-            let descriptor = match PROPERTY_NAMES.iter().find(|&p| p.0 == *pname) {
-                Some(v) => v.1,
+            let descriptor = match OBJECT_PROPERTIES.iter().find(|&p| p.name == *pname) {
+                Some(v) => v.desc,
                 None => &pname
             };
             property_str += &format!("\n    - {descriptor}: {value}");
@@ -444,7 +431,6 @@ impl GDObject {
     pub fn to_string(&self) -> String {
         let mut combined_properties = self.properties.clone();
         combined_properties.properties.extend(self.config.as_properties());
-        combined_properties.strip_default_vals();
 
         let raw_str = format!("1,{},{}", self.id, combined_properties.to_string());
         return raw_str.replace("\"", "") + ";";

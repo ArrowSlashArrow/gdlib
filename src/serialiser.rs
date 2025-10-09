@@ -1,7 +1,6 @@
 //! This module contains all of the encryption code for GD savefiles.
 use std::{io::Write};
 
-use base64::Engine;
 use flate2::{write::ZlibEncoder, Compression};
 use plist::{Dictionary, Value};
 

@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}, utils::{b64_decode, vec_as_str}
+        gdobj::{misc::{self, default_block}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}, utils::{b64_decode, vec_as_str}
     };
 
     #[test]
@@ -105,10 +105,12 @@ mod tests {
     }
 
     #[test]
-    fn _temp_level_display_test() {
-        let levels = Levels::from_local().unwrap();
-        for level in levels.levels {
-            println!("{level}");
-        }
+    fn level_display_test() {
+        let mut levels = Levels::from_local().unwrap();
+        let level = levels.levels.get_mut(0).unwrap();
+        println!("Level info: {level}");
+        println!("Unused groups: {:?}", level.get_decrypted_data().unwrap().get_unused_groups());
+        println!("Used groups: {:?}", level.get_decrypted_data().unwrap().get_used_groups());
     }
+
 }

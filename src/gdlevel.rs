@@ -1,7 +1,6 @@
 //! This file contains the necessary structs for interfacing with the level(s) themselves
-use std::{collections::HashMap, error::Error, fmt::Display, fs::{self, read, write}, io::Cursor, path::PathBuf};
+use std::{collections::{BTreeSet, HashMap, HashSet}, error::Error, fmt::Display, fs::{self, read, write}, io::Cursor, path::PathBuf};
 
-use base64::Engine;
 use plist::{Dictionary, Value};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -375,5 +374,29 @@ impl LevelData {
             .map(|obj| obj.to_string()).collect::<Vec<String>>().join("");
         let unencrypted = format!("{};{objstr}", self.headers.clone());
         return vec_as_str(&encrypt_level_str(unencrypted))
+    }
+
+    /// Returns a list of all the groups that contain at least one object
+    pub fn get_used_groups(&self) -> Vec<u16> {
+        if self.objects.len() == 0 {
+            return vec![];
+        }
+
+        let mut groups = HashSet::new();
+        
+        for object in self.objects.iter() {
+            groups.extend(object.config.groups.iter());
+        };
+        let mut arr: Vec<u16> = groups.into_iter().collect();
+        arr.sort();
+        return arr
+    }
+
+    /// Returns a list of all the groups that do not contain any objects
+    pub fn get_unused_groups(&self) -> Vec<u16> {
+        let all: BTreeSet<u16> = (0..10000).collect();
+        let used: BTreeSet<u16> = self.get_used_groups().into_iter().collect();
+
+        all.difference(&used).cloned().collect::<Vec<u16>>()
     }
 }
