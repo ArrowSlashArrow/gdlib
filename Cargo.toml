@@ -1,6 +1,6 @@
 [package]
 name = "gdlib"
-version = "0.2.2"
+version = "0.2.2-patch"
 edition = "2024"
 
 description = "Rust library for editing Geometry Dash savefiles"
@@ -17,6 +17,7 @@ aho-corasick = "1.1.3"
 base64 = "0.22.1"
 crc32fast = "1.5.0"
 flate2 = { version = "1.1.2", features = ["zlib"] }
+internment = "0.8.6"
 plist = "1.7.4"
 rayon = "1.11.0"
 serde_json = "1.0.143"

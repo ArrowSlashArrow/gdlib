@@ -4,6 +4,8 @@ use aho_corasick::AhoCorasick;
 use base64::Engine;
 use serde_json::Value;
 
+use crate::gdobj::GDObjProperty;
+
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
 pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") && Path::new(&local_appdata).exists(){
@@ -54,8 +56,9 @@ pub fn vec_as_str(v: &Vec<u8>) -> String {
 }
 
 /// Converts properties in `serde_json::Value` dict to a `HashMap<String, Value>` 
-pub fn properties_from_json(vals: Value) -> HashMap<String, Value> {
-    vals.as_object().unwrap().into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+pub fn properties_from_json(vals: Value) -> HashMap<GDObjProperty, Value> {
+    vals.as_object().unwrap().into_iter()
+        .map(|(k, v)| (GDObjProperty::from_name(k.clone()), v.clone())).collect()
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
