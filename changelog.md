@@ -1,5 +1,18 @@
 # Changelog
 
+## Update 0.2.3
+ * Added contrsuctors of triggers:
+    * player control
+    * gravity
+    * end
+    * full move trigger contrsuctor
+    * timewarp
+    * camera zoom
+    * camera guide
+    * persistent item
+    * item edit
+    * spawn particle
+
 ## Update 0.2.2
  * Added constructors for miscellaneous triggers:
     * group reset trigger
@@ -13,17 +26,8 @@
     * on death trigger
  * Patch
     * Fixed `.scale()` in `GDObject` changing position instead of scale
-    * Added contrsuctors of triggers:
-       * player control
-       * gravity
-       * end
-       * full move trigger contrsuctor
-       * timewarp
-       * camera zoom
-       * camera guide
-       * persistent item
     * Implemented `Display` trait of `GDLevel`
-    * Added functions for indexing unused or used groups 
+    * Added functions for indexing unused or used groups + groups used as arguments
 
 ## Update 0.2.1
  * Added constructors for objects:
