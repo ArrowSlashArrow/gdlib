@@ -99,6 +99,17 @@ pub enum Op {
     Div = 4
 }
 
+/// Enum for item comparison operators
+#[repr(i32)]
+pub enum CompareOp {
+    Equals = 0,
+    Greater = 1,
+    GreaterOrEquals = 2,
+    Less = 3,
+    LessOrEquals = 4,
+    NotEquals = 5
+}
+
 /// Enum for item round modes
 #[repr(i32)]
 pub enum RoundMode {
@@ -879,6 +890,55 @@ pub fn item_edit(
     })))
 }
 
+/// Returns an item compare trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `true_id`: Group that is activated when the comparison is true
+/// * `false_id`: Group that is activated when the comparison is false
+/// * \*`lhs`: (id, item type, modifier, modifier operator: [`Op`], [`RoundMode`], [`SignMode`]) config tuple for left-hand side operator.
+/// * \*`rhs`: (id, item type, modifier, modifier operator: [`Op`], [`RoundMode`], [`SignMode`]) config tuple for right-hand side operator.
+/// The right-hand side will be just the modifier is the item id is left as 0 (not specified)
+/// * `compare_op`: Operator used to compare the two sides. See [`CompareOp`] enum.
+/// * `tolerance`: Tolerant range of comparsion. Comparsion will be true if the absolute resulting value is less than or equal to the tolerance.
+/// 
+/// \*The modifier operators describe how the modifier interacts with the item, except for setting the item
+pub fn item_compare(
+    config: GDObjConfig,
+    true_id: i32,
+    false_id: i32,
+    lhs: (i32, ItemType, f32, Op, RoundMode, SignMode),
+    rhs: (i32, ItemType, f32, Op, RoundMode, SignMode),
+    compare_op: CompareOp,
+    tolerance: f32,
+) -> GDObject {
+    let properties = json!({
+        "51": true_id,
+        "71": false_id,
+        // ids
+        "80": lhs.0,
+        "95": rhs.0,
+        // types
+        "476": lhs.1 as i32,
+        "477": rhs.1 as i32,
+        // modifiers
+        "479": lhs.2,
+        "483": rhs.2,
+        // modifiers ops
+        "480": lhs.3 as i32,
+        "481": rhs.3 as i32,
+        "482": compare_op as i32,
+        "484": tolerance,
+        // round modes
+        "485": lhs.4 as i32,
+        "486": rhs.4 as i32,
+        // sign modes
+        "578": lhs.5 as i32,
+        "579": rhs.5 as i32
+    });
+
+    GDObject::new(3620, config, GDObjProperties::from_json(properties))
+}
+
 /// Returns a persistent item trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -968,7 +1028,6 @@ pub fn on_death(
         "56": activate_group as i32
     })))
 }
-
 
 /// Returns a particle spawner trigger
 /// # Arguments
@@ -1231,10 +1290,8 @@ pub fn camera_guide(
  * count trigger
  * instant count trigger
  * pickup trigger
- * item compare
  * 
  * Spawner triggers
- * random trigger
  * advanced random
  * sequence
  * event trigger
