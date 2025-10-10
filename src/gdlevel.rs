@@ -394,7 +394,7 @@ impl LevelData {
 
     /// Returns a list of all the groups that do not contain any objects
     pub fn get_unused_groups(&self) -> Vec<u16> {
-        let all: BTreeSet<u16> = (0..10000).collect();
+        let all: BTreeSet<u16> = (1..10000).collect();
         let used: BTreeSet<u16> = self.get_used_groups().into_iter().collect();
 
         all.difference(&used).cloned().collect::<Vec<u16>>()
@@ -415,7 +415,7 @@ impl LevelData {
                 }
             }
         };
-        let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_u64().unwrap() as u16).collect();
+        let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_str().unwrap().parse::<u16>().unwrap()).collect();
         arr.sort();
         return arr
     }
