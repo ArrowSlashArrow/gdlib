@@ -11,6 +11,19 @@
     * bg/mg speed config
     * bg effect on/off
     * on death trigger
+ * Patch
+    * Fixed `.scale()` in `GDObject` changing position instead of scale
+    * Added contrsuctors of triggers:
+       * player control
+       * gravity
+       * end
+       * full move trigger contrsuctor
+       * timewarp
+       * camera zoom
+       * camera guide
+       * persistent item
+    * Implemented `Display` trait of `GDLevel`
+    * Added functions for indexing unused or used groups 
 
 ## Update 0.2.1
  * Added constructors for objects:

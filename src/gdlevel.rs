@@ -399,4 +399,24 @@ impl LevelData {
 
         all.difference(&used).cloned().collect::<Vec<u16>>()
     }
+
+    /// Returns a list of all groups used as arguments in triggers
+    pub fn get_argument_groups(&self) -> Vec<u16> {
+        if self.objects.len() == 0 {
+            return vec![];
+        }
+
+        let mut groups = HashSet::new();
+        
+        for object in self.objects.iter() {
+            for (prop, value) in object.properties.properties.iter() {
+                if prop.arg_type == crate::gdobj::GDObjPropType::Group {
+                    groups.insert(value);
+                }
+            }
+        };
+        let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_u64().unwrap() as u16).collect();
+        arr.sort();
+        return arr
+    }
 }

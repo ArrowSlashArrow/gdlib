@@ -969,6 +969,58 @@ pub fn on_death(
     })))
 }
 
+
+/// Returns a particle spawner trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `particle_group`: Group that contains the particle objects
+/// * `position_group`: Group at which the particles will be spawned
+/// * `position_offsets`: (x, y) tuple for offsets from their original spawn location. 
+/// Note: all particle objects spawn in the same position, regardless of their offsets within their group.
+/// * `position_variation`: (x, y) tuple for range of possible random positional variation.
+/// * `rotation_config`: (rotation, variation) tuple that describes the rotation of the particles + random offset range
+/// * `scale_config`: (scale, variation) tuple that describes the scale of the particles + random offset range
+/// * `match_rotation`: makes all of the particles in the group be rotated in the same direction.
+pub fn spawn_particle(
+    config: GDObjConfig,
+    particle_group: i32,
+    position_group: i32,
+    position_offsets: Option<(i32, i32)>,
+    position_variation: Option<(i32, i32)>,
+    rotation_config: Option<(i32, i32)>,
+    scale_config: Option<(f32, f32)>,
+    match_rotation: bool
+) -> GDObject {
+    let mut properties = json!({
+        "51": particle_group,
+        "71": position_group,
+        "551": match_rotation
+    });
+
+    let map = properties.as_object_mut().unwrap();
+    if let Some((x, y)) = position_offsets {
+        map.insert("547".to_owned(), Value::from(x));
+        map.insert("548".to_owned(), Value::from(y));
+    }
+
+    if let Some((x, y)) = position_variation {
+        map.insert("549".to_owned(), Value::from(x));
+        map.insert("550".to_owned(), Value::from(y));
+    }
+
+    if let Some((rot, var)) = rotation_config {
+        map.insert("552".to_owned(), Value::from(rot));
+        map.insert("553".to_owned(), Value::from(var));
+    }
+
+    if let Some((scale, var)) = scale_config {
+        map.insert("554".to_owned(), Value::from(scale));
+        map.insert("555".to_owned(), Value::from(var));
+    }
+
+    GDObject::new(3608, config, GDObjProperties::from_json(properties))
+}
+ 
 // collision blocks
 
 /// Returns a collision block object
@@ -1186,7 +1238,6 @@ pub fn camera_guide(
  * advanced random
  * sequence
  * event trigger
- * spawn particle
  * 
  * Camera
  * static camera

@@ -87,6 +87,7 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "143", desc: "X movement multiplier", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "144", desc: "Y movement multiplier", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "148", desc: "Gravity", arg_type: GDObjPropType::Float},
+    // GDObjProperty{name: "155", desc: "Mysterious property 155", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "200", desc: "Controlling player 2", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "201", desc: "Controlling target player", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "210", desc: "No legacy HSV", arg_type: GDObjPropType::Bool},
@@ -130,6 +131,15 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "542", desc: "Stop player rotation", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "543", desc: "Stop player sliding", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "544", desc: "Silent move", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "547", desc: "X offset of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "548", desc: "Y offset of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "549", desc: "X offset variation of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "550", desc: "Y offset variation of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "551", desc: "Match rotation of spawned particles?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "552", desc: "Rotation of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "553", desc: "Rotation variation of spawned particles", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "554", desc: "Scale of spawned particles", arg_type: GDObjPropType::Float},
+    GDObjProperty{name: "555", desc: "Scale variation of spawned particles", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "595", desc: "Don't stop song on death", arg_type: GDObjPropType::Bool},
     // these are all startpos properties:
     GDObjProperty{name: "kA4", desc: "Starting speed", arg_type: GDObjPropType::Unknown},
@@ -205,6 +215,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (2066, "Gravity trigger"),
     (3600, "End trigger"),
     (3606, "BG speed config"),
+    (3608, "Spawn particle trigger"),
     (3612, "MG speed config"),
     (3615, "Time event trigger"),
     (3617, "Time control trigger"),
@@ -215,6 +226,14 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (3641, "Persistent item trigger"),
     (3643, "Toggle block"),
     (3662, "Link visible trigger"),
+];
+
+pub const TRIGGER_OBJ_IDS: &[i32] = &[
+    22, 23, 24, 25, 26, 27, 28, 32, 33, 55, 56, 57, 58, 59, 31,
+    899, 901, 914, 1006, 1007, 1049, 1268, 1520, 1615, 1616, 1812, 
+    1815, 1816, 1818, 1819, 1912, 1913, 1915, 1917, 1932, 1934, 1935, 
+    2016, 2066, 3600, 3606, 3612, 3615, 3617, 3618, 3619, 3620, 3640, 
+    3641, 3643, 3662, 
 ];
 
 /// Container for GD Object properties.
@@ -281,7 +300,7 @@ fn get_bool(properties: &mut HashMap<GDObjProperty, Value>, key: &str) -> bool {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GDObjProperties {
-    properties: HashMap<GDObjProperty, Value>
+    pub properties: HashMap<GDObjProperty, Value>
 }
 
 impl GDObjProperties {
