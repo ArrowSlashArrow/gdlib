@@ -4,7 +4,7 @@ use std::{io::Write};
 use flate2::{write::ZlibEncoder, Compression};
 use plist::{Dictionary, Value};
 
-use crate::{deserialiser::xor, utils::b64_encode};
+use crate::{utils::b64_encode};
 
 fn zlib_compress(s: String) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -32,18 +32,7 @@ pub fn encrypt_level_str(s: String) -> Vec<u8> {
 
 /// Returns the encrypted savefile string from a stringified `Levels` struct
 pub fn encrypt_savefile_str(s: String) -> Vec<u8> {
-    let compressed = zlib_compress(s.clone());
-
-    let mut gzip_signature = b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x0b".to_vec();
-    let deflate = &compressed[2..compressed.len() - 4];
-    let crc_checksum = crc32fast::hash(&s.as_bytes()[..]).to_le_bytes();
-    let size = s.len().to_le_bytes();
-
-    gzip_signature.extend_from_slice(&deflate);
-    gzip_signature.extend_from_slice(&crc_checksum);
-    gzip_signature.extend_from_slice(&size);
-    let base64 = b64_encode(gzip_signature);
-    return xor(base64.as_bytes().to_vec(), 11);
+    return encrypt_level_str(s).iter().map(|c| *c ^ 11).collect();
 }
 
 /// Parses an XML dictionary to a string that matches GD savefile format.

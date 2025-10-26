@@ -11,19 +11,17 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc::{self, default_block}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}, utils::{b64_decode, vec_as_str}
+        gdobj::{misc::{self, default_block}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
     };
 
     #[test]
     fn decode_savefile_test() {
-        // 1,500ms on average for 30mb savefile
         assert!(decode_levels_to_string().is_ok())
     }
 
     #[test]
     fn parse_to_levels_obj() { 
         let raw_levels_savefile = decode_levels_to_string().unwrap();
-        // 400ms on average for 30mb savefile
         Levels::from_decrypted(raw_levels_savefile).unwrap();
     }
 
@@ -101,7 +99,9 @@ mod tests {
             Some((MoveEasing::ElasticInOut, 1.50))
         ));
 
-        level.export_to_gmd("GMD_tests/move_trigger.gmd").unwrap();
+        let mut levels = Levels::from_local().unwrap();
+        levels.add_level(level);
+        levels.export_to_savefile_with_backup().unwrap();
     }
 
     #[test]

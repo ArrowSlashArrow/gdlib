@@ -150,6 +150,7 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "579", desc: "Right sign mode", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "595", desc: "Don't stop song on death", arg_type: GDObjPropType::Bool},
     // these are all startpos properties:
+    // also the reason i can't use u16 for the property name
     GDObjProperty{name: "kA4", desc: "Starting speed", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "kA2", desc: "Starting gamemode", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "kA3", desc: "Starting in mini mode?", arg_type: GDObjPropType::Bool},
@@ -236,6 +237,7 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (3662, "Link visible trigger"),
 ];
 
+// TODO: UPDATE THIS!!!!!
 pub const TRIGGER_OBJ_IDS: &[i32] = &[
     22, 23, 24, 25, 26, 27, 28, 32, 33, 55, 56, 57, 58, 59, 31,
     899, 901, 914, 1006, 1007, 1049, 1268, 1520, 1615, 1616, 1812, 
@@ -312,10 +314,12 @@ pub struct GDObjProperties {
 }
 
 impl GDObjProperties {
+    /// Inititalises this class with an empty properties table.
     pub fn new() -> Self {
         GDObjProperties { properties: HashMap::new() }
     }
 
+    /// Converts this properties table to a string
     pub fn to_string(&mut self) -> String {
         let mut raw_str = String::new();
         let mut sorted: Vec<_> = self.properties.iter().collect();
@@ -327,10 +331,16 @@ impl GDObjProperties {
         return raw_str[1..].to_string()
     }
 
+    /// Constructor for this class from a [`serde_json::value::Value`]
     pub fn from_json(json: Value) -> Self {
         GDObjProperties {
             properties: properties_from_json(json)
         }
+    }
+
+    /// Gets a property from its properties table.
+    pub fn get_property<T: Into<String>>(&self, p: T) -> Option<Value> {
+        return self.properties.get(&GDObjProperty::from_name(p.into())).cloned()
     }
 }
 
@@ -407,8 +417,8 @@ impl GDObject {
         let id = get_int(&mut properties, "1", 0);
         let xpos = get_float(&mut properties, "2", 0.0);
         let ypos = get_float(&mut properties, "3", 0.0);
-        let xscale = get_float(&mut properties, "128", 0.0);
-        let yscale = get_float(&mut properties, "129", 0.0);
+        let xscale = get_float(&mut properties, "128", 1.0);
+        let yscale = get_float(&mut properties, "129", 1.0);
         let angle = get_float(&mut properties, "6", 0.0);
 
         let touchable = get_bool(&mut properties, "11");
@@ -478,6 +488,22 @@ impl GDObject {
     pub fn new(id: i32, config: GDObjConfig, properties: GDObjProperties) -> Self {
         GDObject {
             id, config, properties
+        }
+    }
+
+    pub fn get_property(&self, p: &str) -> Option<Value> {
+        match p {
+            "1" => Some(Value::from(self.id)),
+            "2" => Some(Value::from(self.config.pos.0)),
+            "3" => Some(Value::from(self.config.pos.1)),
+            "6" => Some(Value::from(self.config.angle)),
+            "11" => Some(Value::from(self.config.trigger_cfg.touchable)),
+            "57" => Some(Value::from(self.config.groups.clone())),
+            "62" => Some(Value::from(self.config.trigger_cfg.spawnable)),
+            "87" => Some(Value::from(self.config.trigger_cfg.multitriggerable)),
+            "128" => Some(Value::from(self.config.scale.0)),
+            "129" => Some(Value::from(self.config.angle)),
+            _ => self.properties.get_property(p)
         }
     }
 }

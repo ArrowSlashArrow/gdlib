@@ -2,15 +2,9 @@
 use std::{error::Error, fs, io::Read};
 
 use base64::{engine::general_purpose, Engine};
-use flate2::read::{DeflateDecoder};
+use flate2::read::DeflateDecoder;
 
-use crate::utils::{get_local_levels_path, vec_as_str};
-
-/// Xor's every byte of `bytes` with `key`, returns the resulting `Vec<u8>`
-pub fn xor(bytes: Vec<u8>, key: u8) -> Vec<u8> {
-    let xored = bytes.iter().map(|c| *c ^ key).collect();
-    xored
-}
+use crate::utils::get_local_levels_path;
 
 /// Decompresses a `Vec<u8>` of a base64ed gzip-compressed payload.
 /// 
@@ -44,14 +38,14 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
 }
 
 /// Decrypts data by xoring with key 11 and decompressing it. 
-/// This is the same algorithm used to decrypt GD savefiles.
+/// This is the algorithm used to decrypt GD savefiles.
 /// 
 /// # Arguments
 /// * `data`: encrypted payload
 /// 
 /// Returns the raw file contents as a `Vec<u8>`
 pub fn decrypt(data: Vec<u8>) -> Vec<u8> {
-    decompress(xor(data, 11)).unwrap()
+    decompress(data.iter().map(|c| *c ^ 11).collect()).unwrap()
 }
 
 /// Returns CCLocalLevels.dat decrypted if it exists
@@ -59,6 +53,6 @@ pub fn decode_levels_to_string() -> Result<String, Box<dyn Error>> {
     let savefile = fs::read(get_local_levels_path()?)?;
     let data = decrypt(savefile);
 
-    Ok(vec_as_str(&data))
+    Ok(String::from_utf8(data.to_vec()).unwrap())
 }
 
