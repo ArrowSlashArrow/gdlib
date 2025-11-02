@@ -104,6 +104,7 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "101", desc: "Target move mode axis lock", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "103", desc: "Is high detail?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "116", desc: "No object effects", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "117", desc: "Center object effect", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "120", desc: "Timewarp amount", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "121", desc: "No touch?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "128", desc: "X scale", arg_type: GDObjPropType::Float},
@@ -126,10 +127,12 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "217", desc: "Enter/Exit transition config", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "274", desc: "Parent groups", arg_type: GDObjPropType::Group},
     GDObjProperty{name: "279", desc: "Is area parent?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "284", desc: "Single player touch", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "289", desc: "Non-stick Y", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "343", desc: "Enter effect channel", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "344", desc: "Target transition channel", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "356", desc: "Scale stick", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "369", desc: "Center effect", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "371", desc: "Camera zoom", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "372", desc: "No audio scale", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "392", desc: "Song ID", arg_type: GDObjPropType::Int},
@@ -580,10 +583,10 @@ impl GDObjConfig {
             "343": self.enter_effect_channel,
             "446": self.material_id,
             // attributes
-            "64": self.attributes.dont_fade,
-            "67": self.attributes.dont_enter,
+            "64" : self.attributes.dont_fade,
+            "67" : self.attributes.dont_enter,
             "116": self.attributes.no_effects,
-            "34": self.attributes.is_group_parent,
+            "34" : self.attributes.is_group_parent,
             "279": self.attributes.is_area_parent,
             "509": self.attributes.dont_boost_x,
             "496": self.attributes.dont_boost_y,
@@ -597,10 +600,13 @@ impl GDObjConfig {
             "511": self.attributes.extended_collision,
             "137": self.attributes.is_ice_block,
             "193": self.attributes.grip_slope,
-            "96": self.attributes.no_glow,
+            "96" : self.attributes.no_glow,
             "507": self.attributes.no_particles,
             "356": self.attributes.scale_stick,
-            "372": self.attributes.no_audio_scale
+            "372": self.attributes.no_audio_scale,
+            "284": self.attributes.single_ptouch,
+            "369": self.attributes.center_effect,
+            "117": self.attributes.reverse
         });
 
         if !self.groups.is_empty() && let Some(map) = properties.as_object_mut() {
@@ -670,6 +676,151 @@ impl GDObjConfig {
         self.trigger_cfg.multitriggerable = multi;
         self
     }
+
+    /// Enables `dont_fade` on this object.
+    pub fn dont_fade(mut self, toggle: bool) -> Self {
+        self.attributes.dont_fade = toggle;
+        self
+    }
+
+    /// Enables `dont_enter` on this object.
+    pub fn dont_enter(mut self, toggle: bool) -> Self {
+        self.attributes.dont_enter = toggle;
+        self
+    }
+
+    /// Enables `no_effects` on this object.
+    pub fn no_effects(mut self, toggle: bool) -> Self {
+        self.attributes.no_effects = toggle;
+        self
+    }
+
+    /// Enables `is_group_parent` on this object.
+    pub fn is_group_parent(mut self, toggle: bool) -> Self {
+        self.attributes.is_group_parent = toggle;
+        self
+    }
+
+    /// Enables `is_area_parent` on this object.
+    pub fn is_area_parent(mut self, toggle: bool) -> Self {
+        self.attributes.is_area_parent = toggle;
+        self
+    }
+
+    /// Enables `dont_boost_x` on this object.
+    pub fn dont_boost_x(mut self, toggle: bool) -> Self {
+        self.attributes.dont_boost_x = toggle;
+        self
+    }
+
+    /// Enables `dont_boost_y` on this object.
+    pub fn dont_boost_y(mut self, toggle: bool) -> Self {
+        self.attributes.dont_boost_y = toggle;
+        self
+    }
+
+    /// Enables `high_detail` on this object.
+    pub fn high_detail(mut self, toggle: bool) -> Self {
+        self.attributes.high_detail = toggle;
+        self
+    }
+
+    /// Enables `no_touch` on this object.
+    pub fn no_touch(mut self, toggle: bool) -> Self {
+        self.attributes.no_touch = toggle;
+        self
+    }
+
+    /// Enables `passable` on this object.
+    pub fn passable(mut self, toggle: bool) -> Self {
+        self.attributes.passable = toggle;
+        self
+    }
+
+    /// Enables `hidden` on this object.
+    pub fn hidden(mut self, toggle: bool) -> Self {
+        self.attributes.hidden = toggle;
+        self
+    }
+
+    /// Enables `non_stick_x` on this object.
+    pub fn non_stick_x(mut self, toggle: bool) -> Self {
+        self.attributes.non_stick_x = toggle;
+        self
+    }
+
+    /// Enables `non_stick_y` on this object.
+    pub fn non_stick_y(mut self, toggle: bool) -> Self {
+        self.attributes.non_stick_y = toggle;
+        self
+    }
+
+    /// Enables `extra_sticky` on this object.
+    pub fn extra_sticky(mut self, toggle: bool) -> Self {
+        self.attributes.extra_sticky = toggle;
+        self
+    }
+
+    /// Enables `extended_collision` on this object.
+    pub fn extended_collision(mut self, toggle: bool) -> Self {
+        self.attributes.extended_collision = toggle;
+        self
+    }
+
+    /// Enables `is_ice_block` on this object.
+    pub fn is_ice_block(mut self, toggle: bool) -> Self {
+        self.attributes.is_ice_block = toggle;
+        self
+    }
+
+    /// Enables `grip_slope` on this object.
+    pub fn grip_slope(mut self, toggle: bool) -> Self {
+        self.attributes.grip_slope = toggle;
+        self
+    }
+
+    /// Enables `no_glow` on this object.
+    pub fn no_glow(mut self, toggle: bool) -> Self {
+        self.attributes.no_glow = toggle;
+        self
+    }
+
+    /// Enables `no_particles` on this object.
+    pub fn no_particles(mut self, toggle: bool) -> Self {
+        self.attributes.no_particles = toggle;
+        self
+    }
+
+    /// Enables `scale_stick` on this object.
+    pub fn scale_stick(mut self, toggle: bool) -> Self {
+        self.attributes.scale_stick = toggle;
+        self
+    }
+
+    /// Enables `no_audio_scale` on this object.
+    pub fn no_audio_scale(mut self, toggle: bool) -> Self {
+        self.attributes.no_audio_scale = toggle;
+        self
+    }
+
+    /// Enables `single_ptouch` on this object.
+    pub fn single_ptouch(mut self, toggle: bool) -> Self {
+        self.attributes.single_ptouch = toggle;
+        self
+    }
+
+    /// Enables `center_effect` on this object.
+    pub fn center_effect(mut self, toggle: bool) -> Self {
+        self.attributes.center_effect = toggle;
+        self
+    }
+
+    /// Enables `reverse` on this object.
+    pub fn reverse(mut self, toggle: bool) -> Self {
+        self.attributes.reverse = toggle;
+        self
+    }
+
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -694,7 +845,10 @@ pub struct GDObjAttributes {
     pub no_glow: bool,
     pub no_particles: bool,
     pub scale_stick: bool,
-    pub no_audio_scale: bool
+    pub no_audio_scale: bool,
+    pub single_ptouch: bool,
+    pub center_effect: bool,
+    pub reverse: bool,
 }
 
 impl GDObjAttributes {
@@ -720,7 +874,10 @@ impl GDObjAttributes {
             no_glow: false,
             no_particles: false,
             scale_stick: false,
-            no_audio_scale: false 
+            no_audio_scale: false,
+            center_effect: false,
+            single_ptouch: false,
+            reverse: false
         }
     }
 

@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![recursion_limit = "256"]
 
 pub mod deserialiser;
 pub mod serialiser;
@@ -11,7 +12,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc::{self, default_block}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
+        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
     };
 
     #[test]
@@ -85,7 +86,7 @@ mod tests {
     fn move_constructor_test() {
         let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
         level.add_object(move_trigger(
-            GDObjConfig::default().pos(45.0, 45.0), 
+            GDObjConfig::default().pos(45.0, 45.0).dont_fade(true), 
             triggers::MoveMode::Default(DefaultMove {
                 dx: 45.0,
                 dy: 54.0,
