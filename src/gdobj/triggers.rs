@@ -128,18 +128,37 @@ pub enum SignMode {
 }
 
 /// Enum for colour channels and their IDs
-#[repr(i32)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ColourChannel {
-    Background = 1000,
-    Ground1 = 1001,
-    Ground2 = 1009,
-    Line = 1002,
-    Object = 1004,
-    ThreeDLine = 1003,
-    MiddleGround = 1013,
-    MiddleGround2 = 1014,
-    P1 = 1005,
-    P2 = 1006
+    Channel(i32),
+    Background,
+    Ground1,
+    Ground2,
+    Line,
+    Object,
+    ThreeDLine,
+    MiddleGround,
+    MiddleGround2,
+    P1,
+    P2
+}
+
+impl ColourChannel {
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            Self::Background => 1000,
+            Self::Channel(n) => *n,
+            Self::Ground1 => 1001,
+            Self::Ground2 => 1009,
+            Self::Line => 1002,
+            Self::Object => 1004,
+            Self::ThreeDLine => 1003,
+            Self::MiddleGround => 1013,
+            Self::MiddleGround2 => 1014,
+            Self::P1 => 1005,
+            Self::P2 => 1006
+        }
+    }
 }
 
 /// Enum for target player in gravity trigger
@@ -414,16 +433,16 @@ pub fn start_pos(
 /// * `copy_colour`: None: Don't copy colour; Some: Copy colour with this configuation: 
 /// (original channel, hue shift, saturation multiplier, brightness multiplier, static saturation scalar?, 
 /// static brightness scalar?, use legacy hsv?, copy opacity?) 
-pub fn colour_trigger<T: Into<i32>>(
+pub fn colour_trigger(
     config: GDObjConfig,
     colour: (u8, u8, u8),
-    channel: T,
+    channel: ColourChannel,
     fade_time: f32,
     opacity: f32,
     blending: bool,
     use_player_col_1: bool,
     use_player_col_2: bool,
-    copy_colour: Option<(T, i32, f32, f32, bool, bool, bool, bool)>
+    copy_colour: Option<(ColourChannel, i32, f32, f32, bool, bool, bool, bool)>
 ) -> GDObject {
     let mut properties = json!({
         "7": colour.0,
@@ -431,7 +450,7 @@ pub fn colour_trigger<T: Into<i32>>(
         "9": colour.2,
         "10": fade_time,
         "15": use_player_col_1 as i32,
-        "23": channel.into(),
+        "23": channel.as_i32(),
         "16": use_player_col_2 as i32,
         "35": opacity
     });
@@ -452,7 +471,7 @@ pub fn colour_trigger<T: Into<i32>>(
             map.insert("60".to_string(), Value::from("1"));
         }
         map.insert("49".to_string(), Value::from(cfg_string));
-        map.insert("50".to_string(), Value::from(channel.into()));
+        map.insert("50".to_string(), Value::from(channel.as_i32()));
     }
 
     GDObject::new(899, config, GDObjProperties::from_json(properties))

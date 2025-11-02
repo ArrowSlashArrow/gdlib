@@ -1,10 +1,10 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{collections::{BTreeMap, HashMap}, fmt::{Debug, Display}};
-use serde_json::{json, Number, Value};
+use std::{collections::{BTreeMap, HashMap}, fmt::{Debug, Display, Write}};
+use serde_json::{json, Value};
 use internment::Intern;
 
-use crate::utils::properties_from_json;
+use crate::{gdobj::triggers::ColourChannel, utils::properties_from_json};
 
 pub mod triggers;
 pub mod misc;
@@ -20,6 +20,20 @@ pub enum GDObjPropType {
     Easing,
     ColourChannel,
     Unknown
+}
+
+#[repr(i32)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum ZLayer {
+    B5 = -5,
+    B4 = -3,
+    B3 = -1,
+    B2 = 1,
+    B1 = 3,
+    T1 = 5,
+    T2 = 7,
+    T3 = 9,
+    T4 = 11
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
@@ -48,11 +62,16 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "15", desc: "Using player colour 1", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "16", desc: "Using player colour 2", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "17", desc: "Blending enabled", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "20", desc: "Editor layer 1", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "21", desc: "Object colour", arg_type: GDObjPropType::ColourChannel},
     GDObjProperty{name: "23", desc: "Colour channel", arg_type: GDObjPropType::ColourChannel},
+    GDObjProperty{name: "24", desc: "Z layer", arg_type: GDObjPropType::Int},
+    GDObjProperty{name: "25", desc: "Z order", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "28", desc: "Move units x", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "29", desc: "Move units y", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "30", desc: "Move easing", arg_type: GDObjPropType::Easing},
     GDObjProperty{name: "31", desc: "Base64-encoded text", arg_type: GDObjPropType::Text},
+    GDObjProperty{name: "34", desc: "Is group parent?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "35", desc: "Opacity", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "36", desc: "Is active trigger?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "45", desc: "Pulse fade in time", arg_type: GDObjPropType::Float},
@@ -62,10 +81,14 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "50", desc: "Copy colour from channel", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "51", desc: "Target group/item/channel", arg_type: GDObjPropType::Group},
     GDObjProperty{name: "56", desc: "Activate group", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "57", desc: "Groups", arg_type: GDObjPropType::Group},
     GDObjProperty{name: "58", desc: "Follow player's x movement", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "59", desc: "Follow player's y movement", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "60", desc: "Copy opacity", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "61", desc: "Editor layer 2", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "62", desc: "Spawn triggerable", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "64", desc: "Don't fade", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "67", desc: "Don't enter", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "71", desc: "Target group 2", arg_type: GDObjPropType::Group},
     GDObjProperty{name: "75", desc: "Shake strength", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "80", desc: "Group/item 1", arg_type: GDObjPropType::Item},
@@ -75,12 +98,20 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "87", desc: "Multitriggerable", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "94", desc: "Dynamic block?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "95", desc: "Group/item 2", arg_type: GDObjPropType::Item},
+    GDObjProperty{name: "96", desc: "No glow", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "99", desc: "Multi activate", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "100", desc: "Target move mode", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "101", desc: "Target move mode axis lock", arg_type: GDObjPropType::Unknown},
+    GDObjProperty{name: "103", desc: "Is high detail?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "116", desc: "No object effects", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "120", desc: "Timewarp amount", arg_type: GDObjPropType::Float},
+    GDObjProperty{name: "121", desc: "No touch?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "128", desc: "X scale", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "129", desc: "Y scale", arg_type: GDObjPropType::Float},
+    GDObjProperty{name: "134", desc: "Passable", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "135", desc: "Hidden", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "136", desc: "Non-stick X", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "137", desc: "Is ice block?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "138", desc: "Controlling player 1", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "141", desc: "Follow camera's x movement", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "142", desc: "Follow camera's y movement", arg_type: GDObjPropType::Bool},
@@ -88,12 +119,19 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "144", desc: "Y movement multiplier", arg_type: GDObjPropType::Float},
     GDObjProperty{name: "148", desc: "Gravity", arg_type: GDObjPropType::Float},
     // GDObjProperty{name: "155", desc: "Mysterious property 155", arg_type: GDObjPropType::Unknown},
+    GDObjProperty{name: "193", desc: "Grippy slope?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "200", desc: "Controlling player 2", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "201", desc: "Controlling target player", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "210", desc: "No legacy HSV", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "217", desc: "Enter/Exit transition config", arg_type: GDObjPropType::Unknown},
+    GDObjProperty{name: "274", desc: "Parent groups", arg_type: GDObjPropType::Group},
+    GDObjProperty{name: "279", desc: "Is area parent?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "289", desc: "Non-stick Y", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "343", desc: "Enter effect channel", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "344", desc: "Target transition channel", arg_type: GDObjPropType::Unknown},
+    GDObjProperty{name: "356", desc: "Scale stick", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "371", desc: "Camera zoom", arg_type: GDObjPropType::Float},
+    GDObjProperty{name: "372", desc: "No audio scale", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "392", desc: "Song ID", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "393", desc: "Small step", arg_type: GDObjPropType::Bool}, // this is a UI-only property. interally, move distances are stored the same regardless.
     GDObjProperty{name: "394", desc: "Directional move mode", arg_type: GDObjPropType::Bool} ,
@@ -110,6 +148,7 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "413", desc: "Loop song?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "432", desc: "Song channel", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "445", desc: "Claim touch?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "446", desc: "Object material", arg_type: GDObjPropType::Unknown},
     GDObjProperty{name: "460", desc: "No end effects?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "461", desc: "Instant end?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "467", desc: "No end sound effects?", arg_type: GDObjPropType::Bool},
@@ -130,8 +169,13 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "492", desc: "Target all persistent items", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "493", desc: "Reset item to 0", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "494", desc: "Timer", arg_type: GDObjPropType::Item},
+    GDObjProperty{name: "495", desc: "Extra sticky", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "496", desc: "Don't boost Y?", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "504", desc: "Spawn only", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "506", desc: "Camera guide preview opacity", arg_type: GDObjPropType::Float},
+    GDObjProperty{name: "507", desc: "No particles", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "509", desc: "Don't boost X?", arg_type: GDObjPropType::Bool},
+    GDObjProperty{name: "511", desc: "Has extended collision", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "540", desc: "Stop player jump", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "541", desc: "Stop player movement", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "542", desc: "Stop player rotation", arg_type: GDObjPropType::Bool},
@@ -257,57 +301,6 @@ pub struct GDObject {
     pub properties: GDObjProperties
 }
 
-fn as_number(value: Value) -> Option<Number> {
-    match value {
-        Value::Number(n) => Some(n),
-        Value::String(s) => {
-            if let Ok(int) = s.parse::<i64>() {
-                Some(Number::from(int))
-            } else if let Ok(float) = s.parse::<f64>() {
-                Number::from_f64(float)
-            } else {
-                None
-            }
-        },
-        Value::Null => Some(Number::from(0)),
-        _ => None
-    }
-}
-
-fn get_num(properties: &mut HashMap<GDObjProperty, Value>, key: &str) -> Option<Number> {
-    let key = &GDObjProperty::from_name(key.to_string());
-    match properties.get_mut(key) {
-        Some(v) => {
-            // return val if known
-            let val = match as_number(v.clone()) {
-                None => return None,
-                Some(v) => v
-            };
-            properties.remove(key);
-            Some(val)
-        },
-        None => None
-    }
-}
-
-fn get_float(properties: &mut HashMap<GDObjProperty, Value>, key: &str, default: f32) -> f32 {
-    match get_num(properties, key) {
-        Some(n) => n.as_f64().unwrap() as f32,
-        None => default
-    }
-}
-
-fn get_int(properties: &mut HashMap<GDObjProperty, Value>, key: &str, default: i32) -> i32 {
-    match get_num(properties, key) {
-        Some(n) => n.as_i64().unwrap() as i32,
-        None => default
-    }
-}
-fn get_bool(properties: &mut HashMap<GDObjProperty, Value>, key: &str) -> bool {
-    let key = &GDObjProperty::from_name(key.to_string());
-    properties.get_mut(key).is_some()
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct GDObjProperties {
     pub properties: HashMap<GDObjProperty, Value>
@@ -321,14 +314,22 @@ impl GDObjProperties {
 
     /// Converts this properties table to a string
     pub fn to_string(&mut self) -> String {
-        let mut raw_str = String::new();
         let mut sorted: Vec<_> = self.properties.iter().collect();
         sorted.sort_by_key(|&(k, _)| k);
 
+        let mut out_str = String::with_capacity(sorted.len() * 16);
+
         for (k, v) in sorted.iter() {
-            raw_str += &format!(",{},{}", k.name, v.to_string());
+            match v {
+                Value::Number(n) => write!(&mut out_str, ",{},{}", k.name, n),
+                Value::Bool(b) => write!(&mut out_str, ",{},{}", k.name, if *b { "1" } else { "0" }),
+                Value::String(s) => write!(&mut out_str, ",{},{}", k.name, s),
+                _ => write!(&mut out_str, ",{},{}", k.name, v.to_string())
+            }.unwrap()
         };
-        return raw_str[1..].to_string()
+
+        out_str.remove(0);
+        return out_str
     }
 
     /// Constructor for this class from a [`serde_json::value::Value`]
@@ -403,63 +404,44 @@ impl GDObject {
     /// let obj = GDObject::parse_str("1,1,2,0,3,0;");
     /// assert_eq!(obj, GDObject::new(1, GDObjConfig::default(), GDObjProperties::new()));
     /// ```
-    pub fn parse_str(s: &str) -> Self {
-        let mut properties: HashMap<GDObjProperty, Value> = HashMap::new();
-        let mut current_property = String::new();
-        for (idx, val) in s.trim_end_matches(';').split(",").into_iter().enumerate() {
-            if idx % 2 == 0 { // key
-                current_property = val.to_string();
-            } else { // value
-                properties.insert(GDObjProperty::from_name(current_property.clone()), Value::from(val));
+    pub fn parse_str(s: &str) -> GDObject {
+        let mut obj = GDObject { 
+            id: 1,
+            config: GDObjConfig::default(), 
+            properties: GDObjProperties::new(),
+        };
+
+        let mut vals = json!({});
+        let map = vals.as_object_mut().unwrap();
+
+        let mut iter = s.trim_end_matches(';').split(",");
+        while let (Some(idx), Some(val)) = (iter.next(), iter.next()) {
+            match idx {
+                "1"   => obj.id = val.parse().unwrap_or(0),
+                "2"   => obj.config.pos.0 = val.parse().unwrap_or(0.0),
+                "3"   => obj.config.pos.1 = val.parse().unwrap_or(0.0),
+                "6"   => obj.config.angle = val.parse().unwrap_or(0.0),
+                "11"  => obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false),
+                "62"  => obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false),
+                "87"  => obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false),
+                "57"  => obj.config.groups = val.trim_matches('"').split(".").filter_map(|g| g.parse::<u16>().ok()).collect(),
+                "128" => obj.config.scale.0 = val.parse().unwrap_or(1.0),
+                "129" => obj.config.scale.1 = val.parse().unwrap_or(1.0),
+                _ => {
+                    match idx.parse::<u16>() {
+                        Ok(n) => map.insert(n.to_string(), Value::from(val.to_string())),
+                        Err(_) => match idx[2..].parse::<u16>() {
+                            Ok(n) => map.insert(n.to_string(), Value::from(val.to_string())),
+                            Err(_) => map.insert("65536".to_string(), Value::from(val.to_string()))
+                        } 
+                    };
+                }
             }
         }
 
-        let id = get_int(&mut properties, "1", 0);
-        let xpos = get_float(&mut properties, "2", 0.0);
-        let ypos = get_float(&mut properties, "3", 0.0);
-        let xscale = get_float(&mut properties, "128", 1.0);
-        let yscale = get_float(&mut properties, "129", 1.0);
-        let angle = get_float(&mut properties, "6", 0.0);
+        obj.properties = GDObjProperties::from_json(vals);
 
-        let touchable = get_bool(&mut properties, "11");
-        let spawnable = get_bool(&mut properties, "62");
-        let multitriggerable = get_bool(&mut properties, "87");
-
-        // groups are stored as "1.2.3.4" -> groups 1, 2, 3, 4
-        let groups_key = &GDObjProperty::from_name("57".to_string());
-        let groups = match properties.get_mut(groups_key) {
-            Some(v) => {
-                let str = v.to_string().replace("\"", "");
-                let groups = str.split(".").filter_map(|g| match g.is_empty() {
-                    true => None,
-                    false => {
-                        Some(g.parse::<u16>().unwrap())
-                    }
-                }).collect::<Vec<u16>>();
-                properties.remove(groups_key);
-                groups
-            },
-            None => vec![]
-        };
-
-        let mut properties_obj = GDObjProperties::new();
-        properties_obj.properties = properties;
-        
-        GDObject { 
-            id,
-            config: GDObjConfig { 
-                pos: (xpos, ypos), 
-                scale: (xscale, yscale), 
-                angle, 
-                groups, 
-                trigger_cfg: TriggerConfig { 
-                    touchable, 
-                    spawnable, 
-                    multitriggerable 
-                }
-            }, 
-            properties: properties_obj
-        }
+        return obj
     }
 
     /// Returns this object as a property string
@@ -531,7 +513,14 @@ pub struct GDObjConfig {
     pub scale: (f32, f32),
     pub angle: f32,
     pub groups: Vec<u16>,
-    pub trigger_cfg: TriggerConfig
+    pub trigger_cfg: TriggerConfig,
+    pub z_order: i32,
+    pub z_layer: ZLayer,
+    pub editor_layers: (i32, i32),
+    pub colour_channel: ColourChannel,
+    pub enter_effect_channel: i32,
+    pub material_id: i32,
+    pub attributes: GDObjAttributes
 } 
 
 impl GDObjConfig {
@@ -553,7 +542,14 @@ impl GDObjConfig {
                 touchable: false, 
                 spawnable: false, 
                 multitriggerable: false 
-            }
+            },
+            z_layer: ZLayer::T1,
+            z_order: 0,
+            editor_layers: (0, 0),
+            colour_channel: ColourChannel::Object,
+            enter_effect_channel: 0,
+            material_id: 0,
+            attributes: GDObjAttributes::new()
         }
     }
 
@@ -575,7 +571,36 @@ impl GDObjConfig {
             "129": self.scale.1,
             "11": self.trigger_cfg.touchable,
             "62": self.trigger_cfg.spawnable,
-            "87": self.trigger_cfg.multitriggerable
+            "87": self.trigger_cfg.multitriggerable,
+            "20": self.editor_layers.0,
+            "61": self.editor_layers.1,
+            "21": self.colour_channel.as_i32(),
+            "24": self.z_layer.clone() as i32,
+            "25": self.z_order,
+            "343": self.enter_effect_channel,
+            "446": self.material_id,
+            // attributes
+            "64": self.attributes.dont_fade,
+            "67": self.attributes.dont_enter,
+            "116": self.attributes.no_effects,
+            "34": self.attributes.is_group_parent,
+            "279": self.attributes.is_area_parent,
+            "509": self.attributes.dont_boost_x,
+            "496": self.attributes.dont_boost_y,
+            "103": self.attributes.high_detail,
+            "121": self.attributes.no_touch,
+            "134": self.attributes.passable,
+            "135": self.attributes.hidden,
+            "136": self.attributes.non_stick_x,
+            "289": self.attributes.non_stick_y,
+            "495": self.attributes.extra_sticky,
+            "511": self.attributes.extended_collision,
+            "137": self.attributes.is_ice_block,
+            "193": self.attributes.grip_slope,
+            "96": self.attributes.no_glow,
+            "507": self.attributes.no_particles,
+            "356": self.attributes.scale_stick,
+            "372": self.attributes.no_audio_scale
         });
 
         if !self.groups.is_empty() && let Some(map) = properties.as_object_mut() {
@@ -645,5 +670,62 @@ impl GDObjConfig {
         self.trigger_cfg.multitriggerable = multi;
         self
     }
+}
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct GDObjAttributes {
+    pub dont_fade: bool,
+    pub dont_enter: bool,
+    pub no_effects: bool,
+    pub is_group_parent: bool,
+    pub is_area_parent: bool,
+    pub dont_boost_x: bool,
+    pub dont_boost_y: bool,
+    pub high_detail: bool,
+    pub no_touch: bool,
+    pub passable: bool,
+    pub hidden: bool,
+    pub non_stick_x: bool,
+    pub non_stick_y: bool,
+    pub extra_sticky: bool,
+    pub extended_collision: bool,
+    pub is_ice_block: bool,
+    pub grip_slope: bool,
+    pub no_glow: bool,
+    pub no_particles: bool,
+    pub scale_stick: bool,
+    pub no_audio_scale: bool
+}
+
+impl GDObjAttributes {
+    pub fn new() -> Self {
+        Self { 
+            dont_fade: false,
+            dont_enter: false,
+            no_effects: false,
+            is_group_parent: false,
+            is_area_parent: false,
+            dont_boost_x: false,
+            dont_boost_y: false,
+            high_detail: false,
+            no_touch: false,
+            passable: false,
+            hidden: false,
+            non_stick_x: false,
+            non_stick_y: false,
+            extra_sticky: false,
+            extended_collision: false,
+            is_ice_block: false,
+            grip_slope: false,
+            no_glow: false,
+            no_particles: false,
+            scale_stick: false,
+            no_audio_scale: false 
+        }
+    }
+
+    /// Alias for `new()`
+    pub fn default() -> Self {
+        Self::new()
+    }
 }
