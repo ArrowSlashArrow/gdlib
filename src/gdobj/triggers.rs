@@ -3,7 +3,7 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use serde_json::{json, Value};
-use crate::{gdobj::{GDObjConfig, GDObjProperties, GDObject}, utils::clamp_to_values};
+use crate::{gdobj::{GDObjConfig, GDObject, GDObjProperties}, utils::clamp_to_values};
 
 /// Constant distinct arbitrary value for player 1 position. 
 pub const POS_PLAYER1: i32 = 99999;

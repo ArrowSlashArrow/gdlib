@@ -2,6 +2,7 @@
 
 ## Update 0.2.4
  * Minor patches/removals of unnecessary utils
+ * Performance update and restructuring of `GDObject` (performance branch)
 
 ## Update 0.2.3
  * Added contrsuctors of triggers:

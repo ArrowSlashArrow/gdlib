@@ -12,21 +12,17 @@ use crate::utils::get_local_levels_path;
 /// * `data`: compressed input data
 /// 
 /// Returns decompressed base64ed gzip as a `Vec<u8>` if it sucessfully decoded, otherwise return Error
-pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn decompress<T: AsRef<[u8]>>(data: T) -> Result<Vec<u8>, Box<dyn Error>> {
     // convert from url-safe base64
-    let replaced = data.iter().filter_map(|c| match c {
+    let replaced = data.as_ref().iter().filter_map(|c| match c {
         b'-' => Some(b'+'),
         b'_' => Some(b'/'),
         b'\0' => None,
         _ => Some(*c)
     }).collect::<Vec<u8>>();
 
-    // dbg!(vec_as_str(&replaced[..100].to_vec()));
-
-    // remove all trailing null chars
-    let last_non_null = replaced.iter().rposition(|&c| c != 0).unwrap_or(0);
     // decode DEFLATE payload
-    let decoded = general_purpose::STANDARD.decode(&replaced[..last_non_null + 1])?;
+    let decoded = general_purpose::STANDARD.decode(&replaced[..])?;
     let sliced = &decoded[10..];
 
     let mut decoder = DeflateDecoder::new(sliced);
@@ -45,7 +41,7 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
 /// 
 /// Returns the raw file contents as a `Vec<u8>`
 pub fn decrypt(data: Vec<u8>) -> Vec<u8> {
-    decompress(data.iter().map(|c| *c ^ 11).collect()).unwrap()
+    decompress(data.iter().map(|c| *c ^ 11).collect::<Vec<u8>>()).unwrap()
 }
 
 /// Returns CCLocalLevels.dat decrypted if it exists

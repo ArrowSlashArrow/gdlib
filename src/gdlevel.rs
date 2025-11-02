@@ -2,7 +2,6 @@
 use std::{collections::{BTreeSet, HashMap, HashSet}, error::Error, fmt::Display, fs::{self, read, write}, io::Cursor, path::PathBuf};
 
 use plist::{Dictionary, Value};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{deserialiser::{decode_levels_to_string, decompress}, gdobj::GDObject, serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml}, utils::{b64_decode, b64_encode, get_local_levels_path, proper_plist_tags}};
 
@@ -273,18 +272,20 @@ impl Level {
         };
 
         // parse level data
-        let decrypted = vec_as_str(&decompress(raw_data.as_bytes().to_vec()).unwrap());
+        let decrypted_bytes = decompress(raw_data.as_bytes()).unwrap();
+        let decrypted = str::from_utf8(&decrypted_bytes).unwrap();
 
-        let split = decrypted.split(";").collect::<Vec<&str>>();
+        let mut split = decrypted.split(";");
+        let headers = split.next().unwrap();
 
-        let headers = split.first().unwrap().to_owned().to_owned();
-        let objects = split[1..].par_iter().filter_map(|objstr| {
+        let objects = split.filter_map(|objstr| {
             match objstr.len() > 1 {
-                true => Some(GDObject::parse_str(*objstr)),
+                true => Some(GDObject::parse_str(objstr)),
                 false => None
             }
         }).collect::<Vec<GDObject>>();
-        self.data = Some(LevelState::Decrypted(LevelData { headers, objects }));
+
+        self.data = Some(LevelState::Decrypted(LevelData { headers: headers.to_owned(), objects }));
     }
 
     /// Returns the decrypted level data as a `LevelData` object if there is data. 
@@ -404,23 +405,30 @@ impl LevelData {
         all.difference(&used).cloned().collect::<Vec<u16>>()
     }
 
-    /// Returns a list of all groups used as arguments in triggers
-    pub fn get_argument_groups(&self) -> Vec<u16> {
-        if self.objects.len() == 0 {
-            return vec![];
-        }
+    // /// Returns a list of all groups used as arguments in triggers
+    // pub fn get_argument_groups(&self) -> Vec<u16> {
+    //     if self.objects.len() == 0 {
+    //         return vec![];
+    //     }
 
-        let mut groups = HashSet::new();
+    //     // todo: revamp algo
+    //     // 1. enumerate all properties with the group type
+    //     // 1.5. piece together an object blacklist of objects that dont actually use groups (like item edit/compare)
+    //     // 2. iterate through all objects that are not in the blacklist
+    //     // 2.1. iterate through all properties in the list and se which ones are in the object
+    //     // 2.2. add to hashset
+
+    //     let mut groups = HashSet::new();
         
-        for object in self.objects.iter() {
-            for (prop, value) in object.properties.properties.iter() {
-                if prop.arg_type == crate::gdobj::GDObjPropType::Group {
-                    groups.insert(value);
-                }
-            }
-        };
-        let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_str().unwrap().parse::<u16>().unwrap()).collect();
-        arr.sort();
-        return arr
-    }
+    //     for object in self.objects.iter() {
+    //         for (prop, value) in object.properties.iter() {
+    //             if prop.arg_type == crate::gdobj::GDObjPropType::Group {
+    //                 groups.insert(value);
+    //             }
+    //         }
+    //     };
+    //     let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_str().unwrap().parse::<u16>().unwrap()).collect();
+    //     arr.sort();
+    //     return arr
+    // }
 }

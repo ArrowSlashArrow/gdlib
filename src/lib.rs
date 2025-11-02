@@ -11,7 +11,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc::{self, default_block}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
+        gdobj::{misc::{self}, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
     };
 
     #[test]
