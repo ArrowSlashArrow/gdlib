@@ -676,6 +676,43 @@ impl GDObjConfig {
         self.trigger_cfg.multitriggerable = multi;
         self
     }
+    /// Sets this object's base colour channel
+    pub fn set_base_colour(mut self, channel: ColourChannel) -> Self {
+        self.colour_channel = channel;
+        self
+    }
+    /// Sets this object's Z-layer
+    pub fn set_z_layer(mut self, z: ZLayer) -> Self {
+        self.z_layer = z;
+        self
+    }
+    /// Sets this object's Z-order
+    pub fn set_z_order(mut self, z: i32) -> Self {
+        self.z_order = z;
+        self
+    }
+    /// Sets editor layer 1 of this object
+    pub fn editor_layer_1(mut self, l: i32) -> Self {
+        self.editor_layers.0 = l;
+        self
+    }
+    /// Sets editor layer 2 of this object
+    pub fn editor_layer_2(mut self, l: i32) -> Self {
+        self.editor_layers.1 = l;
+        self
+    }
+    /// Sets this object's material id
+    pub fn set_material_id(mut self, material_id: i32) -> Self {
+        self.material_id = material_id;
+        self
+    }
+    /// Sets this object's enter effect channel
+    pub fn set_enter_channel(mut self, channel: i32) -> Self {
+        self.enter_effect_channel = channel;
+        self
+    }
+
+    ////////////////////// ATTRIBUTES DOWN HERE
 
     /// Enables `dont_fade` on this object.
     pub fn dont_fade(mut self, toggle: bool) -> Self {
