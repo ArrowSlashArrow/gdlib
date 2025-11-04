@@ -2,6 +2,8 @@
 
 ## Update 0.2.4
  * Minor patches/removals of unnecessary utils
+ * Added support for all universal object properties
+ * miscellaneous other minor things
 
 ## Update 0.2.3
  * Added contrsuctors of triggers:
