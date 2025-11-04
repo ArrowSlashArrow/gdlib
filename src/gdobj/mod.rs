@@ -64,6 +64,7 @@ pub const OBJECT_PROPERTIES: &[GDObjProperty] = &[
     GDObjProperty{name: "17", desc: "Blending enabled", arg_type: GDObjPropType::Bool},
     GDObjProperty{name: "20", desc: "Editor layer 1", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "21", desc: "Object colour", arg_type: GDObjPropType::ColourChannel},
+    GDObjProperty{name: "22", desc: "Secondary colour", arg_type: GDObjPropType::ColourChannel},
     GDObjProperty{name: "23", desc: "Colour channel", arg_type: GDObjPropType::ColourChannel},
     GDObjProperty{name: "24", desc: "Z layer", arg_type: GDObjPropType::Int},
     GDObjProperty{name: "25", desc: "Z order", arg_type: GDObjPropType::Int},
@@ -427,7 +428,7 @@ impl GDObject {
                 "11"  => obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false),
                 "62"  => obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false),
                 "87"  => obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false),
-                "57"  => obj.config.groups = val.trim_matches('"').split(".").filter_map(|g| g.parse::<u16>().ok()).collect(),
+                "57"  => obj.config.groups = val.trim_matches('"').split(".").filter_map(|g| g.parse::<i16>().ok()).collect(),
                 "128" => obj.config.scale.0 = val.parse().unwrap_or(1.0),
                 "129" => obj.config.scale.1 = val.parse().unwrap_or(1.0),
                 _ => {
@@ -491,6 +492,10 @@ impl GDObject {
             _ => self.properties.get_property(p)
         }
     }
+
+    pub fn set_config(&mut self, config: GDObjConfig) {
+        self.config = config;
+    }
 }
 
 /// Trigger config, used for defining general properties of a trigger object:
@@ -515,12 +520,12 @@ pub struct GDObjConfig {
     pub pos: (f32, f32),
     pub scale: (f32, f32),
     pub angle: f32,
-    pub groups: Vec<u16>,
+    pub groups: Vec<i16>,
     pub trigger_cfg: TriggerConfig,
     pub z_order: i32,
     pub z_layer: ZLayer,
     pub editor_layers: (i32, i32),
-    pub colour_channel: ColourChannel,
+    pub colour_channels: (ColourChannel, ColourChannel),
     pub enter_effect_channel: i32,
     pub material_id: i32,
     pub attributes: GDObjAttributes
@@ -549,7 +554,7 @@ impl GDObjConfig {
             z_layer: ZLayer::T1,
             z_order: 0,
             editor_layers: (0, 0),
-            colour_channel: ColourChannel::Object,
+            colour_channels: (ColourChannel::Object, ColourChannel::Channel(1)),
             enter_effect_channel: 0,
             material_id: 0,
             attributes: GDObjAttributes::new()
@@ -577,7 +582,8 @@ impl GDObjConfig {
             "87": self.trigger_cfg.multitriggerable,
             "20": self.editor_layers.0,
             "61": self.editor_layers.1,
-            "21": self.colour_channel.as_i32(),
+            "21": self.colour_channels.0.as_i32(),
+            "22": self.colour_channels.1.as_i32(),
             "24": self.z_layer.clone() as i32,
             "25": self.z_order,
             "343": self.enter_effect_channel,
@@ -622,7 +628,7 @@ impl GDObjConfig {
     }
 
     /// Sets groups of this object
-    pub fn groups<T: IntoIterator<Item = u16>>(mut self, groups: T) -> Self {
+    pub fn groups<T: IntoIterator<Item = i16>>(mut self, groups: T) -> Self {
         self.groups = groups.into_iter().collect();
         self
     }
@@ -678,7 +684,12 @@ impl GDObjConfig {
     }
     /// Sets this object's base colour channel
     pub fn set_base_colour(mut self, channel: ColourChannel) -> Self {
-        self.colour_channel = channel;
+        self.colour_channels.0 = channel;
+        self
+    }
+    /// Sets this object's detail colour channel
+    pub fn set_detail_colour(mut self, channel: ColourChannel) -> Self {
+        self.colour_channels.1 = channel;
         self
     }
     /// Sets this object's Z-layer

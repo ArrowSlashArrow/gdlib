@@ -381,7 +381,7 @@ impl LevelData {
     }
 
     /// Returns a list of all the groups that contain at least one object
-    pub fn get_used_groups(&self) -> Vec<u16> {
+    pub fn get_used_groups(&self) -> Vec<i16> {
         if self.objects.len() == 0 {
             return vec![];
         }
@@ -391,21 +391,21 @@ impl LevelData {
         for object in self.objects.iter() {
             groups.extend(object.config.groups.iter());
         };
-        let mut arr: Vec<u16> = groups.into_iter().collect();
+        let mut arr: Vec<i16> = groups.into_iter().collect();
         arr.sort();
         return arr
     }
 
     /// Returns a list of all the groups that do not contain any objects
-    pub fn get_unused_groups(&self) -> Vec<u16> {
-        let all: BTreeSet<u16> = (1..10000).collect();
-        let used: BTreeSet<u16> = self.get_used_groups().into_iter().collect();
+    pub fn get_unused_groups(&self) -> Vec<i16> {
+        let all: BTreeSet<i16> = (1..10000).collect();
+        let used: BTreeSet<i16> = self.get_used_groups().into_iter().collect();
 
-        all.difference(&used).cloned().collect::<Vec<u16>>()
+        all.difference(&used).cloned().collect::<Vec<i16>>()
     }
 
     /// Returns a list of all groups used as arguments in triggers
-    pub fn get_argument_groups(&self) -> Vec<u16> {
+    pub fn get_argument_groups(&self) -> Vec<i16> {
         if self.objects.len() == 0 {
             return vec![];
         }
@@ -419,7 +419,7 @@ impl LevelData {
                 }
             }
         };
-        let mut arr: Vec<u16> = groups.into_iter().map(|v| v.as_str().unwrap().parse::<u16>().unwrap()).collect();
+        let mut arr: Vec<i16> = groups.into_iter().map(|v| v.as_str().unwrap().parse::<i16>().unwrap()).collect();
         arr.sort();
         return arr
     }

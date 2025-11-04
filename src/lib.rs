@@ -12,7 +12,7 @@ mod tests {
     use crate::{
         deserialiser::decode_levels_to_string, 
         gdlevel::{Level, Levels},
-        gdobj::{misc, triggers::{self, move_trigger, DefaultMove, MoveEasing}, GDObjConfig}
+        gdobj::{GDObjConfig, misc::{self, default_block}, triggers::{self, DefaultMove, MoveEasing, move_trigger}}
     };
 
     #[test]
@@ -114,4 +114,16 @@ mod tests {
         println!("Used groups: {:?}", level.get_decrypted_data().unwrap().get_used_groups());
     }
 
+    #[test]
+    fn obj_properties() {
+        let config = GDObjConfig::new().center_effect(true).editor_layer_1(4).dont_fade(true)
+            .groups([2, 3, 1738]).extra_sticky(true).no_glow(true).set_z_layer(crate::gdobj::ZLayer::B3)
+            .set_base_colour(triggers::ColourChannel::Ground2);
+
+        let block = default_block(config);
+        let mut level = Level::new("porpeties", "arrowslasharrow", None, None);
+        level.add_object(block);
+
+        level.export_to_gmd("GMDS/properties.gmd").unwrap();
+    }
 }

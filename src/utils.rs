@@ -1,5 +1,5 @@
 //! This module contains various utilities for debugging and processing structs
-use std::{collections::HashMap, env, error::Error, fmt::Debug, fs, path::{Path, PathBuf}};
+use std::{collections::HashMap, env, error::Error, fmt::Debug, path::{Path, PathBuf}};
 use aho_corasick::AhoCorasick;
 use base64::Engine;
 use serde_json::Value;
