@@ -2,6 +2,7 @@
 name = "gdlib"
 version = "0.2.4"
 edition = "2024"
+build = "build.rs"
 
 description = "Rust library for editing Geometry Dash savefiles"
 license = "MIT OR Apache-2.0"
@@ -21,3 +22,6 @@ internment = "0.8.6"
 plist = "1.7.4"
 rayon = "1.11.0"
 serde_json = "1.0.143"
+
+[build-dependencies]
+syn = { version = "2", features = ["full"] }

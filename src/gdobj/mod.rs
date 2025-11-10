@@ -227,7 +227,7 @@ impl GDObjProperty {
 }
 
 /// Map of all object ids to names: (id, name)
-pub const OBJ_NAMES: &[(i32, &str)] = &[
+pub const OBJECT_NAMES: &[(i32, &str)] = &[
     (1, "Default block"),
     (8, "Spike"),
     (39, "Small spike"),
@@ -285,14 +285,14 @@ pub const OBJ_NAMES: &[(i32, &str)] = &[
     (3662, "Link visible trigger"),
 ];
 
-// TODO: UPDATE THIS!!!!!
-pub const TRIGGER_OBJ_IDS: &[i32] = &[
-    22, 23, 24, 25, 26, 27, 28, 32, 33, 55, 56, 57, 58, 59, 31,
-    899, 901, 914, 1006, 1007, 1049, 1268, 1520, 1615, 1616, 1812, 
-    1815, 1816, 1818, 1819, 1912, 1913, 1915, 1917, 1932, 1934, 1935, 
-    2016, 2066, 3600, 3606, 3612, 3615, 3617, 3618, 3619, 3620, 3640, 
-    3641, 3643, 3662, 
-];
+// // TODO: UPDATE THIS!!!!!
+// pub const TRIGGER_OBJ_IDS: &[i32] = &[
+//     22, 23, 24, 25, 26, 27, 28, 32, 33, 55, 56, 57, 58, 59, 31,
+//     899, 901, 914, 1006, 1007, 1049, 1268, 1520, 1615, 1616, 1812, 
+//     1815, 1816, 1818, 1819, 1912, 1913, 1915, 1917, 1932, 1934, 1935, 
+//     2016, 2066, 3600, 3606, 3612, 3615, 3617, 3618, 3619, 3620, 3640, 
+//     3641, 3643, 3662, 
+// ];
 
 /// Container for GD Object properties.
 /// * `id`: The object's ID.
@@ -466,7 +466,7 @@ impl GDObject {
     }
 
     pub fn name(&self) -> String {
-        OBJ_NAMES.iter().find(|&o| o.0 == self.id)
+        OBJECT_NAMES.iter().find(|&o| o.0 == self.id)
             .unwrap_or(&(0, format!("Object {}", self.id).as_str())).1.to_string()
     }
 
