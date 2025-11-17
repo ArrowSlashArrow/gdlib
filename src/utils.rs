@@ -1,10 +1,7 @@
 //! This module contains various utilities for debugging and processing structs
-use std::{collections::HashMap, env, error::Error, fmt::Debug, path::{Path, PathBuf}};
+use std::{env, error::Error, fmt::Debug, path::{Path, PathBuf}};
 use aho_corasick::AhoCorasick;
 use base64::Engine;
-use serde_json::Value;
-
-use crate::gdobj::GDObjProperty;
 
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
 pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
@@ -13,12 +10,6 @@ pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
     } else {
         Err("Could not find local levels file".into())
     }
-}
-
-/// Converts properties in `serde_json::Value` dict to a `HashMap<String, Value>` 
-pub fn properties_from_json(vals: Value) -> HashMap<GDObjProperty, Value> {
-    vals.as_object().unwrap().into_iter()
-        .map(|(k, v)| (GDObjProperty::from_name(k.clone()), v.clone())).collect()
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`

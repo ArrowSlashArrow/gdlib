@@ -2,17 +2,21 @@
 #![recursion_limit = "256"]
 
 pub mod deserialiser;
-pub mod serialiser;
 pub mod gdlevel;
 pub mod gdobj;
+pub mod serialiser;
 pub mod utils;
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        deserialiser::decode_levels_to_string, 
+        deserialiser::decode_levels_to_string,
         gdlevel::{Level, Levels},
-        gdobj::{GDObjConfig, misc::{self, default_block}, triggers::{self, DefaultMove, MoveEasing, move_trigger}}
+        gdobj::{
+            GDObjConfig, MoveEasing,
+            misc::default_block,
+            triggers::{self, DefaultMove, ItemType, move_trigger, start_pos},
+        },
     };
 
     #[test]
@@ -21,7 +25,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_to_levels_obj() { 
+    fn parse_to_levels_obj() {
         let raw_levels_savefile = decode_levels_to_string().unwrap();
         Levels::from_decrypted(raw_levels_savefile).unwrap();
     }
@@ -29,21 +33,30 @@ mod tests {
     #[test]
     fn add_level_and_export() {
         let mut levels = Levels::from_local().unwrap();
-        let mut new_level = Level::new("rust websocket tutorial 2", "arrowslasharrow", Some("dont use rust"), Some(857925));
-        
+        let mut new_level = Level::new(
+            "rust websocket tutorial 2",
+            "arrowslasharrow",
+            Some("dont use rust"),
+            Some(857925),
+        );
+
         new_level.add_object(triggers::move_trigger(
-            GDObjConfig::default().pos(45.0, 45.0).groups([1234]), 
+            GDObjConfig::default().pos(45.0, 45.0).groups([1234]),
             triggers::MoveMode::Default(triggers::DefaultMove {
                 dx: 45.0,
                 dy: 54.0,
                 x_lock: None,
-                y_lock: None
-            }), 
-            0.50, 1, false, true, Some((MoveEasing::ElasticInOut, 1.50))
+                y_lock: None,
+            }),
+            0.50,
+            1,
+            false,
+            true,
+            Some((MoveEasing::ElasticInOut, 1.50)),
         ));
 
-        new_level.add_object(misc::default_block(GDObjConfig::default().x(15.0).y(15.0)));
-        
+        new_level.add_object(default_block(GDObjConfig::default().x(15.0).y(15.0)));
+
         levels.add_level(new_level);
         levels.export_to_savefile_with_backup().unwrap();
     }
@@ -56,7 +69,7 @@ mod tests {
 
         for (idx, obj) in data.objects.iter().enumerate() {
             println!("{idx}: {obj:?}");
-        }   
+        }
     }
 
     #[test]
@@ -73,31 +86,39 @@ mod tests {
             println!("{obj:?}");
         }
 
-        // level.add_object(triggers::item_edit(GDObjConfig::new().pos(45.0, 45.0), 
-        //     Some((1, ItemType::Counter)), Some((2, ItemType::Counter)), 3, ItemType::Counter,
-        //     0.5, triggers::Op::Set, Some(triggers::Op::Add), Some(triggers::Op::Sub), triggers::RoundMode::Nearest,
-        //     triggers::RoundMode::Nearest, triggers::SignMode::Absolute, triggers::SignMode::Negative
+        // level.add_object(triggers::item_edit(
+        //     GDObjConfig::new().pos(45.0, 45.0),
+        //     Some((1, ItemType::Counter)),
+        //     Some((2, ItemType::Counter)),
+        //     3,
+        //     ItemType::Counter,
+        //     0.5,
+        //     triggers::Op::Set,
+        //     Some(triggers::Op::Add),
+        //     Some(triggers::Op::Sub),
+        //     triggers::RoundMode::Nearest,
+        //     triggers::RoundMode::Nearest,
+        //     triggers::SignMode::Absolute,
+        //     triggers::SignMode::Negative,
         // ));
-
-        // levels.export_to_savefile().unwrap();
     }
 
     #[test]
     fn move_constructor_test() {
         let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
         level.add_object(move_trigger(
-            GDObjConfig::default().pos(45.0, 45.0).dont_fade(true), 
+            GDObjConfig::default().pos(45.0, 45.0).dont_fade(true),
             triggers::MoveMode::Default(DefaultMove {
                 dx: 45.0,
                 dy: 54.0,
                 x_lock: None,
-                y_lock: None
-            }), 
-            17.38, 
-            679, 
-            false, 
-            true, 
-            Some((MoveEasing::ElasticInOut, 1.50))
+                y_lock: None,
+            }),
+            17.38,
+            679,
+            false,
+            true,
+            Some((MoveEasing::ElasticInOut, 1.50)),
         ));
 
         let mut levels = Levels::from_local().unwrap();
@@ -110,20 +131,57 @@ mod tests {
         let mut levels = Levels::from_local().unwrap();
         let level = levels.levels.get_mut(0).unwrap();
         println!("Level info: {level}");
-        println!("Unused groups: {:?}", level.get_decrypted_data().unwrap().get_unused_groups());
-        println!("Used groups: {:?}", level.get_decrypted_data().unwrap().get_used_groups());
+        println!(
+            "Unused groups: {:?}",
+            level.get_decrypted_data().unwrap().get_unused_groups()
+        );
+        println!(
+            "Used groups: {:?}",
+            level.get_decrypted_data().unwrap().get_used_groups()
+        );
     }
 
     #[test]
     fn obj_properties() {
-        let config = GDObjConfig::new().center_effect(true).editor_layer_1(4).dont_fade(true)
-            .groups([2, 3, 1738]).extra_sticky(true).no_glow(true).set_z_layer(crate::gdobj::ZLayer::B3)
-            .set_base_colour(triggers::ColourChannel::Ground2);
+        let config = GDObjConfig::new()
+            .center_effect(true)
+            .editor_layer_1(4)
+            .dont_fade(true)
+            .groups([2, 3, 1738])
+            .extra_sticky(true)
+            .no_glow(true)
+            .set_z_layer(crate::gdobj::ZLayer::B3)
+            .set_base_colour(crate::gdobj::ColourChannel::Background);
 
         let block = default_block(config);
         let mut level = Level::new("porpeties", "arrowslasharrow", None, None);
         level.add_object(block);
 
         level.export_to_gmd("GMDS/properties.gmd").unwrap();
+    }
+
+    #[test]
+    fn startpos() {
+        // ued to test kAXX proerties
+        let mut level = Level::new("startpos test", "me", None, None);
+        let sp = start_pos(
+            GDObjConfig::default().pos(45.0, 45.0),
+            0.5,
+            triggers::Gamemode::Ball,
+            false,
+            true,
+            true,
+            false,
+            false,
+            false,
+            0,
+            0,
+            false,
+        );
+
+        println!("{}", sp.to_string());
+        level.add_object(sp);
+
+        level.export_to_gmd("GMDS/startpos.gmd").unwrap();
     }
 }

@@ -1,51 +1,71 @@
-use std::{fs, fmt::Write};
+use std::{fmt::Write, fs};
 
-use syn::{self, Expr, ExprArray, ExprLit, ExprReference, ExprStruct, ExprTuple, Item, Lit, Member};
+use syn::{Expr, ExprArray, ExprLit, ExprTuple, Item, Lit};
 
-// this file autogenerates `src/gdobj/ids.rs`, which is a file with 
+// this file autogenerates `src/gdobj/ids.rs`, which is a file with
 // all of the currently implemented ids for objects and properties as consts.
+// currently broken due to `kAXX` properties
 
 fn to_const_name(s: String) -> String {
     let mut seen_underscore = false;
-    s.chars().filter_map(|c| match c {
-        '/' | '\'' | '+' | '?' | '-' => None,
-        ' ' => Some('_'),
-        c => Some(c.to_ascii_uppercase()) 
-    }).filter_map(|c| {
-        if c == '_' && seen_underscore {
-            None
-        } else {
-            seen_underscore = c == '_';
-            Some(c)
-        }
-    }).collect()
-}
-
-fn find_field(st: &ExprStruct, field: &str) -> Option<Lit> {
-    st.fields.iter().find_map(|f| match &f.member {
-        Member::Named(ident) if ident == field => {
-            if let Expr::Lit(ExprLit { lit, .. }) = &f.expr {
-                Some(lit.clone())
-            } else {
+    s.chars()
+        .filter_map(|c| match c {
+            '/' | '\'' | '+' | '?' | '-' | '"' => None,
+            ' ' => Some('_'),
+            c => Some(c.to_ascii_uppercase()),
+        })
+        .filter_map(|c| {
+            if c == '_' && seen_underscore {
                 None
+            } else {
+                seen_underscore = c == '_';
+                Some(c)
             }
-        },
-        _ => None
-    })
+        })
+        .collect()
 }
 
-fn handle_property(buffer: &mut String, st: ExprStruct) {
-    let name = find_field(&st, "desc").unwrap();
-    let id = find_field(&st, "name").unwrap();
+// fn find_field(st: &ExprStruct, field: &str) -> Option<Lit> {
+//     st.fields.iter().find_map(|f| match &f.member {
+//         Member::Named(ident) if ident == field => {
+//             if let Expr::Lit(ExprLit { lit, .. }) = &f.expr {
+//                 Some(lit.clone())
+//             } else {
+//                 None
+//             }
+//         }
+//         _ => None,
+//     })
+// }
 
-    if let Lit::Str(name) = name && let Lit::Str(id) = id {
-        let const_name = to_const_name(name.value());
-
-        write!(
-            buffer, "    pub const {const_name}: u16 = {};\n", id.value() 
-        ).unwrap();
-    }
-}
+// fn handle_property(buffer: &mut String, st: ExprTuple) {
+//     let name = find_field(&st, "desc").unwrap();
+//     let id = find_field(&st, "name").unwrap();
+//     if let Lit::Str(name) = name
+//         && let Lit::Str(id) = id
+//     {
+//         let const_name = to_const_name(name.value());
+//         write!(
+//             buffer,
+//             "    pub const {const_name}: u16 = {};\n",
+//             id.value()
+//         )
+//         .unwrap();
+//     }
+//     let mut id = 0i32;
+//     let mut name = String::new();
+//     for item in tuple.elems {
+//         if let Expr::Lit(ExprLit { lit, .. }) = item {
+//             match lit {
+//                 Lit::Int(int) => id = int.base10_parse().unwrap(),
+//                 Lit::Str(s) => name = s.value(),
+//                 _ => {}
+//             }
+//         }
+//     }
+//     let const_name = to_const_name(name);
+//     write!(buffer, "    pub const {const_name}: u16 = {id};\n").unwrap();
+// }
 
 fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
     let mut id = 0i32;
@@ -57,10 +77,9 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
                 Lit::Str(s) => name = s.value(),
                 _ => {}
             }
-        } 
+        }
     }
     let const_name = to_const_name(name);
-
     write!(buffer, "    pub const {const_name}: i32 = {id};\n").unwrap();
 }
 
@@ -71,13 +90,14 @@ fn print<T: Into<String>>(s: T) {
 fn main() {
     let mut properties_out_str = String::new();
     let mut objects_out_str = String::new();
+    let other_file = fs::read_to_string("src/gdobj/lookup.rs").unwrap();
     let file = fs::read_to_string("src/gdobj/mod.rs").unwrap();
-    let ast: syn::File = syn::parse_str(&file).unwrap();
 
+    let ast: syn::File = syn::parse_str(&file).unwrap();
     for item in ast.items {
         if let Item::Const(c) = item {
             if let Expr::Reference(expr_ref) = *c.expr {
-                if let Expr::Array(ExprArray { elems, ..}) = *expr_ref.expr {
+                if let Expr::Array(ExprArray { elems, .. }) = *expr_ref.expr {
                     if c.ident == "OBJECT_NAMES" {
                         objects_out_str = String::with_capacity(elems.len() * 48);
                         for elem in elems {
@@ -85,29 +105,61 @@ fn main() {
                                 handle_tuple(&mut objects_out_str, tuple);
                             }
                         }
-                    } else if c.ident == "OBJECT_PROPERTIES" {
-                        properties_out_str = String::with_capacity(elems.len() * 32);
-                        for elem in elems {
-                            if let Expr::Struct(prop) = elem {
-                                handle_property(&mut properties_out_str, prop);
-                            }
-                        }
                     }
+                    // else if c.ident == "PROPERTY_TABLE" {
+                    //     properties_out_str = String::with_capacity(elems.len() * 32);
+                    //     for elem in elems {
+                    //         if let Expr::Tuple(prop) = elem {
+                    //             handle_property(&mut properties_out_str, prop);
+                    //         }
+                    //     }
+                    // }
                 }
                 print(format!("found const {}", c.ident.to_string().as_str()));
             }
         }
-    };
+    }
 
-    let out_str = format!("\
+    let mut seen_map = false;
+    for line in other_file.split('\n') {
+        if seen_map {
+            if line.starts_with("};") {
+                seen_map = false;
+                break;
+            }
+
+            let mut split = line.trim().split(" => (");
+            let id = split.next().unwrap();
+            let mut tuple_split = split.next().unwrap().split(", ");
+            let desc = tuple_split.next().unwrap();
+            let const_name = to_const_name(desc.to_string());
+
+            write!(
+                properties_out_str,
+                "    pub const {const_name}: u16 = {id};\n"
+            )
+            .unwrap();
+        } else {
+            if line.starts_with(
+                "pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
+            ) {
+                seen_map = true;
+            }
+        }
+    }
+
+    let out_str = format!(
+        "\
 //! This file contains all supported block ids and property ids.
 //! This file is autogenerated by the build script.
 
 /// Object ids submodule
 pub mod objects {{
 {objects_out_str}}}
+
 /// Property ids submodule
 pub mod properties {{
-{properties_out_str}}}");
+{properties_out_str}}}"
+    );
     fs::write("src/gdobj/ids.rs", out_str);
 }
