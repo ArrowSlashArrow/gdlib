@@ -119,7 +119,7 @@ pub mod properties {
     pub const TARGET_MOVE_MODE_AXIS_LOCK: u16 = 101;
     pub const IS_HIGH_DETAIL: u16 = 103;
     pub const NO_OBJECT_EFFECTS: u16 = 116;
-    pub const CENTER_OBJECT_EFFECT: u16 = 117;
+    pub const REVERSES_GAMEPLAY: u16 = 117;
     pub const TIMEWARP_AMOUNT: u16 = 120;
     pub const NO_TOUCH: u16 = 121;
     pub const X_SCALE: u16 = 128;
@@ -134,7 +134,7 @@ pub mod properties {
     pub const X_MOVEMENT_MULTIPLIER: u16 = 143;
     pub const Y_MOVEMENT_MULTIPLIER: u16 = 144;
     pub const GRAVITY: u16 = 148;
-    pub const GRIPPY_SLOPE: u16 = 193;
+    pub const GRIP_SLOPE: u16 = 193;
     pub const CONTROLLING_PLAYER_2: u16 = 200;
     pub const CONTROLLING_TARGET_PLAYER: u16 = 201;
     pub const NO_LEGACY_HSV: u16 = 210;

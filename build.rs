@@ -124,7 +124,6 @@ fn main() {
     for line in other_file.split('\n') {
         if seen_map {
             if line.starts_with("};") {
-                seen_map = false;
                 break;
             }
 

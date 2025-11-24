@@ -1,6 +1,9 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::fmt::{Debug, Display, Write, write};
+use std::{
+    default,
+    fmt::{Debug, Display, Write},
+};
 
 use crate::gdobj::lookup::get_property_type;
 use itoa;
@@ -26,17 +29,36 @@ pub enum GDObjPropType {
 }
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum ZLayer {
     B5 = -5,
     B4 = -3,
     B3 = -1,
     B2 = 1,
     B1 = 3,
+    #[default]
+    Default = 0,
     T1 = 5,
     T2 = 7,
     T3 = 9,
     T4 = 11,
+}
+
+impl ZLayer {
+    pub fn from_i32(int: i32) -> Self {
+        match int {
+            -5 => Self::B5,
+            -3 => Self::B4,
+            -1 => Self::B3,
+            1 => Self::B2,
+            3 => Self::B1,
+            5 => Self::T1,
+            7 => Self::T2,
+            9 => Self::T3,
+            11 => Self::T4,
+            _ => Self::Default,
+        }
+    }
 }
 
 /// Enum for colour channels and their IDs
@@ -91,8 +113,9 @@ impl ColourChannel {
 
 /// Enum for all the move easings
 #[repr(i32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum MoveEasing {
+    #[default]
     None = 0,
     EaseInOut = 1,
     EaseIn = 2,
@@ -175,6 +198,16 @@ impl GDValue {
     #[inline(always)]
     pub fn from_group_list(g: Vec<i16>) -> Self {
         Self::GroupList(SmallVec::from_vec(g))
+    }
+
+    #[inline(always)]
+    pub fn colour_channel(s: &str) -> Self {
+        Self::ColourChannel(ColourChannel::from_i32(s.parse().unwrap_or(0)))
+    }
+
+    #[inline(always)]
+    pub fn zlayer(s: &str) -> Self {
+        Self::ZLayer(ZLayer::from_i32(s.parse().unwrap_or(0)))
     }
 }
 
@@ -349,7 +382,7 @@ impl Debug for GDObject {
             if let Some(d) = desc {
                 write!(property_str, "\n    - {d}: {value:?}")
             } else {
-                write!(property_str, "\n    - {property}")
+                write!(property_str, "\n    - {property}: {value:?}")
             }
             .unwrap();
         }
@@ -381,36 +414,73 @@ impl GDObject {
 
         let mut iter = s.trim_end_matches(';').split(",");
         while let (Some(idx), Some(val)) = (iter.next(), iter.next()) {
-            match idx {
-                "1" => obj.id = val.parse().unwrap_or(0),
-                "2" => obj.config.pos.0 = val.parse().unwrap_or(0.0),
-                "3" => obj.config.pos.1 = val.parse().unwrap_or(0.0),
-                "6" => obj.config.angle = val.parse().unwrap_or(0.0),
-                "11" => obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false),
-                "62" => obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false),
-                "87" => obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false),
-                "57" => {
+            let idx_u16 = match idx.parse::<u16>() {
+                Ok(n) => n,
+                Err(_) => match idx[2..].parse::<u16>() {
+                    Ok(n) => n + 10_000,
+                    Err(_) => 65535,
+                },
+            };
+
+            match idx_u16 {
+                // HERE
+                1 => obj.id = val.parse().unwrap_or(0),
+                2 => obj.config.pos.0 = val.parse().unwrap_or(0.0),
+                3 => obj.config.pos.1 = val.parse().unwrap_or(0.0),
+                6 => obj.config.angle = val.parse().unwrap_or(0.0),
+                11 => obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false),
+                62 => obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false),
+                87 => obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false),
+                57 => {
                     obj.config.groups = val
                         .trim_matches('"')
                         .split(".")
                         .filter_map(|g| g.parse::<i16>().ok())
                         .collect()
                 }
-                "128" => obj.config.scale.0 = val.parse().unwrap_or(1.0),
-                "129" => obj.config.scale.1 = val.parse().unwrap_or(1.0),
-                _ => {
-                    match idx.parse::<u16>() {
-                        Ok(n) => obj.set_property_raw(n, val),
-                        Err(_) => match idx[2..].parse::<u16>() {
-                            Ok(n) => obj.set_property_raw(n + 10_000, val),
-                            Err(_) => obj.set_property_raw(65535, val),
-                        },
-                    };
+                128 => obj.config.scale.0 = val.parse().unwrap_or(1.0),
+                129 => obj.config.scale.1 = val.parse().unwrap_or(1.0),
+                20 => obj.config.editor_layers.0 = val.parse().unwrap_or(0),
+                61 => obj.config.editor_layers.1 = val.parse().unwrap_or(0),
+                21 => {
+                    obj.config.colour_channels.0 = ColourChannel::from_i32(val.parse().unwrap_or(0))
                 }
+                22 => {
+                    obj.config.colour_channels.1 = ColourChannel::from_i32(val.parse().unwrap_or(0))
+                }
+                24 => obj.config.z_layer = ZLayer::from_i32(val.parse().unwrap_or(0)),
+                25 => obj.config.z_order = val.parse().unwrap_or(0),
+                343 => obj.config.enter_effect_channel = val.parse().unwrap_or(0),
+                446 => obj.config.material_id = val.parse().unwrap_or(0),
+                64 => obj.config.attributes.dont_fade = val.parse().unwrap_or(false),
+                67 => obj.config.attributes.dont_enter = val.parse().unwrap_or(false),
+                116 => obj.config.attributes.no_effects = val.parse().unwrap_or(false),
+                34 => obj.config.attributes.is_group_parent = val.parse().unwrap_or(false),
+                279 => obj.config.attributes.is_area_parent = val.parse().unwrap_or(false),
+                509 => obj.config.attributes.dont_boost_x = val.parse().unwrap_or(false),
+                496 => obj.config.attributes.dont_boost_y = val.parse().unwrap_or(false),
+                103 => obj.config.attributes.high_detail = val.parse().unwrap_or(false),
+                121 => obj.config.attributes.no_touch = val.parse().unwrap_or(false),
+                134 => obj.config.attributes.passable = val.parse().unwrap_or(false),
+                135 => obj.config.attributes.hidden = val.parse().unwrap_or(false),
+                136 => obj.config.attributes.non_stick_x = val.parse().unwrap_or(false),
+                289 => obj.config.attributes.non_stick_y = val.parse().unwrap_or(false),
+                495 => obj.config.attributes.extra_sticky = val.parse().unwrap_or(false),
+                511 => obj.config.attributes.extended_collision = val.parse().unwrap_or(false),
+                137 => obj.config.attributes.is_ice_block = val.parse().unwrap_or(false),
+                193 => obj.config.attributes.grip_slope = val.parse().unwrap_or(false),
+                96 => obj.config.attributes.no_glow = val.parse().unwrap_or(false),
+                507 => obj.config.attributes.no_particles = val.parse().unwrap_or(false),
+                356 => obj.config.attributes.scale_stick = val.parse().unwrap_or(false),
+                372 => obj.config.attributes.no_audio_scale = val.parse().unwrap_or(false),
+                284 => obj.config.attributes.single_ptouch = val.parse().unwrap_or(false),
+                369 => obj.config.attributes.center_effect = val.parse().unwrap_or(false),
+                117 => obj.config.attributes.reverse = val.parse().unwrap_or(false),
+                n => obj.set_property_raw(n, val),
             }
         }
 
-        obj.properties.sort_by(|a, b| a.0.cmp(&b.0));
+        // obj.properties.sort_by(|a, b| a.0.cmp(&b.0));
 
         return obj;
     }
@@ -500,6 +570,38 @@ impl GDObject {
             87 => Some(GDValue::Bool(self.config.trigger_cfg.multitriggerable)),
             128 => Some(GDValue::Float(self.config.scale.0)),
             129 => Some(GDValue::Float(self.config.scale.1)),
+            20 => Some(GDValue::Int(self.config.editor_layers.0)),
+            61 => Some(GDValue::Int(self.config.editor_layers.1)),
+            21 => Some(GDValue::Int(self.config.colour_channels.0.as_i32())),
+            22 => Some(GDValue::Int(self.config.colour_channels.1.as_i32())),
+            24 => Some(GDValue::ZLayer(self.config.z_layer)),
+            25 => Some(GDValue::Int(self.config.z_order)),
+            343 => Some(GDValue::Int(self.config.enter_effect_channel)),
+            446 => Some(GDValue::Int(self.config.material_id)),
+            64 => Some(GDValue::Bool(self.config.attributes.dont_fade)),
+            67 => Some(GDValue::Bool(self.config.attributes.dont_enter)),
+            116 => Some(GDValue::Bool(self.config.attributes.no_effects)),
+            34 => Some(GDValue::Bool(self.config.attributes.is_group_parent)),
+            279 => Some(GDValue::Bool(self.config.attributes.is_area_parent)),
+            509 => Some(GDValue::Bool(self.config.attributes.dont_boost_x)),
+            496 => Some(GDValue::Bool(self.config.attributes.dont_boost_y)),
+            103 => Some(GDValue::Bool(self.config.attributes.high_detail)),
+            121 => Some(GDValue::Bool(self.config.attributes.no_touch)),
+            134 => Some(GDValue::Bool(self.config.attributes.passable)),
+            135 => Some(GDValue::Bool(self.config.attributes.hidden)),
+            136 => Some(GDValue::Bool(self.config.attributes.non_stick_x)),
+            289 => Some(GDValue::Bool(self.config.attributes.non_stick_y)),
+            495 => Some(GDValue::Bool(self.config.attributes.extra_sticky)),
+            511 => Some(GDValue::Bool(self.config.attributes.extended_collision)),
+            137 => Some(GDValue::Bool(self.config.attributes.is_ice_block)),
+            193 => Some(GDValue::Bool(self.config.attributes.grip_slope)),
+            96 => Some(GDValue::Bool(self.config.attributes.no_glow)),
+            507 => Some(GDValue::Bool(self.config.attributes.no_particles)),
+            356 => Some(GDValue::Bool(self.config.attributes.scale_stick)),
+            372 => Some(GDValue::Bool(self.config.attributes.no_audio_scale)),
+            284 => Some(GDValue::Bool(self.config.attributes.single_ptouch)),
+            369 => Some(GDValue::Bool(self.config.attributes.center_effect)),
+            117 => Some(GDValue::Bool(self.config.attributes.reverse)),
             _ => self
                 .properties
                 .iter()
@@ -586,15 +688,15 @@ impl GDObjConfig {
     /// Converts this config to a properties hashmap
     pub fn to_string(&self) -> String {
         let mut properties = format!(
-            ",2,{},3,{},155,1,6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},64,{},67,{},116,{},34,{},279,{},509,{},496,{},103,{},121,{},134,{},135,{},136,{},289,{},495,{},511,{},137,{},193,{},96,{},507,{},356,{},372,{},284,{},369,{},117,{}",
+            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},64,{},67,{},116,{},34,{},279,{},509,{},496,{},103,{},121,{},134,{},135,{},136,{},289,{},495,{},511,{},137,{},193,{},96,{},507,{},356,{},372,{},284,{},369,{},117,{}",
             self.pos.0,
             self.pos.1,
             self.angle,
             self.scale.0,
             self.scale.1,
-            self.trigger_cfg.touchable,
-            self.trigger_cfg.spawnable,
-            self.trigger_cfg.multitriggerable,
+            self.trigger_cfg.touchable as u8,
+            self.trigger_cfg.spawnable as u8,
+            self.trigger_cfg.multitriggerable as u8,
             self.editor_layers.0,
             self.editor_layers.1,
             self.colour_channels.0.as_i32(),
@@ -603,30 +705,30 @@ impl GDObjConfig {
             self.z_order,
             self.enter_effect_channel,
             self.material_id,
-            self.attributes.dont_fade,
-            self.attributes.dont_enter,
-            self.attributes.no_effects,
-            self.attributes.is_group_parent,
-            self.attributes.is_area_parent,
-            self.attributes.dont_boost_x,
-            self.attributes.dont_boost_y,
-            self.attributes.high_detail,
-            self.attributes.no_touch,
-            self.attributes.passable,
-            self.attributes.hidden,
-            self.attributes.non_stick_x,
-            self.attributes.non_stick_y,
-            self.attributes.extra_sticky,
-            self.attributes.extended_collision,
-            self.attributes.is_ice_block,
-            self.attributes.grip_slope,
-            self.attributes.no_glow,
-            self.attributes.no_particles,
-            self.attributes.scale_stick,
-            self.attributes.no_audio_scale,
-            self.attributes.single_ptouch,
-            self.attributes.center_effect,
-            self.attributes.reverse
+            self.attributes.dont_fade as u8,
+            self.attributes.dont_enter as u8,
+            self.attributes.no_effects as u8,
+            self.attributes.is_group_parent as u8,
+            self.attributes.is_area_parent as u8,
+            self.attributes.dont_boost_x as u8,
+            self.attributes.dont_boost_y as u8,
+            self.attributes.high_detail as u8,
+            self.attributes.no_touch as u8,
+            self.attributes.passable as u8,
+            self.attributes.hidden as u8,
+            self.attributes.non_stick_x as u8,
+            self.attributes.non_stick_y as u8,
+            self.attributes.extra_sticky as u8,
+            self.attributes.extended_collision as u8,
+            self.attributes.is_ice_block as u8,
+            self.attributes.grip_slope as u8,
+            self.attributes.no_glow as u8,
+            self.attributes.no_particles as u8,
+            self.attributes.scale_stick as u8,
+            self.attributes.no_audio_scale as u8,
+            self.attributes.single_ptouch as u8,
+            self.attributes.center_effect as u8,
+            self.attributes.reverse as u8
         );
 
         if !self.groups.is_empty() {

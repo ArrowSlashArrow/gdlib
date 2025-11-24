@@ -6,6 +6,7 @@ use std::{
     fs::{self, read, write},
     io::Cursor,
     path::PathBuf,
+    time::Instant,
 };
 
 use plist::{Dictionary, Value};
@@ -308,24 +309,24 @@ impl Level {
             None => return, // no level data
         };
 
-        // parse level data
-        let decrypted = vec_as_str(&decompress(raw_data.as_bytes().to_vec()).unwrap());
-
-        let split = decrypted.split(";").collect::<Vec<&str>>();
-
-        let headers = split.first().unwrap().to_owned().to_owned();
-        let objects = split[1..]
-            .iter()
-            .filter_map(|objstr| match objstr.len() > 1 {
-                true => Some(GDObject::parse_str(*objstr)),
-                false => None,
-            })
-            .collect::<Vec<GDObject>>();
-        self.data = Some(LevelState::Decrypted(LevelData { headers, objects }));
+        self.data = Some(LevelState::Decrypted(LevelData::parse(raw_data)));
     }
 
     /// Returns the decrypted level data as a `LevelData` object if there is data.
-    pub fn get_decrypted_data(&mut self) -> Option<&mut LevelData> {
+    pub fn get_decrypted_data(&self) -> Option<LevelData> {
+        let raw_data = match self.data.clone() {
+            Some(data) => match data {
+                LevelState::Encrypted(encrypted) => encrypted.data.clone(),
+                LevelState::Decrypted(d) => return Some(d), // already decrypted
+            },
+            None => return None, // no level data
+        };
+
+        Some(LevelData::parse(raw_data))
+    }
+
+    /// Returns the decrypted level data as a `LevelData` object if there is data.
+    pub fn get_decrypted_data_ref(&mut self) -> Option<&mut LevelData> {
         self.decrypt_level_data();
         match &mut self.data {
             Some(d) => {
@@ -483,5 +484,23 @@ impl LevelData {
         groups.sort();
         groups.dedup();
         return groups;
+    }
+
+    pub fn parse(raw_data: String) -> Self {
+        // parse level data
+        let raw_data = decompress(raw_data.as_bytes().to_vec()).unwrap();
+        let decrypted = std::str::from_utf8(&raw_data[..]).unwrap();
+        let split = decrypted.split(";").collect::<Vec<&str>>();
+
+        let headers = split[0].to_string();
+        let mut objects = Vec::with_capacity(split.len() - 1);
+
+        for object in &split[1..] {
+            if object.len() > 1 {
+                objects.push(GDObject::parse_str(object));
+            }
+        }
+
+        LevelData { headers, objects }
     }
 }

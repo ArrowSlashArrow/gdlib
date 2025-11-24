@@ -1,10 +1,10 @@
 //! This module contains all of the encryption code for GD savefiles.
-use std::{io::Write};
+use std::io::Write;
 
-use flate2::{write::ZlibEncoder, Compression};
+use flate2::{Compression, write::ZlibEncoder};
 use plist::{Dictionary, Value};
 
-use crate::{utils::b64_encode};
+use crate::utils::b64_encode;
 
 fn zlib_compress(s: String) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -22,8 +22,7 @@ pub fn encrypt_level_str(s: String) -> Vec<u8> {
 
     data.extend_from_slice(&crc_checksum);
     data.extend_from_slice(&size);
-    let base64 = b64_encode(data)
-        .replace("+", "-").replace("/", "_");
+    let base64 = b64_encode(data).replace("+", "-").replace("/", "_");
 
     let mut header = b"H4sIAAAAAAAAC".to_vec();
     header.extend_from_slice(&base64.as_bytes()[13..]);
@@ -36,11 +35,11 @@ pub fn encrypt_savefile_str(s: String) -> Vec<u8> {
 }
 
 /// Parses an XML dictionary to a string that matches GD savefile format.
-/// 
+///
 /// # Arguments
 /// * `dict`: plist::Dictionary to parse.
 /// * `root`: Is the input the root dict?
-/// 
+///
 /// Returns the stringified dictionary
 pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
     if dict.is_empty() {
@@ -49,36 +48,39 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
 
     let mut dict_str = String::from(match root {
         true => "<dict>",
-        false => "<d>"
+        false => "<d>",
     });
     for (key, value) in dict.iter() {
         dict_str += &format!("<k>{key}</k>");
         match value {
             Value::String(s) => {
                 dict_str += &format!("<s>{s}</s>");
-            },
+            }
             Value::Integer(int) => {
                 dict_str += &format!("<i>{int}</i>");
-            },
+            }
             Value::Dictionary(dict) => {
                 dict_str += &stringify_xml(dict, false);
-            },
+            }
             Value::Boolean(b) => {
-                dict_str += &format!("<{} />", match b {
-                    true => 't',
-                    false => 'f'
-                });
-            },
+                dict_str += &format!(
+                    "<{} />",
+                    match b {
+                        true => 't',
+                        false => 'f',
+                    }
+                );
+            }
             Value::Real(float) => {
                 dict_str += &format!("<r>{float}</r>");
-            },
+            }
             _ => {}
         }
     }
 
     dict_str += match root {
         true => "</dict>",
-        false => "</d>"
+        false => "</d>",
     };
-    return dict_str
+    return dict_str;
 }

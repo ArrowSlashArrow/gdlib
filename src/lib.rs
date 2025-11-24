@@ -9,13 +9,15 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use crate::{
         deserialiser::decode_levels_to_string,
         gdlevel::{Level, Levels},
         gdobj::{
-            GDObjConfig, MoveEasing,
+            GDObjConfig, GDObject, MoveEasing,
             misc::default_block,
-            triggers::{self, DefaultMove, ItemType, move_trigger, start_pos},
+            triggers::{self, DefaultMove, move_trigger, start_pos},
         },
     };
 
@@ -162,7 +164,7 @@ mod tests {
 
     #[test]
     fn startpos() {
-        // ued to test kAXX proerties
+        // used to test kAXX proerties
         let mut level = Level::new("startpos test", "me", None, None);
         let sp = start_pos(
             GDObjConfig::default().pos(45.0, 45.0),
@@ -183,5 +185,49 @@ mod tests {
         level.add_object(sp);
 
         level.export_to_gmd("GMDS/startpos.gmd").unwrap();
+    }
+
+    #[test]
+    fn big_level_parse() {
+        let mut level = Level::from_gmd("GMD_tests/big.gmd");
+        let start = Instant::now();
+        level.unwrap().get_decrypted_data_ref();
+        println!(
+            "Parsing took {:.3}ms",
+            start.elapsed().as_micros() as f64 / 1000.0
+        );
+    }
+
+    #[test]
+    fn ref_vs_copy_benchmark() {
+        let count = 50;
+        let mut ref_time: u128 = 0;
+        let mut copy_time: u128 = 0;
+
+        let level = Level::from_gmd("GMD_tests/All Object IDs.gmd").unwrap();
+        for _ in 0..count {
+            {
+                let start = Instant::now();
+                let _ = level.get_decrypted_data();
+                copy_time += start.elapsed().as_nanos();
+            }
+            {
+                let mut level = Level::from_gmd("GMD_tests/All Object IDs.gmd").unwrap();
+                let start = Instant::now();
+                let _ = level.get_decrypted_data_ref();
+                ref_time += start.elapsed().as_nanos();
+            }
+        }
+        let objs = level.get_decrypted_data().unwrap().objects.len();
+        let avg_copy_time = copy_time as f64 / (1_000 * count) as f64;
+        let avg_ref_time = ref_time as f64 / (1_000 * count) as f64;
+
+        println!(
+            "Objects: {objs}; {count} tests\nAverage copy time: {:.3}us\nAverage ref time: {:.3}us\nAverage copy time per object: {:.3}us\nAverage ref time per object: {:.3}us",
+            avg_copy_time,
+            avg_ref_time,
+            avg_copy_time / objs as f64,
+            avg_ref_time / objs as f64,
+        );
     }
 }
