@@ -10,7 +10,7 @@ fn to_const_name(s: String) -> String {
     let mut seen_underscore = false;
     s.chars()
         .filter_map(|c| match c {
-            '/' | '\'' | '+' | '?' | '-' | '"' => None,
+            '/' | '\'' | '+' | '?' | '-' | '"' | '.' => None,
             ' ' => Some('_'),
             c => Some(c.to_ascii_uppercase()),
         })
@@ -160,5 +160,5 @@ pub mod objects {{
 pub mod properties {{
 {properties_out_str}}}"
     );
-    fs::write("src/gdobj/ids.rs", out_str);
+    fs::write("src/gdobj/ids.rs", out_str).unwrap();
 }
