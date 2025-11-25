@@ -1,9 +1,13 @@
 # Changelog
 
+## Update 0.2.5
+ * Improved performance of the GDObject deserialiser
+ * Added support for all universal object properties
+ * Added object IDS
+
 ## Update 0.2.4
  * Minor patches/removals of unnecessary utils
- * Added support for all universal object properties
- * Improved performance of the GDObject deserialiser
+ * miscellaneous other minor things
 
 ## Update 0.2.3
  * Added contrsuctors of triggers:
