@@ -15,14 +15,14 @@ mod tests {
         deserialiser::decode_levels_to_string,
         gdlevel::{Level, Levels},
         gdobj::{
-            GDObjConfig, GDObject, MoveEasing,
+            GDObjConfig, MoveEasing,
             misc::default_block,
             triggers::{self, DefaultMove, move_trigger, start_pos},
         },
     };
 
     #[test]
-    fn decode_savefile_test() {
+    fn decode_savefile() {
         assert!(decode_levels_to_string().is_ok())
     }
 
@@ -75,38 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn gmd_conversion() {
-        let level = Level::from_gmd("GMDS/level.gmd").unwrap();
-        level.export_to_gmd("GMDS/level_export.gmd").unwrap();
-    }
-
-    #[test]
-    fn trigger() {
-        let mut level = Level::from_gmd("GMDS/Unnamed 25.gmd").unwrap();
-        let objects = &level.get_decrypted_data().unwrap().objects;
-        for obj in objects {
-            println!("{obj:?}");
-        }
-
-        // level.add_object(triggers::item_edit(
-        //     GDObjConfig::new().pos(45.0, 45.0),
-        //     Some((1, ItemType::Counter)),
-        //     Some((2, ItemType::Counter)),
-        //     3,
-        //     ItemType::Counter,
-        //     0.5,
-        //     triggers::Op::Set,
-        //     Some(triggers::Op::Add),
-        //     Some(triggers::Op::Sub),
-        //     triggers::RoundMode::Nearest,
-        //     triggers::RoundMode::Nearest,
-        //     triggers::SignMode::Absolute,
-        //     triggers::SignMode::Negative,
-        // ));
-    }
-
-    #[test]
-    fn move_constructor_test() {
+    fn move_constructor() {
         let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
         level.add_object(move_trigger(
             GDObjConfig::default().pos(45.0, 45.0).dont_fade(true),
@@ -189,7 +158,7 @@ mod tests {
 
     #[test]
     fn big_level_parse() {
-        let mut level = Level::from_gmd("GMD_tests/big.gmd");
+        let level = Level::from_gmd("GMD_tests/big.gmd");
         let start = Instant::now();
         level.unwrap().get_decrypted_data_ref();
         println!(
@@ -229,5 +198,12 @@ mod tests {
             avg_copy_time / objs as f64,
             avg_ref_time / objs as f64,
         );
+    }
+
+    #[test]
+    fn level_properties() {
+        let levels = Levels::from_local().unwrap();
+        let level = &levels.levels[0];
+        println!("{level:#?}")
     }
 }

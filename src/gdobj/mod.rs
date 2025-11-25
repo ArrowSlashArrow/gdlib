@@ -476,6 +476,7 @@ impl GDObject {
                 284 => obj.config.attributes.single_ptouch = val.parse().unwrap_or(false),
                 369 => obj.config.attributes.center_effect = val.parse().unwrap_or(false),
                 117 => obj.config.attributes.reverse = val.parse().unwrap_or(false),
+                534 => obj.config.material_control_id = val.parse().unwrap_or(0),
                 n => obj.set_property_raw(n, val),
             }
         }
@@ -602,6 +603,7 @@ impl GDObject {
             284 => Some(GDValue::Bool(self.config.attributes.single_ptouch)),
             369 => Some(GDValue::Bool(self.config.attributes.center_effect)),
             117 => Some(GDValue::Bool(self.config.attributes.reverse)),
+            534 => Some(GDValue::Int(self.config.material_control_id)),
             _ => self
                 .properties
                 .iter()
@@ -645,6 +647,7 @@ pub struct GDObjConfig {
     pub colour_channels: (ColourChannel, ColourChannel),
     pub enter_effect_channel: i32,
     pub material_id: i32,
+    pub material_control_id: i32,
     pub attributes: GDObjAttributes,
 }
 
@@ -675,6 +678,7 @@ impl GDObjConfig {
             colour_channels: (ColourChannel::Object, ColourChannel::Channel(1)),
             enter_effect_channel: 0,
             material_id: 0,
+            material_control_id: 0,
             attributes: GDObjAttributes::new(),
         }
     }
@@ -688,7 +692,7 @@ impl GDObjConfig {
     /// Converts this config to a properties hashmap
     pub fn to_string(&self) -> String {
         let mut properties = format!(
-            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},64,{},67,{},116,{},34,{},279,{},509,{},496,{},103,{},121,{},134,{},135,{},136,{},289,{},495,{},511,{},137,{},193,{},96,{},507,{},356,{},372,{},284,{},369,{},117,{}",
+            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},64,{},67,{},116,{},34,{},279,{},509,{},496,{},103,{},121,{},134,{},135,{},136,{},289,{},495,{},511,{},137,{},193,{},96,{},507,{},356,{},372,{},284,{},369,{},117,{},534,{}",
             self.pos.0,
             self.pos.1,
             self.angle,
@@ -728,7 +732,8 @@ impl GDObjConfig {
             self.attributes.no_audio_scale as u8,
             self.attributes.single_ptouch as u8,
             self.attributes.center_effect as u8,
-            self.attributes.reverse as u8
+            self.attributes.reverse as u8,
+            self.material_control_id
         );
 
         if !self.groups.is_empty() {

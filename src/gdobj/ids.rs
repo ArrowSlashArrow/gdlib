@@ -194,6 +194,7 @@ pub mod properties {
     pub const NO_PARTICLES: u16 = 507;
     pub const DONT_BOOST_X: u16 = 509;
     pub const HAS_EXTENDED_COLLISION: u16 = 511;
+    pub const MATERIAL_CONTROL_ID: u16 = 534;
     pub const STOP_PLAYER_JUMP: u16 = 540;
     pub const STOP_PLAYER_MOVEMENT: u16 = 541;
     pub const STOP_PLAYER_ROTATION: u16 = 542;

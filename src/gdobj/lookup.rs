@@ -137,6 +137,7 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     507 => ("No particles", GDObjPropType::Bool),
     509 => ("Don't boost X?", GDObjPropType::Bool),
     511 => ("Has extended collision", GDObjPropType::Bool),
+    534 => ("Material control ID", GDObjPropType::Int),
     540 => ("Stop player jump", GDObjPropType::Bool),
     541 => ("Stop player movement", GDObjPropType::Bool),
     542 => ("Stop player rotation", GDObjPropType::Bool),
