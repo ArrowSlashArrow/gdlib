@@ -4,7 +4,7 @@ use std::io::Write;
 use flate2::{Compression, write::ZlibEncoder};
 use plist::{Dictionary, Value};
 
-use crate::utils::b64_encode;
+use crate::core::b64_encode;
 
 fn zlib_compress(s: String) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());

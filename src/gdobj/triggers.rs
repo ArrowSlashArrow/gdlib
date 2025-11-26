@@ -3,8 +3,8 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use crate::{
+    core::clamp_to_values,
     gdobj::{ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing},
-    utils::clamp_to_values,
 };
 
 /// Constant distinct arbitrary value for player 1 position.

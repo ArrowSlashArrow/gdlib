@@ -1,21 +1,21 @@
 //! This file contains the necessary structs for interfacing with the level(s) themselves
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
-    error::Error,
     fmt::Display,
     fs::{self, read, write},
     io::Cursor,
     path::PathBuf,
-    time::Instant,
 };
+
+use crate::core::GDError;
 
 use plist::{Dictionary, Value};
 
 use crate::{
+    core::{b64_decode, b64_encode, get_local_levels_path, proper_plist_tags},
     deserialiser::{decode_levels_to_string, decompress},
     gdobj::{GDObjPropType, GDObject, lookup::PROPERTY_TABLE},
     serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml},
-    utils::{b64_decode, b64_encode, get_local_levels_path, proper_plist_tags},
 };
 
 /// This is the default level header
@@ -78,19 +78,17 @@ pub struct Level {
 
 impl Levels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
-    pub fn from_local() -> Result<Self, Box<dyn Error>> {
-        match decode_levels_to_string() {
-            Ok(v) => Levels::from_decrypted(v),
-            Err(e) => Err(e),
-        }
+    #[inline(always)]
+    pub fn from_local() -> Result<Self, GDError> {
+        Levels::from_decrypted(decode_levels_to_string()?)
     }
 
     /// Parses raw savefile string into this struct
-    pub fn from_decrypted(s: String) -> Result<Self, Box<dyn Error>> {
-        let xmltree = Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes()))?
-            .as_dictionary_mut()
-            .unwrap()
-            .clone();
+    pub fn from_decrypted(s: String) -> Result<Self, GDError> {
+        let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes())) {
+            Ok(mut v) => v.as_dictionary_mut().unwrap().clone(),
+            Err(e) => return Err(GDError::BadPlist(e)),
+        };
 
         let levels_dict = xmltree
             .get("LLM_01")
@@ -182,16 +180,16 @@ impl Levels {
     }
 
     /// Exports this struct as encrypted XML to CCLocalLevels.dat
-    pub fn export_to_savefile(&mut self) -> Result<(), Box<dyn Error>> {
-        let savefile = get_local_levels_path()?;
+    pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
+        let savefile = get_local_levels_path().unwrap();
         let export_str = encrypt_savefile_str(self.export_to_string());
         write(savefile, export_str)?;
         Ok(())
     }
 
     /// Exports this struct as encrypted XML to CCLocalLevels.dat and creates a backup, CCLocalLevels.dat.bak
-    pub fn export_to_savefile_with_backup(&mut self) -> Result<(), Box<dyn Error>> {
-        let savefile = get_local_levels_path()?;
+    pub fn export_to_savefile_with_backup(&mut self) -> Result<(), GDError> {
+        let savefile = get_local_levels_path().unwrap();
         let backup_path = format!("{}.bak", savefile.to_string_lossy());
         write(backup_path, read(&savefile)?)?;
 
@@ -232,7 +230,7 @@ impl Level {
     }
 
     /// Parses a .gmd file to a `Level` object
-    pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, Box<dyn Error>> {
+    pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
         let file = proper_plist_tags(vec_as_str(&fs::read(path.into())?));
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?
             .as_dictionary_mut()
@@ -242,7 +240,7 @@ impl Level {
         return Ok(Level::from_dict(xmltree));
     }
 
-    pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), Box<dyn Error>> {
+    pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         let export_str = format!(
             "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">{}</plist>",
             stringify_xml(&self.to_dict(), true)

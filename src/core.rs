@@ -1,34 +1,64 @@
 //! This module contains various utilities for debugging and processing structs
 use aho_corasick::AhoCorasick;
-use base64::Engine;
+use base64::{DecodeError, Engine};
 use std::{
     env,
     error::Error,
-    fmt::Debug,
+    fmt::{Debug, Display},
     path::{Path, PathBuf},
 };
 
-// #[derive(Debug)]
-// pub enum GDError {
-//     Io(),
-// }
+#[derive(Debug)]
+pub enum GDError {
+    Io(std::io::Error),
+    DecodeError(DecodeError),
+    BadPlist(plist::Error),
+}
 
-// impl Error for GDError {
-//     fn cause(&self) -> Option<&dyn Error> {}
+impl Error for GDError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(e) => Some(e),
+            Self::DecodeError(e) => e.source(),
+            Self::BadPlist(e) => e.source(),
+        }
+    }
+}
 
-//     fn description(&self) -> &str {}
+impl From<DecodeError> for GDError {
+    fn from(value: DecodeError) -> Self {
+        Self::DecodeError(value)
+    }
+}
+impl From<std::io::Error> for GDError {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+impl From<plist::Error> for GDError {
+    fn from(value: plist::Error) -> Self {
+        Self::BadPlist(value)
+    }
+}
 
-//     fn source(&self) -> Option<&(dyn Error + 'static)> {}
-// }
+impl Display for GDError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DecodeError(d) => write!(f, "File decode failed: {d}"),
+            Self::BadPlist(p) => write!(f, "Bad plist: {p}"),
+            Self::Io(io) => write!(f, "{io}"),
+        }
+    }
+}
 
 /// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
-pub fn get_local_levels_path() -> Result<PathBuf, Box<dyn Error>> {
+pub fn get_local_levels_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA")
         && Path::new(&local_appdata).exists()
     {
-        Ok(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
+        Some(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
     } else {
-        Err("Could not find local levels file".into())
+        None
     }
 }
 
