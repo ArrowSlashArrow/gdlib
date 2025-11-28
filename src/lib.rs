@@ -201,9 +201,18 @@ mod tests {
     }
 
     #[test]
-    fn level_properties() {
+    fn level_info() {
         let levels = Levels::from_local().unwrap();
         let level = &levels.levels[0];
         println!("{level:#?}")
+    }
+
+    #[test]
+    fn trigger() {
+        let level = Level::from_gmd("GMDS/Unnamed 25.gmd").unwrap();
+        let data = level.get_decrypted_data().unwrap();
+        for obj in data.objects {
+            println!("{obj:?}");
+        }
     }
 }

@@ -1,9 +1,6 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{
-    default,
-    fmt::{Debug, Display, Write},
-};
+use std::fmt::{Debug, Display, Write};
 
 use crate::gdobj::lookup::get_property_type;
 use itoa;
@@ -345,12 +342,13 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1912, "Trigger Random"),
     (1913, "Trigger Camera zoom"),
     (1915, "Don't fade + don't enter transition object"),
-    (1917, "Reverse gameplay"),
+    (1917, "Trigger Reverse gameplay"),
     (1932, "Trigger Player control"),
     (1934, "Trigger Song"),
     (1935, "Trigger Time warp"),
     (2016, "Camera guide"),
     (2066, "Trigger Gravity"),
+    (2900, "Trigger rotate gameplay"),
     (3600, "Trigger End"),
     (3606, "BG speed config"),
     (3608, "Trigger Spawn particle"),
@@ -477,7 +475,6 @@ impl GDObject {
             };
 
             match idx_u16 {
-                // HERE
                 1 => obj.id = val.parse().unwrap_or(0),
                 2 => obj.config.pos.0 = val.parse().unwrap_or(0.0),
                 3 => obj.config.pos.1 = val.parse().unwrap_or(0.0),

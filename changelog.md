@@ -1,5 +1,9 @@
 # Changelog
 
+## Update 0.2.6
+ * Added error type
+ * Removed all\* magic numbers from trigger constructor functions in triggers.rs
+
 ## Update 0.2.5
  * Improved performance of the GDObject deserialiser
  * Added support for all universal object properties

@@ -1,5 +1,5 @@
 //! Here lies the decryption functions for GD savefiles
-use std::{error::Error, fs, io::Read};
+use std::{fs, io::Read};
 
 use base64::{Engine, engine::general_purpose};
 use flate2::read::DeflateDecoder;

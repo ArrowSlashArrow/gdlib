@@ -4,7 +4,53 @@
 
 use crate::{
     core::clamp_to_values,
-    gdobj::{ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing},
+    gdobj::{
+        ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing,
+        ids::{
+            objects::{
+                BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
+                COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
+                MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_CAMERA_ZOOM, TRIGGER_COLOUR,
+                TRIGGER_END, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
+                TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
+                TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
+                TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE,
+                TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
+                TRIGGER_TOGGLE,
+            },
+            properties::{
+                ACTIVATE_GROUP, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY, CAMERA_ZOOM,
+                CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR,
+                CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, COPY_COLOUR_FROM_CHANNEL,
+                COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE,
+                DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DURATION_GROUP_TRIGGER_CHANCE,
+                DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE, ENTEREXIT_TRANSITION_CONFIG,
+                EVENT_TARGET_TIME, FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT,
+                FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT,
+                GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END, IS_ACTIVE_TRIGGER,
+                IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE,
+                MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING, MOVE_UNITS_X,
+                MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT, NO_END_EFFECTS,
+                NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RED, RESET_CAMERA, RESET_ITEM_TO_0,
+                RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE, RIGHT_SIGN_MODE,
+                ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
+                ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
+                SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER,
+                SECONDS_ONLY, SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE,
+                SMALL_STEP, SPAWN_DELAY, SPAWN_DELAY_VARIATION, SPAWN_ONLY, SPAWN_ORDERED,
+                SPECIAL_COUNTER_MODE, STARTING_GAMEMODE, STARTING_IN_DUAL_MODE,
+                STARTING_IN_MINI_MODE, STARTING_IN_MIRROR_MODE, STARTING_SPEED, STOP_MODE,
+                STOP_PLAYER_JUMP, STOP_PLAYER_MOVEMENT, STOP_PLAYER_ROTATION, STOP_PLAYER_SLIDING,
+                STOP_TIME_COUNTER, TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_ITEM,
+                TARGET_ITEM_2, TARGET_ITEM_TYPE, TARGET_MOVE_MODE, TARGET_MOVE_MODE_AXIS_LOCK,
+                TARGET_ORDER, TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE,
+                USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2,
+                X_MOVEMENT_MULTIPLIER, X_OFFSET_OF_SPAWNED_PARTICLES,
+                X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, Y_MOVEMENT_MULTIPLIER,
+                Y_OFFSET_OF_SPAWNED_PARTICLES, Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+            },
+        },
+    },
 };
 
 /// Constant distinct arbitrary value for player 1 position.
@@ -130,7 +176,7 @@ pub enum SignMode {
 }
 
 /// Enum for target player in gravity trigger
-#[repr(i32)]
+#[repr(u16)]
 pub enum TargetPlayer {
     Player1 = 138,
     Player2 = 200,
@@ -206,16 +252,16 @@ pub fn move_trigger(
 ) -> GDObject {
     // aim: target group 2
     let mut properties = vec![
-        (51, GDValue::Int(target_group)),
-        (10, GDValue::Float(time)),
-        (393, GDValue::Int(1)),
-        (397, GDValue::Int(dynamic as i32)),
-        (544, GDValue::Int(silent as i32)),
+        (TARGET_ITEM, GDValue::Int(target_group)),
+        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
+        (SMALL_STEP, GDValue::Int(1)),
+        (DYNAMIC_MOVE, GDValue::Int(dynamic as i32)),
+        (SILENT_MOVE, GDValue::Int(silent as i32)),
     ];
 
     if let Some((easing, rate)) = easing {
-        properties.push((30, GDValue::Int(easing as i32)));
-        properties.push((85, GDValue::Float(rate)));
+        properties.push((MOVE_EASING, GDValue::Int(easing as i32)));
+        properties.push((EASING_RATE, GDValue::Float(rate)));
     }
 
     match move_config {
@@ -223,62 +269,62 @@ pub fn move_trigger(
             if let Some(lock) = config.x_lock {
                 properties.push((
                     match lock {
-                        MoveLock::Player => 58,
-                        MoveLock::Camera => 141,
+                        MoveLock::Player => FOLLOW_PLAYERS_X_MOVEMENT,
+                        MoveLock::Camera => FOLLOW_CAMERAS_X_MOVEMENT,
                     },
                     GDValue::Int(1),
                 ));
-                properties.push((143, GDValue::Float(config.dx as f64)));
+                properties.push((X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)));
             } else {
-                properties.push((28, GDValue::Int(config.dx as i32)));
+                properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
             }
 
             if let Some(lock) = config.y_lock {
                 properties.push((
                     match lock {
-                        MoveLock::Player => 59,
-                        MoveLock::Camera => 142,
+                        MoveLock::Player => FOLLOW_PLAYERS_Y_MOVEMENT,
+                        MoveLock::Camera => FOLLOW_CAMERAS_Y_MOVEMENT,
                     },
                     GDValue::Int(1),
                 ));
-                properties.push((144, GDValue::Float(config.dy as f64)));
+                properties.push((Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)));
             } else {
-                properties.push((29, GDValue::Int(config.dy as i32)));
+                properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
             }
         }
         MoveMode::Targeting(config) => {
-            properties.push((100, GDValue::Int(1)));
+            properties.push((TARGET_MOVE_MODE, GDValue::Int(1)));
             if let Some(id) = config.center_group_id {
-                properties.push((395, GDValue::Int(id)));
+                properties.push((CENTER_GROUP_ID, GDValue::Int(id)));
             }
 
             if let Some(axis) = config.axis_only {
-                properties.push((101, GDValue::Int(axis)));
+                properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::Int(axis)));
             }
 
             match config.target_group_id {
-                POS_PLAYER1 => properties.push((138, GDValue::Int(1))),
-                POS_PLAYER2 => properties.push((200, GDValue::Int(1))),
-                id => properties.push((71, GDValue::Int(id))),
+                POS_PLAYER1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                POS_PLAYER2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                id => properties.push((TARGET_ITEM_2, GDValue::Int(id))),
             };
         }
         MoveMode::Directional(config) => {
             if let Some(id) = config.center_group_id {
-                properties.push((395, GDValue::Int(id)));
+                properties.push((CENTER_GROUP_ID, GDValue::Int(id)));
             }
 
             match config.target_group_id {
-                POS_PLAYER1 => properties.push((138, GDValue::Int(1))),
-                POS_PLAYER2 => properties.push((200, GDValue::Int(1))),
-                id => properties.push((71, GDValue::Int(id))),
+                POS_PLAYER1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                POS_PLAYER2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                id => properties.push((TARGET_ITEM_2, GDValue::Int(id))),
             };
 
-            properties.push((394, GDValue::Int(1)));
-            properties.push((396, GDValue::Int(config.distance)));
+            properties.push((DIRECTIONAL_MOVE_MODE, GDValue::Int(1)));
+            properties.push((DIRECTIONAL_MODE_DISTANCE, GDValue::Int(config.distance)));
         }
     }
 
-    GDObject::new(901, config, properties)
+    GDObject::new(TRIGGER_MOVE, config, properties)
 }
 
 /// Returns a start pos object
@@ -318,53 +364,57 @@ pub fn start_pos(
 ) -> GDObject {
     let start_speed = clamp_to_values(start_speed, &[0.5, 1.0, 2.0, 3.0, 4.0]);
 
-    let properties = vec![
-        (
-            10004,
-            GDValue::Int(match start_speed {
-                0.5 => 1,
-                2.0 => 2,
-                3.0 => 3,
-                4.0 => 4,
-                _ => 0,
-            }),
-        ),
-        (10002, GDValue::Int(starting_gamemode as i32)),
-        (10003, GDValue::Int(starting_as_mini as i32)),
-        (10008, GDValue::Int(starting_as_dual as i32)),
-        (10021, GDValue::Int(disabled as i32)),
-        (10028, GDValue::Int(starting_mirrored as i32)),
-        (10029, GDValue::Int(rotate_gameplay as i32)),
-        (10020, GDValue::Int(reverse_gameplay as i32)),
-        (10019, GDValue::Int(target_order)),
-        (10026, GDValue::Int(target_channel)),
-        (10035, GDValue::Int(reset_camera as i32)),
-        (10010, GDValue::Int(0)),
-        (10011, GDValue::String("".to_string())),
-        (10020, GDValue::Int(1)),
-        (10022, GDValue::Int(0)),
-        (10023, GDValue::Int(0)),
-        (10024, GDValue::Int(0)),
-        (10027, GDValue::Int(1)),
-        (10031, GDValue::Int(1)),
-        (10032, GDValue::Int(1)),
-        (10033, GDValue::Int(1)),
-        (10034, GDValue::Int(1)),
-        (10036, GDValue::Int(0)),
-        (10037, GDValue::Int(1)),
-        (10038, GDValue::Int(1)),
-        (10039, GDValue::Int(1)),
-        (10040, GDValue::Int(1)),
-        (10041, GDValue::Int(1)),
-        (10042, GDValue::Int(1)),
-        (10043, GDValue::Int(0)),
-        (10044, GDValue::Int(0)),
-        (10045, GDValue::Int(1)),
-        (10046, GDValue::Int(0)),
-        (10009, GDValue::Int(1)),
-    ];
-
-    GDObject::new(31, config, properties)
+    GDObject::new(
+        START_POS,
+        config,
+        vec![
+            (
+                STARTING_SPEED,
+                GDValue::Int(match start_speed {
+                    0.5 => 1,
+                    2.0 => 2,
+                    3.0 => 3,
+                    4.0 => 4,
+                    _ => 0,
+                }),
+            ),
+            (STARTING_GAMEMODE, GDValue::Int(starting_gamemode as i32)),
+            (STARTING_IN_MINI_MODE, GDValue::Int(starting_as_mini as i32)),
+            (STARTING_IN_DUAL_MODE, GDValue::Int(starting_as_dual as i32)),
+            (IS_DISABLED, GDValue::Int(disabled as i32)),
+            (
+                STARTING_IN_MIRROR_MODE,
+                GDValue::Int(starting_mirrored as i32),
+            ),
+            (ROTATE_GAMEPLAY, GDValue::Int(rotate_gameplay as i32)),
+            (REVERSE_GAMEPLAY, GDValue::Int(reverse_gameplay as i32)),
+            (TARGET_ORDER, GDValue::Int(target_order)),
+            (TARGET_CHANNEL, GDValue::Int(target_channel)),
+            (RESET_CAMERA, GDValue::Int(reset_camera as i32)),
+            (10010, GDValue::Int(0)),
+            (10011, GDValue::String(String::new())),
+            (10022, GDValue::Int(0)),
+            (10023, GDValue::Int(0)),
+            (10024, GDValue::Int(0)),
+            (10027, GDValue::Int(1)),
+            (10031, GDValue::Int(1)),
+            (10032, GDValue::Int(1)),
+            (10033, GDValue::Int(1)),
+            (10034, GDValue::Int(1)),
+            (10036, GDValue::Int(0)),
+            (10037, GDValue::Int(1)),
+            (10038, GDValue::Int(1)),
+            (10039, GDValue::Int(1)),
+            (10040, GDValue::Int(1)),
+            (10041, GDValue::Int(1)),
+            (10042, GDValue::Int(1)),
+            (10043, GDValue::Int(0)),
+            (10044, GDValue::Int(0)),
+            (10045, GDValue::Int(1)),
+            (10046, GDValue::Int(0)),
+            (10009, GDValue::Int(1)),
+        ],
+    )
 }
 
 /// Returns a colour trigger
@@ -392,19 +442,16 @@ pub fn colour_trigger(
     copy_colour: Option<(ColourChannel, i32, f64, f64, bool, bool, bool, bool)>,
 ) -> GDObject {
     let mut properties = vec![
-        (7, GDValue::Int(colour.0 as i32)),
-        (8, GDValue::Int(colour.1 as i32)),
-        (9, GDValue::Int(colour.2 as i32)),
-        (10, GDValue::Float(fade_time)),
-        (15, GDValue::Int(use_player_col_1 as i32)),
-        (23, GDValue::Int(channel.as_i32())),
-        (16, GDValue::Int(use_player_col_2 as i32)),
-        (35, GDValue::Float(opacity)),
+        (RED, GDValue::Int(colour.0 as i32)),
+        (GREEN, GDValue::Int(colour.1 as i32)),
+        (BLUE, GDValue::Int(colour.2 as i32)),
+        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
+        (USING_PLAYER_COLOUR_1, GDValue::Int(use_player_col_1 as i32)),
+        (USING_PLAYER_COLOUR_2, GDValue::Int(use_player_col_2 as i32)),
+        (COLOUR_CHANNEL, GDValue::Int(channel.as_i32())),
+        (OPACITY, GDValue::Float(opacity)),
+        (BLENDING_ENABLED, GDValue::Bool(blending)),
     ];
-
-    if blending {
-        properties.push((17, GDValue::Bool(true)));
-    }
 
     if let Some((
         channel,
@@ -423,16 +470,15 @@ pub fn colour_trigger(
         );
         if !legacy_hsv {
             cfg_string += &format!("{}", static_brightness_scalar as i32);
-            properties.push((210, GDValue::Bool(true)));
+            properties.push((NO_LEGACY_HSV, GDValue::Bool(true)));
         }
-        if copy_opacity {
-            properties.push((60, GDValue::Bool(true)));
-        }
-        properties.push((49, GDValue::String(cfg_string)));
-        properties.push((50, GDValue::Int(channel.as_i32())));
+
+        properties.push((COPY_OPACITY, GDValue::Bool(copy_opacity)));
+        properties.push((COPY_COLOUR_SPECS, GDValue::String(cfg_string)));
+        properties.push((COPY_COLOUR_FROM_CHANNEL, GDValue::Int(channel.as_i32())));
     }
 
-    GDObject::new(899, config, properties)
+    GDObject::new(TRIGGER_COLOUR, config, properties)
 }
 
 /// Returns a stop trigger
@@ -442,19 +488,22 @@ pub fn colour_trigger(
 /// * `target_group`: Target group to stop/pause/resume
 /// * `stop_mode`: Stop mode (see [`StopMode`] struct)
 /// * `use_control_id`: Only stops certain triggers within a group if enabled.
+#[inline(always)]
 pub fn stop_trigger(
     config: GDObjConfig,
     target_group: i32,
     stop_mode: StopMode,
     use_control_id: bool,
 ) -> GDObject {
-    let properties = vec![
-        (51, GDValue::Int(target_group)),
-        (535, GDValue::Int(use_control_id as i32)),
-        (580, GDValue::Int(stop_mode as i32)),
-    ];
-
-    GDObject::new(1616, config, properties)
+    GDObject::new(
+        TRIGGER_STOP,
+        config,
+        vec![
+            (TARGET_ITEM, GDValue::Int(target_group)),
+            (USE_CONTROL_ID, GDValue::Int(use_control_id as i32)),
+            (STOP_MODE, GDValue::Int(stop_mode as i32)),
+        ],
+    )
 }
 
 /// Returns an alpha trigger
@@ -464,6 +513,7 @@ pub fn stop_trigger(
 /// * `target_group`: Target group to stop/pause/resume
 /// * `opacity`: Opacity to set group at
 /// * `fade_time`: Time to fade to the opacity
+#[inline(always)]
 pub fn alpha_trigger(
     config: GDObjConfig,
     target_group: i32,
@@ -474,9 +524,9 @@ pub fn alpha_trigger(
         1007,
         config,
         vec![
-            (10, GDValue::Float(fade_time)),
-            (35, GDValue::Float(opacity)),
-            (51, GDValue::Int(target_group)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
+            (OPACITY, GDValue::Float(opacity)),
+            (TARGET_ITEM, GDValue::Int(target_group)),
         ],
     )
 }
@@ -487,21 +537,20 @@ pub fn alpha_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Target group to stop/pause/resume
 /// * `activate_group`: Active group instead of deactivating?
+#[inline(always)]
 pub fn toggle_trigger(config: GDObjConfig, target_group: i32, activate_group: bool) -> GDObject {
-    let mut properties = vec![
-        (51, GDValue::Int(target_group)),
-        (64, GDValue::Bool(true)),
-        (67, GDValue::Bool(true)),
-    ];
-
-    if activate_group {
-        properties.push((56, GDValue::Bool(true)));
-    }
-    GDObject::new(1049, config, properties)
+    GDObject::new(
+        TRIGGER_TOGGLE,
+        config,
+        vec![
+            (TARGET_ITEM, GDValue::Int(target_group)),
+            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
+        ],
+    )
 }
 
-/// dont call this
-pub fn pulse_trigger(config: GDObjConfig) {}
+// todo
+fn pulse_trigger(config: GDObjConfig) {}
 
 /// Returns a transition object
 /// # Arguments
@@ -518,10 +567,10 @@ pub fn transition_object(
     let mut properties = vec![];
 
     if mode != TransitionMode::Both {
-        properties.push((217, GDValue::Int(mode as i32)));
+        properties.push((ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(mode as i32)));
     }
     if let Some(channel) = target_channel {
-        properties.push((344, GDValue::Int(channel)));
+        properties.push((TARGET_TRANSITION_CHANNEL, GDValue::Int(channel)));
     }
 
     GDObject::new(transition as i32, config, properties)
@@ -532,74 +581,96 @@ pub fn transition_object(
 /// Returns a reverse gameplay trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn reverse_gameplay(config: GDObjConfig) -> GDObject {
-    GDObject::new(1917, config, vec![])
+    GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
 }
 
 /// Returns a link visible trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is linked visibly
+#[inline(always)]
 pub fn link_visible(config: GDObjConfig, target_group: i32) -> GDObject {
-    GDObject::new(3662, config, vec![(51, GDValue::Int(target_group))])
+    GDObject::new(
+        TRIGGER_LINK_VISIBLE,
+        config,
+        vec![(TARGET_ITEM, GDValue::Int(target_group))],
+    )
 }
 
 /// Returns a timewarp trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `time_scale`: How much to speed up/slow down time by. 1.0 is the default
+#[inline(always)]
 pub fn timewarp(config: GDObjConfig, time_scale: f64) -> GDObject {
-    GDObject::new(1935, config, vec![(120, GDValue::Float(time_scale))])
+    GDObject::new(
+        TRIGGER_TIME_WARP,
+        config,
+        vec![(TIMEWARP_AMOUNT, GDValue::Float(time_scale))],
+    )
 }
 
 /// Returns a trigger that shows the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn show_player(config: GDObjConfig) -> GDObject {
-    GDObject::new(1613, config, vec![])
+    GDObject::new(1613, config, vec![]) // todo
 }
 
 /// Returns a trigger that hides the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn hide_player(config: GDObjConfig) -> GDObject {
-    GDObject::new(1612, config, vec![])
+    GDObject::new(1612, config, vec![]) // todo
 }
 
 /// Returns a trigger that shows the player trail
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn show_player_trail(config: GDObjConfig) -> GDObject {
-    GDObject::new(32, config, vec![])
+    GDObject::new(ENABLE_PLAYER_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that hides the player trail
 /// # Arguments
-/// * `config`: General object options, such as position and scale
+/// * `config`: General object options, such as position and scale\
+#[inline(always)]
 pub fn hide_player_trail(config: GDObjConfig) -> GDObject {
-    GDObject::new(33, config, vec![])
+    GDObject::new(DISABLE_PLAYER_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that enables the background effect
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn bg_effect_on(config: GDObjConfig) -> GDObject {
-    GDObject::new(1818, config, vec![])
+    GDObject::new(BG_EFFECT_ON, config, vec![])
 }
 
 /// Returns a trigger that disables the background effect
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+#[inline(always)]
 pub fn bg_effect_off(config: GDObjConfig) -> GDObject {
-    GDObject::new(1819, config, vec![])
+    GDObject::new(BG_EFFECT_OFF, config, vec![])
 }
 
 /// Returns a group reset trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is to be reset
+#[inline(always)]
 pub fn group_reset(config: GDObjConfig, target_group: i32) -> GDObject {
-    GDObject::new(3618, config, vec![(51, GDValue::Int(target_group))])
+    GDObject::new(
+        TRIGGER_RESET_GROUP,
+        config,
+        vec![(TARGET_ITEM, GDValue::Int(target_group))],
+    )
 }
 
 /// Returns a shake trigger
@@ -608,14 +679,15 @@ pub fn group_reset(config: GDObjConfig, target_group: i32) -> GDObject {
 /// * `strength`: Strength of shake
 /// * `interval`: Interval in seconds between each shake
 /// * `duration`: Total duration of shaking
+#[inline(always)]
 pub fn shake_trigger(config: GDObjConfig, strength: i32, interval: f64, duration: f64) -> GDObject {
     GDObject::new(
-        1520,
+        TRIGGER_SHAKE,
         config,
         vec![
-            (75, GDValue::Int(strength)),
-            (84, GDValue::Float(interval)),
-            (10, GDValue::Float(duration)),
+            (SHAKE_STRENGTH, GDValue::Int(strength)),
+            (SHAKE_INTERVAL, GDValue::Float(interval)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(duration)),
         ],
     )
 }
@@ -625,11 +697,15 @@ pub fn shake_trigger(config: GDObjConfig, strength: i32, interval: f64, duration
 /// * `config`: General object options, such as position and scale
 /// * `mod_x`: X-axis speed of BG in terms of player speed. Default is 0.3
 /// * `mod_y`: Y-axis speed of BG in terms of player speed. Default is 0.5
+#[inline(always)]
 pub fn bg_speed(config: GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
     GDObject::new(
-        3606,
+        BG_SPEED_CONFIG,
         config,
-        vec![(143, GDValue::Float(mod_x)), (144, GDValue::Float(mod_y))],
+        vec![
+            (X_MOVEMENT_MULTIPLIER, GDValue::Float(mod_x)),
+            (Y_MOVEMENT_MULTIPLIER, GDValue::Float(mod_y)),
+        ],
     )
 }
 
@@ -638,11 +714,15 @@ pub fn bg_speed(config: GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
 /// * `config`: General object options, such as position and scale
 /// * `mod_x`: X-axis speed of MG in terms of player speed. Default is 0.3
 /// * `mod_y`: Y-axis speed of MG in terms of player speed. Default is 0.5
+#[inline(always)]
 pub fn mg_speed(config: GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
     GDObject::new(
-        3612,
+        MG_SPEED_CONFIG,
         config,
-        vec![(143, GDValue::Float(mod_x)), (144, GDValue::Float(mod_y))],
+        vec![
+            (X_MOVEMENT_MULTIPLIER, GDValue::Float(mod_x)),
+            (Y_MOVEMENT_MULTIPLIER, GDValue::Float(mod_y)),
+        ],
     )
 }
 
@@ -655,6 +735,7 @@ pub fn mg_speed(config: GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
 /// * `stop_move`: Stops the player from moving
 /// * `stop_rotation`: Stops the player's rotation
 /// * `stop_slide`: Stops the player from sliding after a force
+#[inline(always)]
 pub fn player_control(
     config: GDObjConfig,
     p1: bool,
@@ -665,15 +746,15 @@ pub fn player_control(
     stop_slide: bool,
 ) -> GDObject {
     GDObject::new(
-        1932,
+        TRIGGER_PLAYER_CONTROL,
         config,
         vec![
-            (138, GDValue::Int(p1 as i32)),
-            (200, GDValue::Int(p2 as i32)),
-            (540, GDValue::Int(stop_jump as i32)),
-            (541, GDValue::Int(stop_move as i32)),
-            (542, GDValue::Int(stop_rotation as i32)),
-            (543, GDValue::Int(stop_slide as i32)),
+            (CONTROLLING_PLAYER_1, GDValue::Bool(p1)),
+            (CONTROLLING_PLAYER_2, GDValue::Bool(p2)),
+            (STOP_PLAYER_JUMP, GDValue::Bool(stop_jump)),
+            (STOP_PLAYER_MOVEMENT, GDValue::Bool(stop_move)),
+            (STOP_PLAYER_ROTATION, GDValue::Bool(stop_rotation)),
+            (STOP_PLAYER_SLIDING, GDValue::Bool(stop_slide)),
         ],
     )
 }
@@ -688,12 +769,12 @@ pub fn gravity_trigger(
     gravity: f64,
     target_player: Option<TargetPlayer>,
 ) -> GDObject {
-    let mut properties = vec![(148u16, GDValue::Float(gravity))];
+    let mut properties = vec![(GRAVITY, GDValue::Float(gravity))];
 
     if let Some(player) = target_player {
-        properties.push((player as i32 as u16, GDValue::Bool(true)));
+        properties.push((player as u16, GDValue::Bool(true)));
     }
-    GDObject::new(2066, config, properties)
+    GDObject::new(TRIGGER_GRAVITY, config, properties)
 }
 
 /// Returns an end trigger
@@ -713,20 +794,20 @@ pub fn end_trigger(
     no_sfx: bool,
 ) -> GDObject {
     let mut properties = vec![
-        (460, GDValue::Int(no_effects as i32)),
-        (461, GDValue::Int(instant as i32)),
-        (467, GDValue::Int(no_sfx as i32)),
+        (NO_END_EFFECTS, GDValue::Bool(no_effects)),
+        (INSTANT_END, GDValue::Bool(instant)),
+        (NO_END_SOUND_EFFECTS, GDValue::Bool(no_sfx)),
     ];
 
     if let Some(id) = spawn_id {
-        properties.push((51, GDValue::Int(id)));
+        properties.push((TARGET_ITEM, GDValue::Int(id)));
     }
 
     if let Some(pos) = target_pos {
-        properties.push((71, GDValue::Int(pos)));
+        properties.push((TARGET_ITEM_2, GDValue::Int(pos)));
     }
 
-    GDObject::new(3600, config, properties)
+    GDObject::new(TRIGGER_END, config, properties)
 }
 
 // items and counters
@@ -748,17 +829,17 @@ pub fn counter_object(
     special_mode: Option<CounterMode>,
 ) -> GDObject {
     let mut properties = vec![
-        (80, GDValue::Int(item_id)),
-        (389, GDValue::Int(seconds_only as i32)),
-        (391, GDValue::Int(align as i32)),
-        (466, GDValue::Int(timer as i32)),
+        (INPUT_ITEM_1, GDValue::Int(item_id)),
+        (SECONDS_ONLY, GDValue::Bool(seconds_only)),
+        (COUNTER_ALIGNMENT, GDValue::Int(align as i32)),
+        (IS_TIMER, GDValue::Bool(timer)),
     ];
 
     if let Some(mode) = special_mode {
-        properties.push((390, GDValue::Int(mode as i32)));
+        properties.push((SPECIAL_COUNTER_MODE, GDValue::Int(mode as i32)));
     }
 
-    GDObject::new(1615, config, properties)
+    GDObject::new(COUNTER, config, properties)
 }
 
 /// Returns an item edit trigger
@@ -810,24 +891,24 @@ pub fn item_edit(
     };
 
     GDObject::new(
-        3619,
+        TRIGGER_ITEM_EDIT,
         config,
         vec![
-            (36, GDValue::Int(1)),
-            (51, GDValue::Int(target_id)),
-            (80, GDValue::Int(op_1.0)),
-            (95, GDValue::Int(op_2.0)),
-            (476, GDValue::Int(op_1.1 as i32)),
-            (477, GDValue::Int(op_2.1 as i32)),
-            (478, GDValue::Int(target_type as i32)),
-            (479, GDValue::Float(modifier)),
-            (480, GDValue::Int(assign_op as i32)),
-            (481, GDValue::Int(id_op as i32)),
-            (482, GDValue::Int(mod_op as i32)),
-            (485, GDValue::Int(id_rounding as i32)),
-            (486, GDValue::Int(result_rounding as i32)),
-            (578, GDValue::Int(id_sign as i32)),
-            (579, GDValue::Int(result_sign as i32)),
+            (IS_ACTIVE_TRIGGER, GDValue::Int(1)),
+            (TARGET_ITEM, GDValue::Int(target_id)),
+            (INPUT_ITEM_1, GDValue::Int(op_1.0)),
+            (INPUT_ITEM_2, GDValue::Int(op_2.0)),
+            (FIRST_ITEM_TYPE, GDValue::Int(op_1.1 as i32)),
+            (SECOND_ITEM_TYPE, GDValue::Int(op_2.1 as i32)),
+            (TARGET_ITEM_TYPE, GDValue::Int(target_type as i32)),
+            (MODIFIER, GDValue::Float(modifier)),
+            (LEFT_OPERATOR, GDValue::Int(assign_op as i32)),
+            (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
+            (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
+            (LEFT_ROUND_MODE, GDValue::Int(id_rounding as i32)),
+            (RIGHT_ROUND_MODE, GDValue::Int(result_rounding as i32)),
+            (LEFT_SIGN_MODE, GDValue::Int(id_sign as i32)),
+            (RIGHT_SIGN_MODE, GDValue::Int(result_sign as i32)),
         ],
     )
 }
@@ -854,31 +935,31 @@ pub fn item_compare(
     tolerance: f64,
 ) -> GDObject {
     let properties = vec![
-        (51, GDValue::Int(true_id)),
-        (71, GDValue::Int(false_id)),
+        (TARGET_ITEM, GDValue::Int(true_id)),
+        (TARGET_ITEM_2, GDValue::Int(false_id)),
         // ids
-        (80, GDValue::Int(lhs.0)),
-        (95, GDValue::Int(rhs.0)),
+        (INPUT_ITEM_1, GDValue::Int(lhs.0)),
+        (INPUT_ITEM_2, GDValue::Int(rhs.0)),
         // types
-        (476, GDValue::Int(lhs.1 as i32)),
-        (477, GDValue::Int(rhs.1 as i32)),
+        (FIRST_ITEM_TYPE, GDValue::Int(lhs.1 as i32)),
+        (SECOND_ITEM_TYPE, GDValue::Int(rhs.1 as i32)),
         // modifiers
-        (479, GDValue::Float(lhs.2)),
-        (483, GDValue::Float(rhs.2)),
+        (MODIFIER, GDValue::Float(lhs.2)),
+        (SECOND_MODIFIER, GDValue::Float(rhs.2)),
         // modifiers ops
-        (480, GDValue::Int(lhs.3 as i32)),
-        (481, GDValue::Int(rhs.3 as i32)),
-        (482, GDValue::Int(compare_op as i32)),
-        (484, GDValue::Float(tolerance)),
+        (LEFT_OPERATOR, GDValue::Int(lhs.3 as i32)),
+        (RIGHT_OPERATOR, GDValue::Int(rhs.3 as i32)),
+        (COMPARE_OPERATOR, GDValue::Int(compare_op as i32)),
+        (TOLERANCE, GDValue::Float(tolerance)),
         // round modes
-        (485, GDValue::Int(lhs.4 as i32)),
-        (486, GDValue::Int(rhs.4 as i32)),
+        (LEFT_ROUND_MODE, GDValue::Int(lhs.4 as i32)),
+        (RIGHT_ROUND_MODE, GDValue::Int(rhs.4 as i32)),
         // sign modes
-        (578, GDValue::Int(lhs.5 as i32)),
-        (579, GDValue::Int(rhs.5 as i32)),
+        (LEFT_SIGN_MODE, GDValue::Int(lhs.5 as i32)),
+        (RIGHT_SIGN_MODE, GDValue::Int(rhs.5 as i32)),
     ];
 
-    GDObject::new(3620, config, properties)
+    GDObject::new(TRIGGER_ITEM_COMPARE, config, properties)
 }
 
 /// Returns a persistent item trigger
@@ -898,14 +979,14 @@ pub fn persistent_item(
     reset: bool,
 ) -> GDObject {
     GDObject::new(
-        3641,
+        TRIGGER_PERSISTENT_ITEM,
         config,
         vec![
-            (51, GDValue::Int(item_id)),
-            (491, GDValue::Int(persistent as i32)),
-            (492, GDValue::Int(target_all as i32)),
-            (493, GDValue::Int(reset as i32)),
-            (494, GDValue::Int(timer as i32)),
+            (TARGET_ITEM, GDValue::Int(item_id)),
+            (SET_PERSISTENT_ITEM, GDValue::Bool(persistent)),
+            (TARGET_ALL_PERSISTENT_ITEMS, GDValue::Bool(target_all)),
+            (RESET_ITEM_TO_0, GDValue::Bool(reset)),
+            (TIMER, GDValue::Bool(timer)),
         ],
     )
 }
@@ -925,12 +1006,12 @@ pub fn random_trigger(
     target_group2: i32,
 ) -> GDObject {
     GDObject::new(
-        1912,
+        TRIGGER_RANDOM,
         config,
         vec![
-            (51, GDValue::Int(target_group1)),
-            (71, GDValue::Int(target_group2)),
-            (10, GDValue::Float(chance)),
+            (TARGET_ITEM, GDValue::Int(target_group1)),
+            (TARGET_ITEM_2, GDValue::Int(target_group2)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(chance)),
         ],
     )
 }
@@ -954,15 +1035,16 @@ pub fn spawn_trigger(
     preview_disable: bool,
 ) -> GDObject {
     GDObject::new(
-        1268,
+        TRIGGER_SPAWN,
         config,
         vec![
-            (51, GDValue::Int(spawn_id)),
-            (63, GDValue::Float(delay)),
-            (102, GDValue::Int(preview_disable as i32)),
-            (441, GDValue::Int(spawn_ordered as i32)),
-            (556, GDValue::Float(delay_variation)),
-            (581, GDValue::Int(reset_remap as i32)),
+            (TARGET_ITEM, GDValue::Int(spawn_id)),
+            (SPAWN_DELAY, GDValue::Float(delay)),
+            (DISABLE_PREVIEW, GDValue::Bool(preview_disable)),
+            (SPAWN_ORDERED, GDValue::Bool(spawn_ordered)),
+            (SPAWN_DELAY_VARIATION, GDValue::Float(delay_variation)),
+            (RESET_REMAP, GDValue::Bool(reset_remap)),
+            // todo: the list of remaps
         ],
     )
 }
@@ -972,13 +1054,14 @@ pub fn spawn_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Spawns this group
 /// * `activate_group`: Activate this group (instead of toggling off)?
+#[inline(always)]
 pub fn on_death(config: GDObjConfig, target_group: i32, activate_group: bool) -> GDObject {
     GDObject::new(
-        1812,
+        TRIGGER_ON_DEATH,
         config,
         vec![
-            (51, GDValue::Int(target_group)),
-            (56, GDValue::Int(activate_group as i32)),
+            (TARGET_ITEM, GDValue::Int(target_group)),
+            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
         ],
     )
 }
@@ -1005,32 +1088,35 @@ pub fn spawn_particle(
     match_rotation: bool,
 ) -> GDObject {
     let mut properties = vec![
-        (51, GDValue::Int(particle_group)),
-        (71, GDValue::Int(position_group)),
-        (551, GDValue::Bool(match_rotation)),
+        (TARGET_ITEM, GDValue::Int(particle_group)),
+        (TARGET_ITEM_2, GDValue::Int(position_group)),
+        (
+            MATCH_ROTATION_OF_SPAWNED_PARTICLES,
+            GDValue::Bool(match_rotation),
+        ),
     ];
 
     if let Some((x, y)) = position_offsets {
-        properties.push((547, GDValue::Int(x)));
-        properties.push((548, GDValue::Int(y)));
+        properties.push((X_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
+        properties.push((Y_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
     }
 
     if let Some((x, y)) = position_variation {
-        properties.push((549, GDValue::Int(x)));
-        properties.push((550, GDValue::Int(y)));
+        properties.push((X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
+        properties.push((Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
     }
 
     if let Some((rot, var)) = rotation_config {
-        properties.push((552, GDValue::Int(rot)));
-        properties.push((553, GDValue::Int(var)));
+        properties.push((ROTATION_OF_SPAWNED_PARTICLES, GDValue::Int(rot)));
+        properties.push((ROTATION_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(var)));
     }
 
     if let Some((scale, var)) = scale_config {
-        properties.push((554, GDValue::Float(scale)));
-        properties.push((555, GDValue::Float(var)));
+        properties.push((SCALE_OF_SPAWNED_PARTICLES, GDValue::Float(scale)));
+        properties.push((SCALE_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Float(var)));
     }
 
-    GDObject::new(3608, config, properties)
+    GDObject::new(TRIGGER_SPAWN_PARTICLE, config, properties)
 }
 
 // collision blocks
@@ -1040,11 +1126,15 @@ pub fn spawn_particle(
 /// * `config`: General object options, such as position and scale
 /// * `id`: Collision block ID
 /// * `dynamic`: Does this block register collisions with other collision blocks?
+#[inline(always)]
 pub fn collision_block(config: GDObjConfig, id: i32, dynamic: bool) -> GDObject {
     GDObject::new(
-        1816,
+        COLLISION_BLOCK,
         config,
-        vec![(80, GDValue::Int(id)), (94, GDValue::Int(dynamic as i32))],
+        vec![
+            (INPUT_ITEM_1, GDValue::Int(id)),
+            (DYNAMIC_BLOCK, GDValue::Bool(dynamic)),
+        ],
     )
 }
 
@@ -1056,6 +1146,7 @@ pub fn collision_block(config: GDObjConfig, id: i32, dynamic: bool) -> GDObject 
 /// * `claim_touch`: Disable buffer clicking?
 /// * `multi_activate`: Allow multiple activations?
 /// * `spawn_only`: Spawn only without toggling?
+#[inline(always)]
 pub fn toggle_block(
     config: GDObjConfig,
     target_group: i32,
@@ -1065,14 +1156,14 @@ pub fn toggle_block(
     spawn_only: bool,
 ) -> GDObject {
     GDObject::new(
-        3643,
+        TOGGLE_BLOCK,
         config,
         vec![
-            (51, GDValue::Int(target_group)),
-            (56, GDValue::Int(activate_group as i32)),
-            (99, GDValue::Int(multi_activate as i32)),
-            (445, GDValue::Int(claim_touch as i32)),
-            (504, GDValue::Int(spawn_only as i32)),
+            (TARGET_ITEM, GDValue::Int(target_group)),
+            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
+            (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
+            (CLAIM_TOUCH, GDValue::Bool(claim_touch)),
+            (SPAWN_ONLY, GDValue::Bool(spawn_only)),
         ],
     )
 }
@@ -1082,11 +1173,15 @@ pub fn toggle_block(
 /// * `config`: General object options, such as position and scale
 /// * `state_on`: Group that is activated when the player enters this block's hitbox
 /// * `state_off`: Group that is activated when the player exits this block's hitbox
+#[inline(always)]
 pub fn state_block(config: GDObjConfig, state_on: i32, state_off: i32) -> GDObject {
     GDObject::new(
-        3640,
+        COLLISION_STATE_BLOCK,
         config,
-        vec![(51, GDValue::Int(state_on)), (71, GDValue::Int(state_off))],
+        vec![
+            (TARGET_ITEM, GDValue::Int(state_on)),
+            (TARGET_ITEM_2, GDValue::Int(state_off)),
+        ],
     )
 }
 
@@ -1111,11 +1206,15 @@ pub fn state_block(config: GDObjConfig, state_on: i32, state_off: i32) -> GDObje
 /// * `config`: General object options, such as position and scale
 /// * `id`: Timer ID
 /// * `stop`: If enabled, stops the timer; otherwise, starts the timer.
+#[inline(always)]
 pub fn time_control(config: GDObjConfig, id: i32, stop: bool) -> GDObject {
     GDObject::new(
-        3617,
+        TRIGGER_TIME_CONTROL,
         config,
-        vec![(80, GDValue::Int(id)), (472, GDValue::Int(stop as i32))],
+        vec![
+            (INPUT_ITEM_1, GDValue::Int(id)),
+            (STOP_TIME_COUNTER, GDValue::Bool(stop)),
+        ],
     )
 }
 
@@ -1126,6 +1225,7 @@ pub fn time_control(config: GDObjConfig, id: i32, stop: bool) -> GDObject {
 /// * `target_group`: If enabled, stops the timer; otherwise, starts the timer.
 /// * `target_time`: At what time the timer should be to activate objects in `target_group`.
 /// * `multi_activate`: Should this event be triggerable multiple times?
+#[inline(always)]
 pub fn time_event(
     config: GDObjConfig,
     id: i32,
@@ -1134,13 +1234,13 @@ pub fn time_event(
     multi_activate: bool,
 ) -> GDObject {
     GDObject::new(
-        3615,
+        TRIGGER_TIME_EVENT,
         config,
         vec![
-            (80, GDValue::Int(id)),
-            (51, GDValue::Int(target_group)),
-            (473, GDValue::Float(target_time)),
-            (475, GDValue::Int(multi_activate as i32)),
+            (INPUT_ITEM_1, GDValue::Int(id)),
+            (TARGET_ITEM, GDValue::Int(target_group)),
+            (EVENT_TARGET_TIME, GDValue::Float(target_time)),
+            (MULTIACTIVATABLE_TIME_EVENT, GDValue::Bool(multi_activate)),
         ],
     )
 }
@@ -1159,13 +1259,16 @@ pub fn camera_zoom(
     time: f64,
     easing: Option<(MoveEasing, f64)>,
 ) -> GDObject {
-    let mut properties = vec![(10, GDValue::Float(time)), (371, GDValue::Float(zoom))];
+    let mut properties = vec![
+        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
+        (CAMERA_ZOOM, GDValue::Float(zoom)),
+    ];
 
     if let Some((easing, rate)) = easing {
-        properties.push((30, GDValue::Int(easing as i32)));
-        properties.push((85, GDValue::Float(rate)));
+        properties.push((MOVE_EASING, GDValue::Int(easing as i32)));
+        properties.push((EASING_RATE, GDValue::Float(rate)));
     }
-    GDObject::new(1913, config, properties)
+    GDObject::new(TRIGGER_CAMERA_ZOOM, config, properties)
 }
 
 /// Returns a camera guide object
@@ -1175,6 +1278,7 @@ pub fn camera_zoom(
 /// * `offset_x`: Center offset from this object in x axis
 /// * `offset_y`: Center offset from this object in y axis
 /// * `opacity`: Opacity of guidelines
+#[inline(always)]
 pub fn camera_guide(
     config: GDObjConfig,
     zoom: f64,
@@ -1183,13 +1287,13 @@ pub fn camera_guide(
     opacity: f64,
 ) -> GDObject {
     GDObject::new(
-        1913,
+        CAMERA_GUIDE,
         config,
         vec![
-            (28, GDValue::Int(offset_x)),
-            (29, GDValue::Int(offset_y)),
-            (371, GDValue::Float(zoom)),
-            (506, GDValue::Float(opacity)),
+            (MOVE_UNITS_X, GDValue::Int(offset_x)),
+            (MOVE_UNITS_Y, GDValue::Int(offset_y)),
+            (CAMERA_ZOOM, GDValue::Float(zoom)),
+            (CAMERA_GUIDE_PREVIEW_OPACITY, GDValue::Float(opacity)),
         ],
     )
 }
