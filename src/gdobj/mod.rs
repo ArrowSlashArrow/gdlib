@@ -390,6 +390,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1347, "Trigger Follow"),
     (1520, "Trigger Shake"),
     (1585, "Trigger Animate"),
+    (1611, "Trigger Count"),
     (1615, "Counter"),
     (1616, "Trigger Stop"),
     (1812, "Trigger On death"),

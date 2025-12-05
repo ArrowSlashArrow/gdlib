@@ -9,12 +9,12 @@ use crate::gdobj::{
             BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
             COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
             MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ANIMATE, TRIGGER_CAMERA_ZOOM,
-            TRIGGER_COLOUR, TRIGGER_END, TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE,
-            TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH,
-            TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
-            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE,
-            TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
-            TRIGGER_TOGGLE,
+            TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END, TRIGGER_FOLLOW, TRIGGER_GRAVITY,
+            TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MOVE,
+            TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM,
+            TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN,
+            TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT,
+            TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
@@ -38,7 +38,7 @@ use crate::gdobj::{
             STARTING_GAMEMODE, STARTING_IN_DUAL_MODE, STARTING_IN_MINI_MODE,
             STARTING_IN_MIRROR_MODE, STARTING_SPEED, STOP_MODE, STOP_PLAYER_JUMP,
             STOP_PLAYER_MOVEMENT, STOP_PLAYER_ROTATION, STOP_PLAYER_SLIDING, STOP_TIME_COUNTER,
-            TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_ITEM, TARGET_ITEM_2,
+            TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_COUNT, TARGET_ITEM, TARGET_ITEM_2,
             TARGET_ITEM_TYPE, TARGET_MOVE_MODE, TARGET_MOVE_MODE_AXIS_LOCK, TARGET_ORDER,
             TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, USE_CONTROL_ID,
             USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
@@ -808,14 +808,14 @@ pub fn end_trigger(
 /// * `special_mode`: Other special mode of timer. See [`CounterMode`] struct.
 pub fn counter_object(
     config: GDObjConfig,
-    item_id: i32,
+    item_id: i16,
     timer: bool,
     align: ItemAlign,
     seconds_only: bool,
     special_mode: Option<CounterMode>,
 ) -> GDObject {
     let mut properties = vec![
-        (INPUT_ITEM_1, GDValue::Int(item_id)),
+        (INPUT_ITEM_1, GDValue::Item(item_id)),
         (SECONDS_ONLY, GDValue::Bool(seconds_only)),
         (COUNTER_ALIGNMENT, GDValue::Int(align as i32)),
         (IS_TIMER, GDValue::Bool(timer)),
@@ -847,7 +847,7 @@ pub fn item_edit(
     config: GDObjConfig,
     operand1: Option<(i32, ItemType)>,
     operand2: Option<(i32, ItemType)>,
-    target_id: i32,
+    target_id: i16,
     target_type: ItemType,
     modifier: f64,
     assign_op: Op,
@@ -881,7 +881,7 @@ pub fn item_edit(
         config,
         vec![
             (IS_ACTIVE_TRIGGER, GDValue::Int(1)),
-            (TARGET_ITEM, GDValue::Int(target_id)),
+            (TARGET_ITEM, GDValue::Item(target_id)),
             (INPUT_ITEM_1, GDValue::Int(op_1.0)),
             (INPUT_ITEM_2, GDValue::Int(op_2.0)),
             (FIRST_ITEM_TYPE, GDValue::Int(op_1.1 as i32)),
@@ -958,7 +958,7 @@ pub fn item_compare(
 /// * `reset`: Reset item(s) to 0?
 pub fn persistent_item(
     config: GDObjConfig,
-    item_id: i32,
+    item_id: i16,
     timer: bool,
     persistent: bool,
     target_all: bool,
@@ -968,7 +968,7 @@ pub fn persistent_item(
         TRIGGER_PERSISTENT_ITEM,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Int(item_id)),
+            (TARGET_ITEM, GDValue::Item(item_id)),
             (SET_PERSISTENT_ITEM, GDValue::Bool(persistent)),
             (TARGET_ALL_PERSISTENT_ITEMS, GDValue::Bool(target_all)),
             (RESET_ITEM_TO_0, GDValue::Bool(reset)),
@@ -1331,6 +1331,27 @@ pub fn animate_trigger(config: GDObjConfig, target_group: i16, animation: Anim) 
     )
 }
 
+pub fn count_trigger(
+    config: GDObjConfig,
+    item_id: i16,
+    target_id: i16,
+    target_count: i32,
+    activate_group: bool,
+    multi_activate: bool,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_COUNT,
+        config,
+        vec![
+            (INPUT_ITEM_1, GDValue::Item(item_id)),
+            (TARGET_ITEM, GDValue::Group(target_id)),
+            (TARGET_COUNT, GDValue::Int(target_count)),
+            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
+            (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
+        ],
+    )
+}
+
 /* TODO: trigger constructors
  * 2nd part of basics
  * pulse trigger
@@ -1373,7 +1394,6 @@ pub fn animate_trigger(config: GDObjConfig, target_group: i16, animation: Anim) 
  *
  * Item triggers
  * touch trigger
- * count trigger
  * instant count trigger
  * pickup trigger
  *
