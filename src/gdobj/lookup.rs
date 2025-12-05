@@ -54,6 +54,7 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     72 => ("X-axis follow mod", GDObjPropType::Float),
     73 => ("Y-axis follow mod", GDObjPropType::Float),
     75 => ("Shake strength", GDObjPropType::Float),
+    76 => ("Animation ID", GDObjPropType::Int),
     80 => ("Input item 1", GDObjPropType::Item),
     84 => ("Shake interval", GDObjPropType::Float),
     85 => ("Easing rate", GDObjPropType::Float),

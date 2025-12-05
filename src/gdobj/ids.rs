@@ -83,6 +83,7 @@ pub mod objects {
     pub const TRIGGER_SPAWN: i32 = 1268;
     pub const TRIGGER_FOLLOW: i32 = 1347;
     pub const TRIGGER_SHAKE: i32 = 1520;
+    pub const TRIGGER_ANIMATE: i32 = 1585;
     pub const COUNTER: i32 = 1615;
     pub const TRIGGER_STOP: i32 = 1616;
     pub const TRIGGER_ON_DEATH: i32 = 1812;
@@ -164,6 +165,7 @@ pub mod properties {
     pub const XAXIS_FOLLOW_MOD: u16 = 72;
     pub const YAXIS_FOLLOW_MOD: u16 = 73;
     pub const SHAKE_STRENGTH: u16 = 75;
+    pub const ANIMATION_ID: u16 = 76;
     pub const INPUT_ITEM_1: u16 = 80;
     pub const SHAKE_INTERVAL: u16 = 84;
     pub const EASING_RATE: u16 = 85;

@@ -11,6 +11,62 @@ pub mod lookup;
 pub mod misc;
 pub mod triggers;
 
+pub mod animation_ids {
+    #[repr(i32)]
+    #[derive(Clone, Copy)]
+    pub enum BigBeast {
+        Bite = 0,
+        Attack01 = 1,
+        Attack01End = 2,
+        Idle01 = 3,
+    }
+    #[repr(i32)]
+    #[derive(Clone, Copy)]
+    pub enum Bat {
+        Idle01 = 0,
+        Idle02 = 1,
+        Idle03 = 2,
+        Attack01 = 3,
+        Attack02 = 4,
+        Attack02End = 5,
+        Sleep = 6,
+        SleepLoop = 7,
+        SleepEnd = 8,
+        Attack02Loop = 9,
+    }
+    #[repr(i32)]
+    #[derive(Clone, Copy)]
+    pub enum Spikeball {
+        Idle01 = 0,
+        Idle02 = 1,
+        ToAttack01 = 2,
+        Attack01 = 3,
+        Attack02 = 4,
+        ToAttack03 = 5,
+        Attack03 = 6,
+        Idle03 = 7,
+        FromAttack03 = 8,
+    }
+}
+
+pub enum Anim {
+    Other(i32),
+    BigBeast(animation_ids::BigBeast),
+    Bat(animation_ids::Bat),
+    Spikeball(animation_ids::Spikeball),
+}
+
+impl Anim {
+    pub fn as_i32(&self) -> i32 {
+        match self {
+            Self::Bat(b) => *b as i32,
+            Self::BigBeast(b) => *b as i32,
+            Self::Spikeball(s) => *s as i32,
+            Self::Other(i) => *i,
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Copy)]
 pub enum GDObjPropType {
@@ -333,6 +389,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1268, "Trigger Spawn"),
     (1347, "Trigger Follow"),
     (1520, "Trigger Shake"),
+    (1585, "Trigger Animate"),
     (1615, "Counter"),
     (1616, "Trigger Stop"),
     (1812, "Trigger On death"),
