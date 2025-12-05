@@ -12,18 +12,11 @@ use crate::{core::GDError, core::get_local_levels_path};
 /// * `data`: compressed input data
 ///
 /// Returns decompressed base64ed gzip as a `Vec<u8>` if it sucessfully decoded, otherwise return Error
-pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, GDError> {
-    // convert from url-safe base64
-    let replaced = data
-        .iter()
-        .filter_map(|c| match c {
-            b'\0' => None,
-            _ => Some(*c),
-        })
-        .collect::<Vec<u8>>();
+pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
+    data.retain(|c| *c != 0);
 
     // decode DEFLATE payload
-    let decoded = general_purpose::URL_SAFE.decode(replaced)?;
+    let decoded = general_purpose::URL_SAFE.decode(data)?;
     let sliced = &decoded[10..];
 
     let mut decoder = DeflateDecoder::new(sliced);
@@ -42,8 +35,11 @@ pub fn decompress(data: Vec<u8>) -> Result<Vec<u8>, GDError> {
 ///
 /// Returns the raw file contents as a `Vec<u8>`
 #[inline(always)]
-pub fn decrypt(data: Vec<u8>) -> Vec<u8> {
-    decompress(data.iter().map(|c| *c ^ 11).collect()).unwrap()
+pub fn decrypt(mut data: Vec<u8>) -> Vec<u8> {
+    for c in &mut data {
+        *c ^= 11;
+    }
+    decompress(data).unwrap()
 }
 
 /// Returns CCLocalLevels.dat decrypted if it exists

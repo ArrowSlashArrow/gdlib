@@ -25,48 +25,6 @@ fn to_const_name(s: String) -> String {
         .collect()
 }
 
-// fn find_field(st: &ExprStruct, field: &str) -> Option<Lit> {
-//     st.fields.iter().find_map(|f| match &f.member {
-//         Member::Named(ident) if ident == field => {
-//             if let Expr::Lit(ExprLit { lit, .. }) = &f.expr {
-//                 Some(lit.clone())
-//             } else {
-//                 None
-//             }
-//         }
-//         _ => None,
-//     })
-// }
-
-// fn handle_property(buffer: &mut String, st: ExprTuple) {
-//     let name = find_field(&st, "desc").unwrap();
-//     let id = find_field(&st, "name").unwrap();
-//     if let Lit::Str(name) = name
-//         && let Lit::Str(id) = id
-//     {
-//         let const_name = to_const_name(name.value());
-//         write!(
-//             buffer,
-//             "    pub const {const_name}: u16 = {};\n",
-//             id.value()
-//         )
-//         .unwrap();
-//     }
-//     let mut id = 0i32;
-//     let mut name = String::new();
-//     for item in tuple.elems {
-//         if let Expr::Lit(ExprLit { lit, .. }) = item {
-//             match lit {
-//                 Lit::Int(int) => id = int.base10_parse().unwrap(),
-//                 Lit::Str(s) => name = s.value(),
-//                 _ => {}
-//             }
-//         }
-//     }
-//     let const_name = to_const_name(name);
-//     write!(buffer, "    pub const {const_name}: u16 = {id};\n").unwrap();
-// }
-
 fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
     let mut id = 0i32;
     let mut name = String::new();
@@ -83,7 +41,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
     write!(buffer, "    pub const {const_name}: i32 = {id};\n").unwrap();
 }
 
-fn print<T: Into<String>>(s: T) {
+fn warn<T: Into<String>>(s: T) {
     println!("cargo:warning={}", s.into());
 }
 
@@ -106,16 +64,8 @@ fn main() {
                             }
                         }
                     }
-                    // else if c.ident == "PROPERTY_TABLE" {
-                    //     properties_out_str = String::with_capacity(elems.len() * 32);
-                    //     for elem in elems {
-                    //         if let Expr::Tuple(prop) = elem {
-                    //             handle_property(&mut properties_out_str, prop);
-                    //         }
-                    //     }
-                    // }
                 }
-                print(format!("found const {}", c.ident.to_string().as_str()));
+                // warn(format!("found const {}", c.ident.to_string().as_str()));
             }
         }
     }

@@ -4,6 +4,7 @@ use crate::gdobj::GDObjPropType;
 
 /// Names of properties (INCOMPLETE):
 /// (property, name)  
+///
 /// Reference: https://flowvix.github.io/gd-info-explorer/props
 pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     1 => ("object ID", GDObjPropType::Int),
@@ -50,6 +51,8 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     64 => ("Don't fade", GDObjPropType::Bool),
     67 => ("Don't enter", GDObjPropType::Bool),
     71 => ("Target item 2", GDObjPropType::Group),
+    72 => ("X-axis follow mod", GDObjPropType::Float),
+    73 => ("Y-axis follow mod", GDObjPropType::Float),
     75 => ("Shake strength", GDObjPropType::Float),
     80 => ("Input item 1", GDObjPropType::Item),
     84 => ("Shake interval", GDObjPropType::Float),

@@ -2,53 +2,48 @@
 //! # ⚠️ Warning
 //! **This file is incomplete. More triggers will be added in the future.**
 
-use crate::{
-    core::clamp_to_values,
-    gdobj::{
-        ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing,
-        ids::{
-            objects::{
-                BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
-                COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
-                MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_CAMERA_ZOOM, TRIGGER_COLOUR,
-                TRIGGER_END, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
-                TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
-                TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
-                TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE,
-                TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
-                TRIGGER_TOGGLE,
-            },
-            properties::{
-                ACTIVATE_GROUP, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY, CAMERA_ZOOM,
-                CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR,
-                CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, COPY_COLOUR_FROM_CHANNEL,
-                COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE,
-                DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DURATION_GROUP_TRIGGER_CHANCE,
-                DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE, ENTEREXIT_TRANSITION_CONFIG,
-                EVENT_TARGET_TIME, FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT,
-                FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT,
-                GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END, IS_ACTIVE_TRIGGER,
-                IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE,
-                MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING, MOVE_UNITS_X,
-                MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT, NO_END_EFFECTS,
-                NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RED, RESET_CAMERA, RESET_ITEM_TO_0,
-                RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE, RIGHT_SIGN_MODE,
-                ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
-                ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
-                SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER,
-                SECONDS_ONLY, SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE,
-                SMALL_STEP, SPAWN_DELAY, SPAWN_DELAY_VARIATION, SPAWN_ONLY, SPAWN_ORDERED,
-                SPECIAL_COUNTER_MODE, STARTING_GAMEMODE, STARTING_IN_DUAL_MODE,
-                STARTING_IN_MINI_MODE, STARTING_IN_MIRROR_MODE, STARTING_SPEED, STOP_MODE,
-                STOP_PLAYER_JUMP, STOP_PLAYER_MOVEMENT, STOP_PLAYER_ROTATION, STOP_PLAYER_SLIDING,
-                STOP_TIME_COUNTER, TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_ITEM,
-                TARGET_ITEM_2, TARGET_ITEM_TYPE, TARGET_MOVE_MODE, TARGET_MOVE_MODE_AXIS_LOCK,
-                TARGET_ORDER, TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE,
-                USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2,
-                X_MOVEMENT_MULTIPLIER, X_OFFSET_OF_SPAWNED_PARTICLES,
-                X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, Y_MOVEMENT_MULTIPLIER,
-                Y_OFFSET_OF_SPAWNED_PARTICLES, Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
-            },
+use crate::gdobj::{
+    ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing,
+    ids::{
+        objects::{
+            BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
+            COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
+            MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_CAMERA_ZOOM, TRIGGER_COLOUR,
+            TRIGGER_END, TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
+            TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
+            TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY,
+            TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
+            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
+        },
+        properties::{
+            ACTIVATE_GROUP, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY, CAMERA_ZOOM,
+            CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR, CONTROLLING_PLAYER_1,
+            CONTROLLING_PLAYER_2, COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY,
+            COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW,
+            DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE,
+            ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, FIRST_ITEM_TYPE,
+            FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT,
+            FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END,
+            IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
+            LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING,
+            MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
+            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RED, RESET_CAMERA,
+            RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE,
+            RIGHT_SIGN_MODE, ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
+            ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
+            SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER, SECONDS_ONLY,
+            SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE, SMALL_STEP,
+            SPAWN_DELAY, SPAWN_DELAY_VARIATION, SPAWN_ONLY, SPAWN_ORDERED, SPECIAL_COUNTER_MODE,
+            STARTING_GAMEMODE, STARTING_IN_DUAL_MODE, STARTING_IN_MINI_MODE,
+            STARTING_IN_MIRROR_MODE, STARTING_SPEED, STOP_MODE, STOP_PLAYER_JUMP,
+            STOP_PLAYER_MOVEMENT, STOP_PLAYER_ROTATION, STOP_PLAYER_SLIDING, STOP_TIME_COUNTER,
+            TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_ITEM, TARGET_ITEM_2,
+            TARGET_ITEM_TYPE, TARGET_MOVE_MODE, TARGET_MOVE_MODE_AXIS_LOCK, TARGET_ORDER,
+            TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, USE_CONTROL_ID,
+            USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
+            X_OFFSET_OF_SPAWNED_PARTICLES, X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+            XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER, Y_OFFSET_OF_SPAWNED_PARTICLES,
+            Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, YAXIS_FOLLOW_MOD,
         },
     },
 };
@@ -231,6 +226,16 @@ pub struct DirectionalMove {
     pub distance: i32,
 }
 
+/// Enum for
+#[repr(i32)]
+pub enum StartingSpeed {
+    X0Point5 = 1,
+    X1 = 0,
+    X2 = 2,
+    X3 = 3,
+    X4 = 4,
+}
+
 /// Returns a move trigger object
 ///
 /// # Arguments
@@ -245,14 +250,14 @@ pub fn move_trigger(
     config: GDObjConfig,
     move_config: MoveMode,
     time: f64,
-    target_group: i32,
+    target_group: i16,
     silent: bool,
     dynamic: bool,
     easing: Option<(MoveEasing, f64)>,
 ) -> GDObject {
     // aim: target group 2
     let mut properties = vec![
-        (TARGET_ITEM, GDValue::Int(target_group)),
+        (TARGET_ITEM, GDValue::Group(target_group)),
         (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
         (SMALL_STEP, GDValue::Int(1)),
         (DYNAMIC_MOVE, GDValue::Int(dynamic as i32)),
@@ -342,15 +347,9 @@ pub fn move_trigger(
 /// * `target_order`: Target order (of what, I don't know); Default: 0
 /// * `target_channel`: Target channel (once again, I don't know); Default: 0
 /// * `disabled`: Disabled startpos? Default: false
-/// * **NOTE**: Defaults are the default values of a startpos, they are NOT filled in for you.
-///
-/// # ⚠️ Warning
-/// This object is VERY WEIRD. There are 25 properties that serve an unknown purpose.
-/// This is also the only object with non-integer properties (kA1, kA2, ...)
-/// The reverse gameplay option is always on when generated with GDLib for some unknown reason. USE AT YOUR OWN RISK!!
 pub fn start_pos(
     config: GDObjConfig,
-    start_speed: f64,
+    start_speed: StartingSpeed,
     starting_gamemode: Gamemode,
     starting_as_mini: bool,
     starting_as_dual: bool,
@@ -362,35 +361,21 @@ pub fn start_pos(
     target_channel: i32,
     disabled: bool,
 ) -> GDObject {
-    let start_speed = clamp_to_values(start_speed, &[0.5, 1.0, 2.0, 3.0, 4.0]);
-
     GDObject::new(
         START_POS,
         config,
         vec![
-            (
-                STARTING_SPEED,
-                GDValue::Int(match start_speed {
-                    0.5 => 1,
-                    2.0 => 2,
-                    3.0 => 3,
-                    4.0 => 4,
-                    _ => 0,
-                }),
-            ),
+            (STARTING_SPEED, GDValue::Int(start_speed as i32)),
             (STARTING_GAMEMODE, GDValue::Int(starting_gamemode as i32)),
-            (STARTING_IN_MINI_MODE, GDValue::Int(starting_as_mini as i32)),
-            (STARTING_IN_DUAL_MODE, GDValue::Int(starting_as_dual as i32)),
-            (IS_DISABLED, GDValue::Int(disabled as i32)),
-            (
-                STARTING_IN_MIRROR_MODE,
-                GDValue::Int(starting_mirrored as i32),
-            ),
-            (ROTATE_GAMEPLAY, GDValue::Int(rotate_gameplay as i32)),
-            (REVERSE_GAMEPLAY, GDValue::Int(reverse_gameplay as i32)),
+            (STARTING_IN_MINI_MODE, GDValue::Bool(starting_as_mini)),
+            (STARTING_IN_DUAL_MODE, GDValue::Bool(starting_as_dual)),
+            (IS_DISABLED, GDValue::Bool(disabled)),
+            (STARTING_IN_MIRROR_MODE, GDValue::Bool(starting_mirrored)),
+            (ROTATE_GAMEPLAY, GDValue::Bool(rotate_gameplay)),
+            (REVERSE_GAMEPLAY, GDValue::Bool(reverse_gameplay)),
             (TARGET_ORDER, GDValue::Int(target_order)),
             (TARGET_CHANNEL, GDValue::Int(target_channel)),
-            (RESET_CAMERA, GDValue::Int(reset_camera as i32)),
+            (RESET_CAMERA, GDValue::Bool(reset_camera)),
             (10010, GDValue::Int(0)),
             (10011, GDValue::String(String::new())),
             (10022, GDValue::Int(0)),
@@ -491,7 +476,7 @@ pub fn colour_trigger(
 #[inline(always)]
 pub fn stop_trigger(
     config: GDObjConfig,
-    target_group: i32,
+    target_group: i16,
     stop_mode: StopMode,
     use_control_id: bool,
 ) -> GDObject {
@@ -499,7 +484,7 @@ pub fn stop_trigger(
         TRIGGER_STOP,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
             (USE_CONTROL_ID, GDValue::Int(use_control_id as i32)),
             (STOP_MODE, GDValue::Int(stop_mode as i32)),
         ],
@@ -516,7 +501,7 @@ pub fn stop_trigger(
 #[inline(always)]
 pub fn alpha_trigger(
     config: GDObjConfig,
-    target_group: i32,
+    target_group: i16,
     opacity: f64,
     fade_time: f64,
 ) -> GDObject {
@@ -526,7 +511,7 @@ pub fn alpha_trigger(
         vec![
             (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
             (OPACITY, GDValue::Float(opacity)),
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
         ],
     )
 }
@@ -538,12 +523,12 @@ pub fn alpha_trigger(
 /// * `target_group`: Target group to stop/pause/resume
 /// * `activate_group`: Active group instead of deactivating?
 #[inline(always)]
-pub fn toggle_trigger(config: GDObjConfig, target_group: i32, activate_group: bool) -> GDObject {
+pub fn toggle_trigger(config: GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
     GDObject::new(
         TRIGGER_TOGGLE,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
             (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
         ],
     )
@@ -591,11 +576,11 @@ pub fn reverse_gameplay(config: GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is linked visibly
 #[inline(always)]
-pub fn link_visible(config: GDObjConfig, target_group: i32) -> GDObject {
+pub fn link_visible(config: GDObjConfig, target_group: i16) -> GDObject {
     GDObject::new(
         TRIGGER_LINK_VISIBLE,
         config,
-        vec![(TARGET_ITEM, GDValue::Int(target_group))],
+        vec![(TARGET_ITEM, GDValue::Group(target_group))],
     )
 }
 
@@ -665,11 +650,11 @@ pub fn bg_effect_off(config: GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is to be reset
 #[inline(always)]
-pub fn group_reset(config: GDObjConfig, target_group: i32) -> GDObject {
+pub fn group_reset(config: GDObjConfig, target_group: i16) -> GDObject {
     GDObject::new(
         TRIGGER_RESET_GROUP,
         config,
-        vec![(TARGET_ITEM, GDValue::Int(target_group))],
+        vec![(TARGET_ITEM, GDValue::Group(target_group))],
     )
 }
 
@@ -1055,12 +1040,12 @@ pub fn spawn_trigger(
 /// * `target_group`: Spawns this group
 /// * `activate_group`: Activate this group (instead of toggling off)?
 #[inline(always)]
-pub fn on_death(config: GDObjConfig, target_group: i32, activate_group: bool) -> GDObject {
+pub fn on_death(config: GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
     GDObject::new(
         TRIGGER_ON_DEATH,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
             (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
         ],
     )
@@ -1149,7 +1134,7 @@ pub fn collision_block(config: GDObjConfig, id: i32, dynamic: bool) -> GDObject 
 #[inline(always)]
 pub fn toggle_block(
     config: GDObjConfig,
-    target_group: i32,
+    target_group: i16,
     activate_group: bool,
     claim_touch: bool,
     multi_activate: bool,
@@ -1159,7 +1144,7 @@ pub fn toggle_block(
         TOGGLE_BLOCK,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
             (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
             (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
             (CLAIM_TOUCH, GDValue::Bool(claim_touch)),
@@ -1229,7 +1214,7 @@ pub fn time_control(config: GDObjConfig, id: i32, stop: bool) -> GDObject {
 pub fn time_event(
     config: GDObjConfig,
     id: i32,
-    target_group: i32,
+    target_group: i16,
     target_time: f64,
     multi_activate: bool,
 ) -> GDObject {
@@ -1238,7 +1223,7 @@ pub fn time_event(
         config,
         vec![
             (INPUT_ITEM_1, GDValue::Int(id)),
-            (TARGET_ITEM, GDValue::Int(target_group)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
             (EVENT_TARGET_TIME, GDValue::Float(target_time)),
             (MULTIACTIVATABLE_TIME_EVENT, GDValue::Bool(multi_activate)),
         ],
@@ -1298,12 +1283,42 @@ pub fn camera_guide(
     )
 }
 
+// im too lazy to organise ts
+
+/// Returns a follow trigger object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `x_mod`: Multiplier for x-axis movement of follow group
+/// * `y_mod`: Multiplier for y-axis movement of follow group
+/// * `follow_time`: Time that the follow group is followed for. -1.0 = infinite.
+/// * `target_group`: Group that is following
+/// * `follow_group`: Group that is being followed
+pub fn follow_trigger(
+    config: GDObjConfig,
+    x_mod: f64,
+    y_mod: f64,
+    follow_time: f64,
+    target_group: i16,
+    follow_group: i16,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_FOLLOW,
+        config,
+        vec![
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(follow_time)),
+            (XAXIS_FOLLOW_MOD, GDValue::Float(x_mod)),
+            (YAXIS_FOLLOW_MOD, GDValue::Float(y_mod)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
+            (TARGET_ITEM_2, GDValue::Group(follow_group)),
+        ],
+    )
+}
+
 /* TODO: trigger constructors
  * 2nd part of basics
  * pulse trigger
  *
  * Animation triggers
- * move trigger (all options)
  * rotate trigger
  * scale trigger
  * follow trigger

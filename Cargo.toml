@@ -26,3 +26,8 @@ smallvec = "1.15.1"
 
 [build-dependencies]
 syn = { version = "2", features = ["full"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3

@@ -86,19 +86,18 @@ impl Levels {
     /// Parses raw savefile string into this struct
     pub fn from_decrypted(s: String) -> Result<Self, GDError> {
         let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes())) {
-            Ok(mut v) => v.as_dictionary_mut().unwrap().clone(),
+            Ok(v) => v.into_dictionary().unwrap(),
             Err(e) => return Err(GDError::BadPlist(e)),
         };
 
         let levels_dict = xmltree
             .get("LLM_01")
             .unwrap()
-            .clone()
-            .as_dictionary()
-            .unwrap()
-            .clone();
-        let llm_02 = xmltree.get("LLM_02").unwrap().clone();
-        let llm_03 = xmltree.get("LLM_03").unwrap().clone();
+            .to_owned()
+            .into_dictionary()
+            .unwrap();
+        let llm_02 = xmltree.get("LLM_02").unwrap().to_owned();
+        let llm_03 = xmltree.get("LLM_03").unwrap().to_owned();
 
         // these are stored as "k_0": <level>, "k_1": <level>, etc. in the savefile,
         // the vec prserves that order.
