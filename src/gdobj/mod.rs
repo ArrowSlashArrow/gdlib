@@ -216,7 +216,7 @@ impl MoveEasing {
     }
 }
 
-const GROUP_ALLOCSIZE: usize = 5;
+const LIST_ALLOCSIZE: usize = 5;
 
 #[derive(Debug, Clone)]
 pub enum GDValue {
@@ -225,11 +225,12 @@ pub enum GDValue {
     Bool(bool),
     Group(i16),
     Item(i16),
-    GroupList(smallvec::SmallVec<[i16; GROUP_ALLOCSIZE]>),
+    GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
+    ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
     Easing(MoveEasing),
     ColourChannel(ColourChannel),
     ZLayer(ZLayer),
-    String(String), // consider this the default case
+    String(String), // fallback
 }
 
 impl GDValue {
@@ -251,6 +252,11 @@ impl GDValue {
     #[inline(always)]
     pub fn from_group_list(g: Vec<i16>) -> Self {
         Self::GroupList(SmallVec::from_vec(g))
+    }
+
+    #[inline(always)]
+    pub fn from_prob_list(g: Vec<(i16, i32)>) -> Self {
+        Self::ProbabilitiesList(SmallVec::from_vec(g))
     }
 
     #[inline(always)]
@@ -289,6 +295,18 @@ impl Display for GDValue {
                         g_str.push('.');
                     }
                     g_str.push_str(i_buf.format(*g));
+                }
+                g_str
+            }),
+            GDValue::ProbabilitiesList(v) => write!(f, "{}", {
+                let mut g_str = String::with_capacity(v.len() * 8);
+                for (idx, g) in v.iter().enumerate() {
+                    if idx != 0 {
+                        g_str.push('.');
+                    }
+                    g_str.push_str(i_buf.format(g.0));
+                    g_str.push('.');
+                    g_str.push_str(i_buf.format(g.1));
                 }
                 g_str
             }),
@@ -407,6 +425,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1935, "Trigger Time warp"),
     (2016, "Camera guide"),
     (2066, "Trigger Gravity"),
+    (2068, "Trigger Advanced random"),
     (2900, "Trigger rotate gameplay"),
     (3600, "Trigger End"),
     (3606, "BG speed config"),

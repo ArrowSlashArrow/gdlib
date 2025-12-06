@@ -17,7 +17,7 @@ mod tests {
         gdobj::{
             GDObjConfig, MoveEasing,
             misc::default_block,
-            triggers::{self, DefaultMove, move_trigger, start_pos},
+            triggers::{self, DefaultMove, advanced_random_trigger, move_trigger, start_pos},
         },
     };
 
@@ -166,6 +166,16 @@ mod tests {
         level.add_object(sp);
 
         level.export_to_gmd("GMDS/startpos.gmd").unwrap();
+    }
+
+    #[test]
+    fn adv_random() {
+        let mut level = Level::new("adv random", "me", None, None);
+        level.add_object(advanced_random_trigger(
+            GDObjConfig::default().pos(45.0, 45.0),
+            vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
+        ));
+        level.export_to_gmd("GMDS/adv_random.gmd");
     }
 
     #[test]

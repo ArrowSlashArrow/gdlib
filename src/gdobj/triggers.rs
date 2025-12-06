@@ -8,13 +8,13 @@ use crate::gdobj::{
         objects::{
             BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
             COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
-            MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ANIMATE, TRIGGER_CAMERA_ZOOM,
-            TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END, TRIGGER_FOLLOW, TRIGGER_GRAVITY,
-            TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MOVE,
-            TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM,
-            TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN,
-            TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT,
-            TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
+            MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ADVANCED_RANDOM, TRIGGER_ANIMATE,
+            TRIGGER_CAMERA_ZOOM, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END, TRIGGER_FOLLOW,
+            TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE,
+            TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL,
+            TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE,
+            TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL,
+            TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
@@ -28,9 +28,9 @@ use crate::gdobj::{
             INPUT_ITEM_2, INSTANT_END, IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR,
             LEFT_ROUND_MODE, LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER,
             MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
-            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RED, RESET_CAMERA,
-            RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE,
-            RIGHT_SIGN_MODE, ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
+            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RANDOM_PROBABLITIES_LIST,
+            RED, RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR,
+            RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
             ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
             SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER, SECONDS_ONLY,
             SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE, SMALL_STEP,
@@ -48,6 +48,20 @@ use crate::gdobj::{
         },
     },
 };
+
+/*
+template
+
+/// Returns a <TRIGGER> trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+
+pub fn FN_NAME(
+    config: GDObjConfig
+) -> GDObject {
+    GDObject::new(id, config, vec![()])
+}
+*/
 
 /// Constant distinct arbitrary value for player 1 position.
 pub const POS_PLAYER1: i32 = 99999;
@@ -1349,6 +1363,24 @@ pub fn count_trigger(
             (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
             (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
         ],
+    )
+}
+
+/// Returns an advanced random trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `probabilities`: List of tuples: (target group, chance to trigger this group).
+/// Chances are considered relative to each other, meaning that they are not
+/// precentage-based. Two groups with the same relative chance will have the same
+/// (50-50) chance to be triggered
+pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32)>) -> GDObject {
+    GDObject::new(
+        TRIGGER_ADVANCED_RANDOM,
+        config,
+        vec![(
+            RANDOM_PROBABLITIES_LIST,
+            GDValue::from_prob_list(probabilities),
+        )],
     )
 }
 

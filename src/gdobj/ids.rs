@@ -101,6 +101,7 @@ pub mod objects {
     pub const TRIGGER_TIME_WARP: i32 = 1935;
     pub const CAMERA_GUIDE: i32 = 2016;
     pub const TRIGGER_GRAVITY: i32 = 2066;
+    pub const TRIGGER_ADVANCED_RANDOM: i32 = 2068;
     pub const TRIGGER_ROTATE_GAMEPLAY: i32 = 2900;
     pub const TRIGGER_END: i32 = 3600;
     pub const BG_SPEED_CONFIG: i32 = 3606;
@@ -181,6 +182,7 @@ pub mod properties {
     pub const TARGET_MOVE_MODE_AXIS_LOCK: u16 = 101u16;
     pub const DISABLE_PREVIEW: u16 = 102u16;
     pub const IS_HIGH_DETAIL: u16 = 103u16;
+    pub const COUNT_TRIGGER_MULTI_ACTIVATE: u16 = 104u16;
     pub const NO_OBJECT_EFFECTS: u16 = 116u16;
     pub const REVERSES_GAMEPLAY: u16 = 117u16;
     pub const TIMEWARP_AMOUNT: u16 = 120u16;
@@ -197,6 +199,7 @@ pub mod properties {
     pub const X_MOVEMENT_MULTIPLIER: u16 = 143u16;
     pub const Y_MOVEMENT_MULTIPLIER: u16 = 144u16;
     pub const GRAVITY: u16 = 148u16;
+    pub const RANDOM_PROBABLITIES_LIST: u16 = 152u16;
     pub const GRIP_SLOPE: u16 = 193u16;
     pub const CONTROLLING_PLAYER_2: u16 = 200u16;
     pub const CONTROLLING_TARGET_PLAYER: u16 = 201u16;
