@@ -61,6 +61,7 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     85u16 => ("Easing rate", GDObjPropType::Float),
     86u16 => ("Exclusive pulse mode", GDObjPropType::Bool),
     87u16 => ("Multitriggerable", GDObjPropType::Bool),
+    93u16 => ("Trigger on exit", GDObjPropType::Bool),
     94u16 => ("Dynamic block?", GDObjPropType::Bool),
     95u16 => ("Input item 2", GDObjPropType::Item),
     96u16 => ("No glow", GDObjPropType::Bool),

@@ -430,6 +430,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (3600, "Trigger End"),
     (3606, "BG speed config"),
     (3608, "Trigger Spawn particle"),
+    (3609, "Trigger Instant collision"),
     (3612, "MG speed config"),
     (3615, "Trigger Time event"),
     (3617, "Trigger Time control"),

@@ -106,6 +106,7 @@ pub mod objects {
     pub const TRIGGER_END: i32 = 3600;
     pub const BG_SPEED_CONFIG: i32 = 3606;
     pub const TRIGGER_SPAWN_PARTICLE: i32 = 3608;
+    pub const TRIGGER_INSTANT_COLLISION: i32 = 3609;
     pub const MG_SPEED_CONFIG: i32 = 3612;
     pub const TRIGGER_TIME_EVENT: i32 = 3615;
     pub const TRIGGER_TIME_CONTROL: i32 = 3617;
@@ -174,6 +175,7 @@ pub mod properties {
     pub const EASING_RATE: u16 = 85u16;
     pub const EXCLUSIVE_PULSE_MODE: u16 = 86u16;
     pub const MULTITRIGGERABLE: u16 = 87u16;
+    pub const TRIGGER_ON_EXIT: u16 = 93u16;
     pub const DYNAMIC_BLOCK: u16 = 94u16;
     pub const INPUT_ITEM_2: u16 = 95u16;
     pub const NO_GLOW: u16 = 96u16;

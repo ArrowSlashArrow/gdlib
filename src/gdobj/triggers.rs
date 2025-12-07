@@ -9,25 +9,26 @@ use crate::gdobj::{
             BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
             COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
             MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ADVANCED_RANDOM, TRIGGER_ANIMATE,
-            TRIGGER_CAMERA_ZOOM, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END, TRIGGER_FOLLOW,
-            TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE,
-            TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL,
-            TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE,
-            TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL,
-            TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
+            TRIGGER_CAMERA_ZOOM, TRIGGER_COLLISION, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END,
+            TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
+            TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
+            TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY,
+            TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
+            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
             CAMERA_ZOOM, CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR,
-            CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, COPY_COLOUR_FROM_CHANNEL,
-            COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE,
-            DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK,
-            DYNAMIC_MOVE, EASING_RATE, ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME,
-            FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT,
-            FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1,
-            INPUT_ITEM_2, INSTANT_END, IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR,
-            LEFT_ROUND_MODE, LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER,
-            MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
+            CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, CONTROLLING_TARGET_PLAYER,
+            COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT,
+            DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW,
+            DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE,
+            ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, FIRST_ITEM_TYPE,
+            FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT,
+            FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END,
+            IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
+            LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING,
+            MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
             NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RANDOM_PROBABLITIES_LIST,
             RED, RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR,
             RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
@@ -40,8 +41,8 @@ use crate::gdobj::{
             STOP_PLAYER_MOVEMENT, STOP_PLAYER_ROTATION, STOP_PLAYER_SLIDING, STOP_TIME_COUNTER,
             TARGET_ALL_PERSISTENT_ITEMS, TARGET_CHANNEL, TARGET_COUNT, TARGET_ITEM, TARGET_ITEM_2,
             TARGET_ITEM_TYPE, TARGET_MOVE_MODE, TARGET_MOVE_MODE_AXIS_LOCK, TARGET_ORDER,
-            TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, USE_CONTROL_ID,
-            USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
+            TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, TRIGGER_ON_EXIT,
+            USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
             X_OFFSET_OF_SPAWNED_PARTICLES, X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
             XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER, Y_OFFSET_OF_SPAWNED_PARTICLES,
             Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, YAXIS_FOLLOW_MOD,
@@ -53,6 +54,8 @@ use crate::gdobj::{
 template
 
 /// Returns a <TRIGGER> trigger
+///
+/// <overview> // todo
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 
@@ -927,16 +930,16 @@ pub fn item_edit(
 /// \*The modifier operators describe how the modifier interacts with the item, except for setting the item
 pub fn item_compare(
     config: GDObjConfig,
-    true_id: i32,
-    false_id: i32,
+    true_id: i16,
+    false_id: i16,
     lhs: (i32, ItemType, f64, Op, RoundMode, SignMode),
     rhs: (i32, ItemType, f64, Op, RoundMode, SignMode),
     compare_op: CompareOp,
     tolerance: f64,
 ) -> GDObject {
     let properties = vec![
-        (TARGET_ITEM, GDValue::Int(true_id)),
-        (TARGET_ITEM_2, GDValue::Int(false_id)),
+        (TARGET_ITEM, GDValue::Item(true_id)),
+        (TARGET_ITEM_2, GDValue::Item(false_id)),
         // ids
         (INPUT_ITEM_1, GDValue::Int(lhs.0)),
         (INPUT_ITEM_2, GDValue::Int(rhs.0)),
@@ -1185,19 +1188,92 @@ pub fn state_block(config: GDObjConfig, state_on: i32, state_off: i32) -> GDObje
     )
 }
 
-// /// TODO
-// pub fn collision_trigger(
-//     config: GDObjConfig
-// ) -> GDObject {
+/// Returns a collision trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `collider1`: ID of first collision block
+/// * `collider2`: ID of second collision block
+/// * `target_id`: ID of group that is activated when the two colliders collide
+/// * `collide_player1`: whether to check for collision with player 1 instead of collider 1
+/// * `collide_player2`: whether to check for collision with player 2 instead of collider 1.
+/// Does not override collision checking with player 1 if `collide_player1` is also true.
+/// * `collide_both_players`: whether to check for collision between the two players instead of two collision blocks
+/// * `activate_group`: whether this trigger will activate or deactivate the target group
+/// * `trigger_on_exit`: activates group when the two colliders' hitboxes stop overlapping after collision
+/// instead of when they start colliding.
+///
+/// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
+pub fn collision_trigger(
+    config: GDObjConfig,
+    collider1: i16,
+    collider2: i16,
+    target_id: i16,
+    collide_player1: bool,
+    collide_player2: bool,
+    collide_both_players: bool,
+    activate_group: bool,
+    trigger_on_exit: bool,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_COLLISION,
+        config,
+        vec![
+            (INPUT_ITEM_1, GDValue::Item(collider1)),
+            (INPUT_ITEM_2, GDValue::Item(collider2)),
+            (TARGET_ITEM, GDValue::Item(target_id)),
+            (CONTROLLING_PLAYER_1, GDValue::Bool(collide_player1)),
+            (CONTROLLING_PLAYER_2, GDValue::Bool(collide_player2)),
+            (
+                CONTROLLING_TARGET_PLAYER,
+                GDValue::Bool(collide_both_players),
+            ),
+            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
+            (TRIGGER_ON_EXIT, GDValue::Bool(trigger_on_exit)),
+        ],
+    )
+}
 
-// }
-
-// /// TODO
-// pub fn instant_coll_trigger(
-//     config: GDObjConfig
-// ) -> GDObject {
-
-// }
+/// Returns a collision trigger
+///
+/// Activates a group when the two colliders collide or do not collide.
+/// This condition is only checked once and never again
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `collider1`: ID of first collision block
+/// * `collider2`: ID of second collision block
+/// * `true_id`: ID of group that is activated if the two colliders collide
+/// * `false_id`: ID of group that is activated if the two colliders do not collide
+/// * `collide_player1`: whether to check for collision with player 1 instead of collider 1
+/// * `collide_player2`: whether to check for collision with player 2 instead of collider 1.
+/// Does not override collision checking with player 1 if `collide_player1` is also true.
+/// * `collide_both_players`: whether to check for collision between the two players instead of two collision blocks
+pub fn instant_coll_trigger(
+    config: GDObjConfig,
+    collider1: i16,
+    collider2: i16,
+    true_id: i16,
+    false_id: i16,
+    collide_player1: bool,
+    collide_player2: bool,
+    collide_both_players: bool,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_COLLISION,
+        config,
+        vec![
+            (INPUT_ITEM_1, GDValue::Item(collider1)),
+            (INPUT_ITEM_2, GDValue::Item(collider2)),
+            (TARGET_ITEM, GDValue::Item(true_id)),
+            (TARGET_ITEM_2, GDValue::Item(false_id)),
+            (CONTROLLING_PLAYER_1, GDValue::Bool(collide_player1)),
+            (CONTROLLING_PLAYER_2, GDValue::Bool(collide_player2)),
+            (
+                CONTROLLING_TARGET_PLAYER,
+                GDValue::Bool(collide_both_players),
+            ),
+        ],
+    )
+}
 
 // time triggers
 
@@ -1430,7 +1506,6 @@ pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32
  * pickup trigger
  *
  * Spawner triggers
- * advanced random
  * sequence
  * event trigger
  *
@@ -1458,10 +1533,6 @@ pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32
  * ui config
  * bpm marker
  * gradient
- *
- * Collision blocks
- * collision trigger
- * instant collision
  *
  * Player triggers
  * options
