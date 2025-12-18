@@ -1213,6 +1213,7 @@ pub fn state_block(config: GDObjConfig, state_on: i32, state_off: i32) -> GDObje
 /// instead of when they start colliding.
 ///
 /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
+#[inline(always)]
 pub fn collision_trigger(
     config: GDObjConfig,
     collider1: i16,
@@ -1257,6 +1258,7 @@ pub fn collision_trigger(
 /// * `collide_player2`: whether to check for collision with player 2 instead of collider 1.
 /// Does not override collision checking with player 1 if `collide_player1` is also true.
 /// * `collide_both_players`: whether to check for collision between the two players instead of two collision blocks
+#[inline(always)]
 pub fn instant_coll_trigger(
     config: GDObjConfig,
     collider1: i16,
@@ -1394,6 +1396,7 @@ pub fn camera_guide(
 /// * `follow_time`: Time that the follow group is followed for. -1.0 = infinite.
 /// * `target_group`: Group that is following
 /// * `follow_group`: Group that is being followed
+#[inline(always)]
 pub fn follow_trigger(
     config: GDObjConfig,
     x_mod: f64,
@@ -1420,6 +1423,7 @@ pub fn follow_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Objects to animate
 /// * `animation`: Animation ID, provided in [`Anim`] enum
+#[inline(always)]
 pub fn animate_trigger(config: GDObjConfig, target_group: i16, animation: Anim) -> GDObject {
     GDObject::new(
         TRIGGER_ANIMATE,
@@ -1439,6 +1443,7 @@ pub fn animate_trigger(config: GDObjConfig, target_group: i16, animation: Anim) 
 /// * `target_count`: Target count of item at `item_id`
 /// * `activate_group`: Whether or not to activate the target group
 /// * `multi_activate`: Whether or not this trigger is multi-activatable
+#[inline(always)]
 pub fn count_trigger(
     config: GDObjConfig,
     item_id: i16,
@@ -1467,6 +1472,7 @@ pub fn count_trigger(
 /// Chances are considered relative to each other, meaning that they are not
 /// precentage-based. Two groups with the same relative chance will have the same
 /// (50-50) chance to be triggered
+#[inline(always)]
 pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32)>) -> GDObject {
     GDObject::new(
         TRIGGER_ADVANCED_RANDOM,
@@ -1481,6 +1487,13 @@ pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32
 /// Returns a UI config trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
+/// * `target_group`: the UI objects
+/// * `ui_reference_obj`: Group with a single object that is a reference for the center of the camera.
+/// * `x_reference`: Reference position for the element on the X-axis
+/// * `y_reference`: Reference position for the element on the Y-axis
+/// * `x_ref_relative`: Whether or not the x-axis position scales with aspect ratio
+/// * `y_ref_relative`: Whether or not the y-axis position scales with aspect ratio
+#[inline(always)]
 pub fn ui_config_trigger(
     config: GDObjConfig,
     target_group: i16,
@@ -1574,7 +1587,6 @@ pub fn ui_config_trigger(
  * time trigger
  *
  * Misc.
- * ui config
  * bpm marker
  * gradient
  *
