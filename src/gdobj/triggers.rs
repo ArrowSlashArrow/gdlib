@@ -14,7 +14,7 @@ use crate::gdobj::{
             TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
             TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY,
             TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
-            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE,
+            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
@@ -44,8 +44,9 @@ use crate::gdobj::{
             TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, TRIGGER_ON_EXIT,
             USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
             X_OFFSET_OF_SPAWNED_PARTICLES, X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
-            XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER, Y_OFFSET_OF_SPAWNED_PARTICLES,
-            Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, YAXIS_FOLLOW_MOD,
+            X_REFERENCE_IS_RELATIVE, X_REFERENCE_POSITION, XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER,
+            Y_OFFSET_OF_SPAWNED_PARTICLES, Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+            Y_REFERENCE_IS_RELATIVE, Y_REFERENCE_POSITION, YAXIS_FOLLOW_MOD,
         },
     },
 };
@@ -207,6 +208,15 @@ pub enum MoveMode {
 pub enum MoveLock {
     Player,
     Camera,
+}
+
+/// Enum for relative UI reference position
+#[repr(i32)]
+pub enum UIReferencePos {
+    Auto = 1,
+    Center = 2,
+    Left = 3,
+    Right = 4,
 }
 
 /// Config struct for default movement
@@ -1405,7 +1415,7 @@ pub fn follow_trigger(
     )
 }
 
-/// Returns a follow trigger object
+/// Returns an animate trigger object
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Objects to animate
@@ -1421,6 +1431,14 @@ pub fn animate_trigger(config: GDObjConfig, target_group: i16, animation: Anim) 
     )
 }
 
+/// Returns a count trigger object
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `item_id`: Checks this item
+/// * `target_id`: Target group to activate
+/// * `target_count`: Target count of item at `item_id`
+/// * `activate_group`: Whether or not to activate the target group
+/// * `multi_activate`: Whether or not this trigger is multi-activatable
 pub fn count_trigger(
     config: GDObjConfig,
     item_id: i16,
@@ -1457,6 +1475,32 @@ pub fn advanced_random_trigger(config: GDObjConfig, probabilities: Vec<(i16, i32
             RANDOM_PROBABLITIES_LIST,
             GDValue::from_prob_list(probabilities),
         )],
+    )
+}
+
+/// Returns a UI config trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn ui_config_trigger(
+    config: GDObjConfig,
+    target_group: i16,
+    ui_reference_obj: i16,
+    x_reference: UIReferencePos,
+    y_reference: UIReferencePos,
+    x_ref_relative: bool,
+    y_ref_relative: bool,
+) -> GDObject {
+    GDObject::new(
+        UI_CONFIG,
+        config,
+        vec![
+            (TARGET_ITEM, GDValue::Group(target_group)),
+            (TARGET_ITEM_2, GDValue::Group(ui_reference_obj)),
+            (X_REFERENCE_POSITION, GDValue::Int(x_reference as i32)),
+            (Y_REFERENCE_POSITION, GDValue::Int(y_reference as i32 + 4)),
+            (X_REFERENCE_IS_RELATIVE, GDValue::Bool(x_ref_relative)),
+            (Y_REFERENCE_IS_RELATIVE, GDValue::Bool(y_ref_relative)),
+        ],
     )
 }
 

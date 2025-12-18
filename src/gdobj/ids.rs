@@ -108,6 +108,7 @@ pub mod objects {
     pub const TRIGGER_SPAWN_PARTICLE: i32 = 3608;
     pub const TRIGGER_INSTANT_COLLISION: i32 = 3609;
     pub const MG_SPEED_CONFIG: i32 = 3612;
+    pub const UI_CONFIG: i32 = 3613;
     pub const TRIGGER_TIME_EVENT: i32 = 3615;
     pub const TRIGGER_TIME_CONTROL: i32 = 3617;
     pub const TRIGGER_RESET_GROUP: i32 = 3618;
@@ -217,6 +218,10 @@ pub mod properties {
     pub const CENTER_EFFECT: u16 = 369u16;
     pub const CAMERA_ZOOM: u16 = 371u16;
     pub const NO_AUDIO_SCALE: u16 = 372u16;
+    pub const X_REFERENCE_POSITION: u16 = 385u16;
+    pub const Y_REFERENCE_POSITION: u16 = 386u16;
+    pub const X_REFERENCE_IS_RELATIVE: u16 = 387u16;
+    pub const Y_REFERENCE_IS_RELATIVE: u16 = 388u16;
     pub const SECONDS_ONLY: u16 = 389u16;
     pub const SPECIAL_COUNTER_MODE: u16 = 390u16;
     pub const COUNTER_ALIGNMENT: u16 = 391u16;
