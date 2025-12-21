@@ -1,5 +1,5 @@
 //! This module contains all of the encryption code for GD savefiles.
-use std::io::Write;
+use std::{fmt::Write, io::Write as IoWrite};
 
 use flate2::{Compression, write::ZlibEncoder};
 use plist::{Dictionary, Value};
@@ -46,41 +46,41 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
         return "<d />".to_owned();
     };
 
-    let mut dict_str = String::from(match root {
+    let mut dict_str = String::with_capacity(4_096);
+    dict_str.push_str(match root {
         true => "<dict>",
         false => "<d>",
     });
+
     for (key, value) in dict.iter() {
-        dict_str += &format!("<k>{key}</k>");
+        let _ = write!(dict_str, "<k>{key}</k>");
         match value {
             Value::String(s) => {
-                dict_str += &format!("<s>{s}</s>");
+                let _ = write!(dict_str, "<s>{s}</s>");
             }
             Value::Integer(int) => {
-                dict_str += &format!("<i>{int}</i>");
+                let _ = write!(dict_str, "<i>{int}</i>");
             }
             Value::Dictionary(dict) => {
-                dict_str += &stringify_xml(dict, false);
+                dict_str.push_str(&stringify_xml(dict, false));
             }
             Value::Boolean(b) => {
-                dict_str += &format!(
-                    "<{} />",
-                    match b {
-                        true => 't',
-                        false => 'f',
-                    }
-                );
+                if *b {
+                    dict_str.push_str("<t />");
+                } else {
+                    dict_str.push_str("<f />");
+                }
             }
             Value::Real(float) => {
-                dict_str += &format!("<r>{float}</r>");
+                let _ = write!(dict_str, "<r>{float}</r>");
             }
             _ => {}
         }
     }
 
-    dict_str += match root {
+    dict_str.push_str(match root {
         true => "</dict>",
         false => "</d>",
-    };
+    });
     return dict_str;
 }

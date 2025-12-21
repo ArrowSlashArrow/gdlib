@@ -59,23 +59,6 @@ pub enum LevelState {
     Decrypted(LevelData),
 }
 
-/// This struct contains level-specific information
-/// # Fields:
-/// * `title`: Title of the level
-/// * `author`: Author of the level
-/// * `description`: Author of the description
-/// * `data`: Encrypted or decrypted level data
-/// * `properties`: Other unspecified properties of this level
-#[derive(Debug, Clone)]
-pub struct Level {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub description: Option<String>,
-    pub data: Option<LevelState>,
-    pub song: Option<i64>,
-    pub properties: HashMap<String, Value>,
-}
-
 impl Levels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
     #[inline(always)]
@@ -198,8 +181,26 @@ impl Levels {
     }
 }
 
+#[inline(always)]
 fn vec_as_str(data: &Vec<u8>) -> String {
     String::from_utf8(data.to_vec()).unwrap()
+}
+
+/// This struct contains level-specific information
+/// # Fields:
+/// * `title`: Title of the level
+/// * `author`: Author of the level
+/// * `description`: Author of the description
+/// * `data`: Encrypted or decrypted level data
+/// * `properties`: Other unspecified properties of this level
+#[derive(Debug, Clone)]
+pub struct Level {
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub description: Option<String>,
+    pub data: Option<LevelState>,
+    pub song: Option<i64>,
+    pub properties: HashMap<String, Value>,
 }
 
 impl Level {

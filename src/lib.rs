@@ -13,7 +13,7 @@ mod tests {
 
     use crate::{
         deserialiser::decode_levels_to_string,
-        gdlevel::{Level, Levels},
+        gdlevel::{EncryptedLevelData, Level, Levels},
         gdobj::{
             GDObjConfig, MoveEasing,
             misc::default_block,
@@ -232,6 +232,39 @@ mod tests {
             println!("{obj:?}");
         }
     }
+
+    #[test]
+    fn serialise_level_benchmark() {
+        let mut level = Level::from_gmd("GMD_tests/big.gmd").unwrap();
+        level.decrypt_level_data();
+        let _ = benchmark("big.gmd serialise", || {
+            level.export_to_gmd("GMD_tests/big2.gmd")
+        });
+    }
+
+    // #[test]
+    // fn _temp_avg_level_size() {
+    //     let levels = Levels::from_local().unwrap();
+    //     let mut total_bytes = 0;
+    //     for level in &levels.levels {
+    //         let bytecount = match level.data.as_ref() {
+    //             Some(c) => match c {
+    //                 crate::gdlevel::LevelState::Encrypted(d) => d.data.len(),
+    //                 crate::gdlevel::LevelState::Decrypted(d) => d.objects.len(),
+    //             },
+    //             None => 0,
+    //         };
+    //         println!(
+    //             "Size of {:<32}: {bytecount:>8?} bytes",
+    //             level.title.as_ref().unwrap(),
+    //         );
+    //         total_bytes += bytecount;
+    //     }
+    //     println!(
+    //         "avg bytes / level: {}",
+    //         (total_bytes as f64) / (levels.levels.len() as f64)
+    //     )
+    // }
 
     #[test]
     fn local_levels_parse_benchmark() {

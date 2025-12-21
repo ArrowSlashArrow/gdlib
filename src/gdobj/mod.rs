@@ -1,6 +1,10 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::fmt::{Debug, Display, Write};
+use std::{
+    any::type_name,
+    fmt::{Debug, Display, Write},
+    str::FromStr,
+};
 
 use crate::gdobj::lookup::get_property_type;
 use itoa;
@@ -233,18 +237,39 @@ pub enum GDValue {
     String(String), // fallback
 }
 
+// for debug purposes
+
+// fn parse_with_err_handle<T>(s: &str, p: u16) -> T
+// where
+//     T: FromStr + Default + Display,
+//     <T as FromStr>::Err: Debug,
+// {
+//     match s.parse::<T>() {
+//         Ok(n) => n,
+//         Err(e) => {
+//             println!(
+//                 "Error with parsing property {p} with value {s}, type {} ({e:?})",
+//                 type_name::<T>()
+//             );
+//             T::default()
+//         }
+//     }
+// }
+
 impl GDValue {
-    pub fn from(t: GDObjPropType, s: &str) -> Self {
+    pub fn from(t: GDObjPropType, s: &str, p: u16) -> Self {
         match t {
             GDObjPropType::Bool => Self::Bool(s == "1"),
-            GDObjPropType::ColourChannel => {
-                Self::ColourChannel(ColourChannel::from_i32(s.parse::<i32>().unwrap()))
+            GDObjPropType::ColourChannel => Self::ColourChannel(ColourChannel::from_i32(
+                s.parse::<i32>().unwrap_or_default(),
+            )),
+            GDObjPropType::Easing => {
+                Self::Easing(MoveEasing::from_i32(s.parse::<i32>().unwrap_or_default()))
             }
-            GDObjPropType::Easing => Self::Easing(MoveEasing::from_i32(s.parse::<i32>().unwrap())),
-            GDObjPropType::Float => Self::Float(s.parse::<f64>().unwrap()),
-            GDObjPropType::Int => Self::Int(s.parse::<i32>().unwrap()),
-            GDObjPropType::Group => Self::Group(s.parse::<i16>().unwrap()),
-            GDObjPropType::Item => Self::Item(s.parse::<i16>().unwrap()),
+            GDObjPropType::Float => Self::Float(s.parse::<f64>().unwrap_or_default()),
+            GDObjPropType::Int => Self::Int(s.parse::<i32>().unwrap_or_default()),
+            GDObjPropType::Group => Self::Group(s.parse::<i16>().unwrap_or_default()),
+            GDObjPropType::Item => Self::Item(s.parse::<i16>().unwrap_or_default()),
             GDObjPropType::Text | GDObjPropType::Unknown => Self::String(s.to_owned()),
         }
     }
@@ -444,15 +469,6 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (3662, "Trigger Link visible"),
 ];
 
-// // TODO: UPDATE THIS!!!!!
-// pub const TRIGGER_OBJ_IDS: &[i32] = &[
-//     22, 23, 24, 25, 26, 27, 28, 32, 33, 55, 56, 57, 58, 59, 31,
-//     899, 901, 914, 1006, 1007, 1049, 1268, 1520, 1615, 1616, 1812,
-//     1815, 1816, 1818, 1819, 1912, 1913, 1915, 1917, 1932, 1934, 1935,
-//     2016, 2066, 3600, 3606, 3612, 3615, 3617, 3618, 3619, 3620, 3640,
-//     3641, 3643, 3662,
-// ];
-
 /// Container for GD Object properties.
 /// * `id`: The object's ID.
 /// * `config`: General properties like position and scale.
@@ -623,6 +639,7 @@ impl GDObject {
             GDValue::from(
                 get_property_type(p).unwrap_or(GDObjPropType::Unknown),
                 value,
+                p,
             ),
         );
     }
