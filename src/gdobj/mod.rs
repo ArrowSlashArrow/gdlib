@@ -1,12 +1,17 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{
-    any::type_name,
-    fmt::{Debug, Display, Write},
-    str::FromStr,
-};
+use std::fmt::{Debug, Display, Write};
 
-use crate::gdobj::lookup::get_property_type;
+use crate::gdobj::{
+    ids::properties::{
+        CENTER_EFFECT, DONT_BOOST_X, DONT_BOOST_Y, DONT_ENTER, DONT_FADE, EXTRA_STICKY, GRIP_SLOPE,
+        HAS_EXTENDED_COLLISION, HIDDEN, IS_AREA_PARENT, IS_GROUP_PARENT, IS_HIGH_DETAIL,
+        IS_ICE_BLOCK, NO_AUDIO_SCALE, NO_GLOW, NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH,
+        NONSTICK_X, NONSTICK_Y, PASSABLE, REVERSE_GAMEPLAY, REVERSES_GAMEPLAY, SCALE_STICK,
+        SINGLE_PLAYER_TOUCH,
+    },
+    lookup::get_property_type,
+};
 use itoa;
 use smallvec::SmallVec;
 
@@ -257,7 +262,7 @@ pub enum GDValue {
 // }
 
 impl GDValue {
-    pub fn from(t: GDObjPropType, s: &str, p: u16) -> Self {
+    pub fn from(t: GDObjPropType, s: &str) -> Self {
         match t {
             GDObjPropType::Bool => Self::Bool(s == "1"),
             GDObjPropType::ColourChannel => Self::ColourChannel(ColourChannel::from_i32(
@@ -639,7 +644,6 @@ impl GDObject {
             GDValue::from(
                 get_property_type(p).unwrap_or(GDObjPropType::Unknown),
                 value,
-                p,
             ),
         );
     }
@@ -840,7 +844,7 @@ impl GDObjConfig {
     /// Converts this config to a properties hashmap
     pub fn to_string(&self) -> String {
         let mut properties = format!(
-            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},64,{},67,{},116,{},34,{},279,{},509,{},496,{},103,{},121,{},134,{},135,{},136,{},289,{},495,{},511,{},137,{},193,{},96,{},507,{},356,{},372,{},284,{},369,{},117,{},534,{}",
+            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},534,{}{}",
             self.pos.0,
             self.pos.1,
             self.angle,
@@ -857,31 +861,8 @@ impl GDObjConfig {
             self.z_order,
             self.enter_effect_channel,
             self.material_id,
-            self.attributes.dont_fade as u8,
-            self.attributes.dont_enter as u8,
-            self.attributes.no_effects as u8,
-            self.attributes.is_group_parent as u8,
-            self.attributes.is_area_parent as u8,
-            self.attributes.dont_boost_x as u8,
-            self.attributes.dont_boost_y as u8,
-            self.attributes.high_detail as u8,
-            self.attributes.no_touch as u8,
-            self.attributes.passable as u8,
-            self.attributes.hidden as u8,
-            self.attributes.non_stick_x as u8,
-            self.attributes.non_stick_y as u8,
-            self.attributes.extra_sticky as u8,
-            self.attributes.extended_collision as u8,
-            self.attributes.is_ice_block as u8,
-            self.attributes.grip_slope as u8,
-            self.attributes.no_glow as u8,
-            self.attributes.no_particles as u8,
-            self.attributes.scale_stick as u8,
-            self.attributes.no_audio_scale as u8,
-            self.attributes.single_ptouch as u8,
-            self.attributes.center_effect as u8,
-            self.attributes.reverse as u8,
-            self.material_control_id
+            self.material_control_id,
+            self.attributes.get_property_str()
         );
 
         if !self.groups.is_empty() {
@@ -1240,6 +1221,44 @@ impl GDObjAttributes {
             single_ptouch: false,
             reverse: false,
         }
+    }
+
+    pub fn get_property_str(&self) -> String {
+        let fields = [
+            (DONT_FADE, self.dont_fade),
+            (DONT_ENTER, self.dont_enter),
+            (NO_OBJECT_EFFECTS, self.no_effects),
+            (IS_GROUP_PARENT, self.is_group_parent),
+            (IS_AREA_PARENT, self.is_area_parent),
+            (DONT_BOOST_X, self.dont_boost_x),
+            (DONT_BOOST_Y, self.dont_boost_y),
+            (IS_HIGH_DETAIL, self.high_detail),
+            (NO_TOUCH, self.no_touch),
+            (PASSABLE, self.passable),
+            (HIDDEN, self.hidden),
+            (NONSTICK_X, self.non_stick_x),
+            (NONSTICK_Y, self.non_stick_y),
+            (EXTRA_STICKY, self.extra_sticky),
+            (HAS_EXTENDED_COLLISION, self.extended_collision),
+            (IS_ICE_BLOCK, self.is_ice_block),
+            (GRIP_SLOPE, self.grip_slope),
+            (NO_GLOW, self.no_glow),
+            (NO_PARTICLES, self.no_particles),
+            (SCALE_STICK, self.scale_stick),
+            (NO_AUDIO_SCALE, self.no_audio_scale),
+            (SINGLE_PLAYER_TOUCH, self.single_ptouch),
+            (CENTER_EFFECT, self.center_effect),
+            (REVERSES_GAMEPLAY, self.reverse),
+        ];
+        let mut properties_str = String::with_capacity(6 * fields.len());
+
+        for (id, val) in fields {
+            if val {
+                let _ = write!(properties_str, ",{id},1");
+            }
+        }
+
+        properties_str
     }
 
     /// Alias for `new()`
