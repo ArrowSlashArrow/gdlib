@@ -152,9 +152,11 @@ pub mod properties {
     pub const PULSE_FADE_IN_TIME: u16 = 45u16;
     pub const PULSE_HOLD_TIME: u16 = 46u16;
     pub const PULSE_FADE_OUT_TIME: u16 = 47u16;
+    pub const HSV_IS_ENABLED: u16 = 48u16;
     pub const COPY_COLOUR_SPECS: u16 = 49u16;
     pub const COPY_COLOUR_FROM_CHANNEL: u16 = 50u16;
     pub const TARGET_ITEM: u16 = 51u16;
+    pub const PULSE_GROUP: u16 = 52u16;
     pub const ACTIVATE_GROUP: u16 = 56u16;
     pub const GROUPS: u16 = 57u16;
     pub const FOLLOW_PLAYERS_X_MOVEMENT: u16 = 58u16;
@@ -164,6 +166,8 @@ pub mod properties {
     pub const SPAWN_TRIGGERABLE: u16 = 62u16;
     pub const SPAWN_DELAY: u16 = 63u16;
     pub const DONT_FADE: u16 = 64u16;
+    pub const PULSE_MAIN_COLOUR_ONLY: u16 = 65u16;
+    pub const PULSE_DETAIL_COLOUR_ONLY: u16 = 66u16;
     pub const DONT_ENTER: u16 = 67u16;
     pub const TARGET_ITEM_2: u16 = 71u16;
     pub const XAXIS_FOLLOW_MOD: u16 = 72u16;

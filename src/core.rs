@@ -51,7 +51,7 @@ impl Display for GDError {
     }
 }
 
-/// Returns path of CCLocalLevels.dat if it exists, otherwise return Err
+/// Returns path of CCLocalLevels.dat if it exists
 pub fn get_local_levels_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA")
         && Path::new(&local_appdata).exists()
@@ -93,6 +93,7 @@ pub fn proper_plist_tags(s: String) -> String {
 }
 
 /// Quick function for decoding base64 bytes
+#[inline(always)]
 pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
     base64::engine::general_purpose::URL_SAFE
         .decode(encoded)
@@ -100,6 +101,7 @@ pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
 }
 
 /// Quick function for encoding base64 bytes
+#[inline(always)]
 pub fn b64_encode(encoded: Vec<u8>) -> String {
     base64::engine::general_purpose::URL_SAFE.encode(encoded)
 }

@@ -12,26 +12,29 @@ use crate::gdobj::{
             TRIGGER_CAMERA_ZOOM, TRIGGER_COLLISION, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END,
             TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
             TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
-            TRIGGER_PLAYER_CONTROL, TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY,
-            TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
-            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
+            TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
+            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE,
+            TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
+            TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
-            ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
-            CAMERA_ZOOM, CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR,
-            CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, CONTROLLING_TARGET_PLAYER,
-            COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT,
-            DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW,
+            self, ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE,
+            CAMERA_GUIDE_PREVIEW_OPACITY, CAMERA_ZOOM, CENTER_GROUP_ID, CLAIM_TOUCH,
+            COLOUR_CHANNEL, COMPARE_OPERATOR, CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2,
+            CONTROLLING_TARGET_PLAYER, COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY,
+            COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW,
             DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE,
-            ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, FIRST_ITEM_TYPE,
+            ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, EXCLUSIVE_PULSE_MODE, FIRST_ITEM_TYPE,
             FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT,
             FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END,
             IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
             LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING,
             MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
-            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, RANDOM_PROBABLITIES_LIST,
-            RED, RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR,
-            RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
+            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, PULSE_DETAIL_COLOUR_ONLY,
+            PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME, PULSE_GROUP, PULSE_HOLD_TIME,
+            PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED, RESET_CAMERA, RESET_ITEM_TO_0,
+            RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE, RIGHT_SIGN_MODE,
+            ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
             ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
             SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER, SECONDS_ONLY,
             SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE, SMALL_STEP,
@@ -50,6 +53,8 @@ use crate::gdobj::{
         },
     },
 };
+
+use std::fmt::Write;
 
 /*
 template
@@ -254,7 +259,7 @@ pub struct DirectionalMove {
     pub distance: i32,
 }
 
-/// Enum for
+/// Enum for starting speed in a startpos
 #[repr(i32)]
 pub enum StartingSpeed {
     X0Point5 = 1,
@@ -262,6 +267,71 @@ pub enum StartingSpeed {
     X2 = 2,
     X3 = 3,
     X4 = 4,
+}
+
+/// Config struct for HSV colour settings
+pub struct HSVColour {
+    pub hue_shift: i32,
+    pub saturation_mult: f64,
+    pub brightness_mult: f64,
+    pub static_sat_scalar: bool,
+    pub static_bright_scalar: bool,
+}
+
+impl HSVColour {
+    pub fn to_string(&self) -> String {
+        format!(
+            "{}a{}a{}a{}a{}",
+            self.hue_shift,
+            self.saturation_mult,
+            self.brightness_mult,
+            if self.static_sat_scalar { "1" } else { "0" },
+            if self.static_bright_scalar { "1" } else { "0" }
+        )
+    }
+}
+
+/// Enum for target of pulse
+pub enum PulseTarget {
+    Group(PulseGroup),
+    Channel(PulseChannel),
+}
+
+/// Config struct for channel pulses
+pub struct PulseChannel {
+    pub channel_id: i16,
+}
+
+/// Config struct for group pulses
+pub struct PulseGroup {
+    pub group_id: i16,
+    pub main_colour_only: bool,
+    pub detail_colour_only: bool,
+}
+
+pub enum PulseMode {
+    Colour(PulseColour),
+    HSV(PulseHSV),
+}
+
+pub struct PulseColour {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+pub struct PulseHSV {
+    pub hsv_config: HSVColour,
+    pub use_static_hsv: bool,
+    pub colour_id: ColourChannel,
+}
+
+/// Config struct for copy colour options
+pub struct CopyColourConfig {
+    pub original_ch: ColourChannel,
+    pub hsv_config: HSVColour,
+    pub use_legacy_hsv: bool,
+    pub copy_opacity: bool,
 }
 
 /// Returns a move trigger object
@@ -440,9 +510,7 @@ pub fn start_pos(
 /// * `blending`: Use blending?
 /// * `use_player_col_1`: Use player colour 1 instead of the specified colour.
 /// * `use_player_col_2`: Use player colour 2 instead of the specified colour.
-/// * `copy_colour`: None: Don't copy colour; Some: Copy colour with this configuation:
-/// (original channel, hue shift, saturation multiplier, brightness multiplier, static saturation scalar?,
-/// static brightness scalar?, use legacy hsv?, copy opacity?)
+/// * `copy_colour`: Optional [`CopyColourConfig`]
 pub fn colour_trigger(
     config: GDObjConfig,
     colour: (u8, u8, u8),
@@ -452,50 +520,86 @@ pub fn colour_trigger(
     blending: bool,
     use_player_col_1: bool,
     use_player_col_2: bool,
-    copy_colour: Option<(ColourChannel, i32, f64, f64, bool, bool, bool, bool)>,
+    copy_colour: Option<CopyColourConfig>,
 ) -> GDObject {
     let mut properties = vec![
         (RED, GDValue::Int(colour.0 as i32)),
         (GREEN, GDValue::Int(colour.1 as i32)),
         (BLUE, GDValue::Int(colour.2 as i32)),
         (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
-        (USING_PLAYER_COLOUR_1, GDValue::Int(use_player_col_1 as i32)),
-        (USING_PLAYER_COLOUR_2, GDValue::Int(use_player_col_2 as i32)),
+        (USING_PLAYER_COLOUR_1, GDValue::Bool(use_player_col_1)),
+        (USING_PLAYER_COLOUR_2, GDValue::Bool(use_player_col_2)),
         (COLOUR_CHANNEL, GDValue::Int(channel.as_i32())),
         (OPACITY, GDValue::Float(opacity)),
         (BLENDING_ENABLED, GDValue::Bool(blending)),
     ];
 
-    if let Some((
-        channel,
-        hue,
-        saturation,
-        lightness,
-        static_sat_scalar,
-        static_brightness_scalar,
-        legacy_hsv,
-        copy_opacity,
-    )) = copy_colour
-    {
-        let mut cfg_string = format!(
-            "{hue}a{saturation}a{lightness}a{}a",
-            static_sat_scalar as i32
-        );
-        if !legacy_hsv {
-            cfg_string += &format!("{}", static_brightness_scalar as i32);
+    if let Some(config) = copy_colour {
+        let cfg_string = config.hsv_config.to_string();
+        if !config.use_legacy_hsv {
             properties.push((NO_LEGACY_HSV, GDValue::Bool(true)));
         }
 
-        properties.push((COPY_OPACITY, GDValue::Bool(copy_opacity)));
+        properties.push((COPY_OPACITY, GDValue::Bool(config.copy_opacity)));
         properties.push((COPY_COLOUR_SPECS, GDValue::String(cfg_string)));
-        properties.push((COPY_COLOUR_FROM_CHANNEL, GDValue::Int(channel.as_i32())));
+        properties.push((COPY_COLOUR_FROM_CHANNEL, GDValue::ColourChannel(channel)));
     }
 
     GDObject::new(TRIGGER_COLOUR, config, properties)
 }
 
+pub fn pulse_trigger(
+    config: GDObjConfig,
+    pulse_fade_in_time: f64,
+    pulse_hold_time: f64,
+    pulse_fade_out_time: f64,
+    exclusive_pulse: bool,
+    pulse_target: PulseTarget,
+    pulse_mode: PulseMode,
+) -> GDObject {
+    let mut properties = vec![
+        (PULSE_FADE_IN_TIME, GDValue::Float(pulse_fade_in_time)),
+        (PULSE_HOLD_TIME, GDValue::Float(pulse_hold_time)),
+        (PULSE_FADE_OUT_TIME, GDValue::Float(pulse_fade_out_time)),
+        (EXCLUSIVE_PULSE_MODE, GDValue::Bool(exclusive_pulse)),
+    ];
+    match pulse_target {
+        PulseTarget::Channel(c) => properties.push((TARGET_ITEM, GDValue::Group(c.channel_id))),
+        PulseTarget::Group(g) => {
+            properties.extend_from_slice(&[
+                (
+                    PULSE_DETAIL_COLOUR_ONLY,
+                    GDValue::Bool(g.detail_colour_only),
+                ),
+                (PULSE_MAIN_COLOUR_ONLY, GDValue::Bool(g.main_colour_only)),
+                (PULSE_GROUP, GDValue::Group(g.group_id)),
+            ]);
+        }
+    }
+
+    match pulse_mode {
+        PulseMode::Colour(c) => {
+            properties.extend_from_slice(&[
+                (RED, GDValue::Int(c.red as i32)),
+                (GREEN, GDValue::Int(c.green as i32)),
+                (BLUE, GDValue::Int(c.blue as i32)),
+            ]);
+        }
+        PulseMode::HSV(h) => {
+            properties.extend_from_slice(&[
+                (NO_LEGACY_HSV, GDValue::Bool(h.use_static_hsv)),
+                (COPY_COLOUR_SPECS, GDValue::String(h.hsv_config.to_string())),
+                (
+                    COPY_COLOUR_FROM_CHANNEL,
+                    GDValue::ColourChannel(h.colour_id),
+                ),
+            ]);
+        }
+    }
+    GDObject::new(TRIGGER_PULSE, config, properties)
+}
+
 /// Returns a stop trigger
-///
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Target group to stop/pause/resume
@@ -561,9 +665,6 @@ pub fn toggle_trigger(config: GDObjConfig, target_group: i16, activate_group: bo
         ],
     )
 }
-
-// todo
-fn pulse_trigger(config: GDObjConfig) {}
 
 /// Returns a transition object
 /// # Arguments
@@ -1531,6 +1632,7 @@ pub fn ui_config_trigger(
  * edit advanced follow
  * re-target advanced follow
  * keyframe setup trigger
+ * keyframe setup object
  *
  * Area triggers
  * area move
