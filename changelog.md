@@ -3,6 +3,8 @@
 ## Update 0.2.6
  * Added error type
  * Removed all\* magic numbers from trigger constructor functions in triggers.rs
+ * Added follow, animate, count, advanced random, ui config, pulse triggers
+ * Optimised GD plist serialiser
 
 ## Update 0.2.5
  * Improved performance of the GDObject deserialiser
