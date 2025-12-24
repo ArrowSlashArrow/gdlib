@@ -81,6 +81,7 @@ pub mod objects {
     pub const TRIGGER_ALPHA: i32 = 1007;
     pub const TRIGGER_TOGGLE: i32 = 1049;
     pub const TRIGGER_SPAWN: i32 = 1268;
+    pub const TRIGGER_ROTATION: i32 = 1346;
     pub const TRIGGER_FOLLOW: i32 = 1347;
     pub const TRIGGER_SHAKE: i32 = 1520;
     pub const TRIGGER_ANIMATE: i32 = 1585;
@@ -146,9 +147,10 @@ pub mod properties {
     pub const MOVE_UNITS_Y: u16 = 29u16;
     pub const MOVE_EASING: u16 = 30u16;
     pub const BASE64ENCODED_TEXT: u16 = 31u16;
+    pub const SCALE: u16 = 32u16;
     pub const IS_GROUP_PARENT: u16 = 34u16;
     pub const OPACITY: u16 = 35u16;
-    pub const IS_ACTIVE_TRIGGER: u16 = 36u16;
+    pub const IS_INTERACTIBLE: u16 = 36u16;
     pub const PULSE_FADE_IN_TIME: u16 = 45u16;
     pub const PULSE_HOLD_TIME: u16 = 46u16;
     pub const PULSE_FADE_OUT_TIME: u16 = 47u16;
@@ -169,6 +171,9 @@ pub mod properties {
     pub const PULSE_MAIN_COLOUR_ONLY: u16 = 65u16;
     pub const PULSE_DETAIL_COLOUR_ONLY: u16 = 66u16;
     pub const DONT_ENTER: u16 = 67u16;
+    pub const ROTATE_DEGREES: u16 = 68u16;
+    pub const ROTATE_X360: u16 = 69u16;
+    pub const LOCK_OBJECT_ROTATION: u16 = 70u16;
     pub const TARGET_ITEM_2: u16 = 71u16;
     pub const XAXIS_FOLLOW_MOD: u16 = 72u16;
     pub const YAXIS_FOLLOW_MOD: u16 = 73u16;
@@ -196,6 +201,8 @@ pub mod properties {
     pub const NO_TOUCH: u16 = 121u16;
     pub const X_SCALE: u16 = 128u16;
     pub const Y_SCALE: u16 = 129u16;
+    pub const Y_WARP_ANGLE: u16 = 131u16;
+    pub const X_WARP_ANGLE: u16 = 132u16;
     pub const PASSABLE: u16 = 134u16;
     pub const HIDDEN: u16 = 135u16;
     pub const NONSTICK_X: u16 = 136u16;
@@ -237,6 +244,9 @@ pub mod properties {
     pub const DYNAMIC_MOVE: u16 = 397u16;
     pub const PREP: u16 = 399u16;
     pub const LOAD_PREP: u16 = 400u16;
+    pub const ROTATION_TARGET_ID: u16 = 401u16;
+    pub const ROTATION_OFFSET: u16 = 402u16;
+    pub const DYNAMIC_MOVE_EASING: u16 = 403u16;
     pub const SONG_SPEED: u16 = 404u16;
     pub const SONG_VOLUME: u16 = 406u16;
     pub const START_OFFSET_IN_MS: u16 = 408u16;
@@ -279,6 +289,10 @@ pub mod properties {
     pub const NO_PARTICLES: u16 = 507u16;
     pub const DONT_BOOST_X: u16 = 509u16;
     pub const HAS_EXTENDED_COLLISION: u16 = 511u16;
+    pub const MINX_ID: u16 = 516u16;
+    pub const MINY_ID: u16 = 517u16;
+    pub const MAXX_ID: u16 = 518u16;
+    pub const MAXY_ID: u16 = 519u16;
     pub const MATERIAL_CONTROL_ID: u16 = 534u16;
     pub const USE_CONTROL_ID: u16 = 535u16;
     pub const STOP_PLAYER_JUMP: u16 = 540u16;

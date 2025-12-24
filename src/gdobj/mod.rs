@@ -7,8 +7,7 @@ use crate::gdobj::{
         CENTER_EFFECT, DONT_BOOST_X, DONT_BOOST_Y, DONT_ENTER, DONT_FADE, EXTRA_STICKY, GRIP_SLOPE,
         HAS_EXTENDED_COLLISION, HIDDEN, IS_AREA_PARENT, IS_GROUP_PARENT, IS_HIGH_DETAIL,
         IS_ICE_BLOCK, NO_AUDIO_SCALE, NO_GLOW, NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH,
-        NONSTICK_X, NONSTICK_Y, PASSABLE, REVERSE_GAMEPLAY, REVERSES_GAMEPLAY, SCALE_STICK,
-        SINGLE_PLAYER_TOUCH,
+        NONSTICK_X, NONSTICK_Y, PASSABLE, REVERSES_GAMEPLAY, SCALE_STICK, SINGLE_PLAYER_TOUCH,
     },
     lookup::get_property_type,
 };
@@ -435,6 +434,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1007, "Trigger Alpha"),
     (1049, "Trigger Toggle"),
     (1268, "Trigger Spawn"),
+    (1346, "Trigger Rotation"),
     (1347, "Trigger Follow"),
     (1520, "Trigger Shake"),
     (1585, "Trigger Animate"),

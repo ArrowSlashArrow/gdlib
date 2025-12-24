@@ -13,9 +13,9 @@ use crate::gdobj::{
             TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
             TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
             TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
-            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE,
-            TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
-            TRIGGER_TOGGLE, UI_CONFIG,
+            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SHAKE, TRIGGER_SPAWN,
+            TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT,
+            TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
             self, ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE,
@@ -27,14 +27,15 @@ use crate::gdobj::{
             ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, EXCLUSIVE_PULSE_MODE, FIRST_ITEM_TYPE,
             FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT,
             FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END,
-            IS_ACTIVE_TRIGGER, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
-            LEFT_SIGN_MODE, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MODIFIER, MOVE_EASING,
-            MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT,
-            NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, OPACITY, PULSE_DETAIL_COLOUR_ONLY,
-            PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME, PULSE_GROUP, PULSE_HOLD_TIME,
-            PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED, RESET_CAMERA, RESET_ITEM_TO_0,
-            RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR, RIGHT_ROUND_MODE, RIGHT_SIGN_MODE,
-            ROTATE_GAMEPLAY, ROTATION_OF_SPAWNED_PARTICLES,
+            IS_DISABLED, IS_INTERACTIBLE, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE,
+            LOCK_OBJECT_ROTATION, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAXX_ID, MAXY_ID, MINX_ID,
+            MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE,
+            MULTIACTIVATABLE_TIME_EVENT, NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV,
+            OPACITY, PULSE_DETAIL_COLOUR_ONLY, PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME,
+            PULSE_GROUP, PULSE_HOLD_TIME, PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED,
+            RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR,
+            RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_DEGREES, ROTATE_GAMEPLAY, ROTATE_X360,
+            ROTATION_OF_SPAWNED_PARTICLES, ROTATION_OFFSET, ROTATION_TARGET_ID,
             ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
             SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER, SECONDS_ONLY,
             SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE, SMALL_STEP,
@@ -53,8 +54,6 @@ use crate::gdobj::{
         },
     },
 };
-
-use std::fmt::Write;
 
 /*
 template
@@ -548,6 +547,16 @@ pub fn colour_trigger(
     GDObject::new(TRIGGER_COLOUR, config, properties)
 }
 
+/// Returns a pulse trigger
+///
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `pulse_fade_in_time`: fade-in time of the pulse in seconds  
+/// * `pulse_hold_time`: gold time of the pulse in seconds  
+/// * `pulse_fade_out_time`: fade-out time of the pulse in seconds  
+/// * `exclusive_pulse`: disable all other pulses of the same ID when this trigger is activated
+/// * `pulse_target`: Target group/channel of pulse. See [`PulseTarget`]
+/// * `pulse_mode`: Colour settings of this pulse. See [`PulseMode`]
 pub fn pulse_trigger(
     config: GDObjConfig,
     pulse_fade_in_time: f64,
@@ -1008,7 +1017,7 @@ pub fn item_edit(
         TRIGGER_ITEM_EDIT,
         config,
         vec![
-            (IS_ACTIVE_TRIGGER, GDValue::Int(1)),
+            (IS_INTERACTIBLE, GDValue::Int(1)),
             (TARGET_ITEM, GDValue::Item(target_id)),
             (INPUT_ITEM_1, GDValue::Int(op_1.0)),
             (INPUT_ITEM_2, GDValue::Int(op_2.0)),
@@ -1618,10 +1627,122 @@ pub fn ui_config_trigger(
     )
 }
 
+/// Enum for rotation configs
+pub enum RotationMode {
+    Default(RotationNormal),
+    Aim(RotationAim),
+    Follow(RotationAim),
+}
+
+pub struct RotationNormal {
+    pub degrees: f64,
+    pub x360: i32,
+}
+
+pub enum RotationPlayerTarget {
+    Player1,
+    Player2,
+}
+
+/// Config struct for aim mode rotation
+/// # Fields
+/// * `aim_target`: Group around which to rotate
+/// * `rot_offset`: Rotation offset of the rotating group
+/// * `player_target`: Overrides aim_target if not None, uses either P1 or P2 as the target instead.
+pub struct RotationAim {
+    pub aim_target: i16,
+    pub rot_offset: f64,
+    pub player_target: Option<RotationPlayerTarget>,
+}
+
+/// Returns a rotate trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `move_time`: Time to rotate the target
+/// * `rotation_mode`: See [`RotationMode`]
+/// * `dynamic_mode`: Update location of aim group in real time]
+/// * `lock_object_rotation`: Prevent target object from rotating around its center
+/// * `easing`: optional move easing and rate. See [`MoveEasing`]
+/// * `target_group`: Group that will rotate
+/// * `center_group_id`: Group that is being rotated around
+/// * `bounding_box`: Optional vertices of a bounding box that limit the position of the rotation group.
+/// The tuple corresponds to the `MinX`, `MinY`, `MaxX`, `MaxY` group ids respectively in the rotate trigger.
+pub fn rotate_trigger(
+    config: GDObjConfig,
+    move_time: f64,
+    rotation_mode: RotationMode,
+    dynamic_mode: bool,
+    lock_object_rotation: bool,
+    easing: Option<(MoveEasing, f64)>,
+    target_group: i16,
+    center_group_id: i16,
+    bounding_box: Option<(i16, i16, i16, i16)>,
+) -> GDObject {
+    let mut properties = vec![
+        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(move_time)),
+        (DYNAMIC_MOVE, GDValue::Bool(dynamic_mode)),
+        (LOCK_OBJECT_ROTATION, GDValue::Bool(lock_object_rotation)),
+        (TARGET_ITEM, GDValue::Group(target_group)),
+        (TARGET_ITEM_2, GDValue::Group(center_group_id)),
+    ];
+
+    match rotation_mode {
+        RotationMode::Aim(cfg) => {
+            properties.extend_from_slice(&[
+                (TARGET_MOVE_MODE, GDValue::Bool(true)),
+                (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
+                (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
+            ]);
+
+            if let Some(player) = cfg.player_target {
+                properties.push(match player {
+                    RotationPlayerTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
+                    RotationPlayerTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
+                });
+            }
+        }
+        RotationMode::Follow(cfg) => {
+            properties.extend_from_slice(&[
+                (DIRECTIONAL_MOVE_MODE, GDValue::Bool(true)),
+                (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
+                (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
+            ]);
+
+            if let Some(player) = cfg.player_target {
+                properties.push(match player {
+                    RotationPlayerTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
+                    RotationPlayerTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
+                });
+            }
+        }
+        RotationMode::Default(cfg) => {
+            properties.extend_from_slice(&[
+                (ROTATE_DEGREES, GDValue::Float(cfg.degrees)),
+                (ROTATE_X360, GDValue::Int(cfg.x360)),
+            ]);
+        }
+    }
+
+    if let Some((easing, rate)) = easing {
+        properties.extend_from_slice(&[
+            (MOVE_EASING, GDValue::Easing(easing)),
+            (EASING_RATE, GDValue::Float(rate)),
+        ]);
+    }
+
+    if let Some((min_x, min_y, max_x, max_y)) = bounding_box {
+        properties.extend_from_slice(&[
+            (MINX_ID, GDValue::Group(min_x)),
+            (MINY_ID, GDValue::Group(min_y)),
+            (MAXX_ID, GDValue::Group(max_x)),
+            (MAXY_ID, GDValue::Group(max_y)),
+        ]);
+    }
+
+    GDObject::new(TRIGGER_ROTATION, config, properties)
+}
+
 /* TODO: trigger constructors
- * 2nd part of basics
- * pulse trigger
- *
  * Animation triggers
  * rotate trigger
  * scale trigger

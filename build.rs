@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use std::{fmt::Write, fs};
 
 use syn::{Expr, ExprArray, ExprLit, ExprTuple, Item, Lit};

@@ -13,7 +13,7 @@ mod tests {
 
     use crate::{
         deserialiser::decode_levels_to_string,
-        gdlevel::{EncryptedLevelData, Level, Levels},
+        gdlevel::{Level, Levels},
         gdobj::{
             GDObjConfig, MoveEasing,
             misc::default_block,
@@ -175,7 +175,7 @@ mod tests {
             GDObjConfig::default().pos(45.0, 45.0),
             vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
         ));
-        level.export_to_gmd("GMDS/adv_random.gmd");
+        let _ = level.export_to_gmd("GMDS/adv_random.gmd");
     }
 
     #[test]
