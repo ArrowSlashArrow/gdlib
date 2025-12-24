@@ -13,29 +13,30 @@ use crate::gdobj::{
             TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
             TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
             TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
-            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SHAKE, TRIGGER_SPAWN,
-            TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT,
-            TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
+            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SCALE, TRIGGER_SHAKE,
+            TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL,
+            TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
-            self, ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE,
-            CAMERA_GUIDE_PREVIEW_OPACITY, CAMERA_ZOOM, CENTER_GROUP_ID, CLAIM_TOUCH,
-            COLOUR_CHANNEL, COMPARE_OPERATOR, CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2,
-            CONTROLLING_TARGET_PLAYER, COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY,
-            COUNTER_ALIGNMENT, DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW,
-            DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE, EASING_RATE,
-            ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, EXCLUSIVE_PULSE_MODE, FIRST_ITEM_TYPE,
-            FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_PLAYERS_X_MOVEMENT,
-            FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END,
-            IS_DISABLED, IS_INTERACTIBLE, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE,
-            LOCK_OBJECT_ROTATION, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAXX_ID, MAXY_ID, MINX_ID,
-            MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE,
-            MULTIACTIVATABLE_TIME_EVENT, NO_END_EFFECTS, NO_END_SOUND_EFFECTS, NO_LEGACY_HSV,
-            OPACITY, PULSE_DETAIL_COLOUR_ONLY, PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME,
-            PULSE_GROUP, PULSE_HOLD_TIME, PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED,
-            RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY, RIGHT_OPERATOR,
-            RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_DEGREES, ROTATE_GAMEPLAY, ROTATE_X360,
-            ROTATION_OF_SPAWNED_PARTICLES, ROTATION_OFFSET, ROTATION_TARGET_ID,
+            ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
+            CAMERA_ZOOM, CENTER_GROUP_ID, CLAIM_TOUCH, COLOUR_CHANNEL, COMPARE_OPERATOR,
+            CONTROLLING_PLAYER_1, CONTROLLING_PLAYER_2, CONTROLLING_TARGET_PLAYER,
+            COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT,
+            DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DIV_BY_VALUE_X,
+            DIV_BY_VALUE_Y, DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE,
+            EASING_RATE, ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, EXCLUSIVE_PULSE_MODE,
+            FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT,
+            FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1,
+            INPUT_ITEM_2, INSTANT_END, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
+            LEFT_SIGN_MODE, LOCK_OBJECT_ROTATION, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAXX_ID,
+            MAXY_ID, MINX_ID, MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y,
+            MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT, NEW_X_SCALE, NEW_Y_SCALE, NO_END_EFFECTS,
+            NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, ONLY_MOVE, OPACITY, PULSE_DETAIL_COLOUR_ONLY,
+            PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME, PULSE_GROUP, PULSE_HOLD_TIME,
+            PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED, RELATIVE_ROTATION,
+            RELATIVE_SCALE, RESET_CAMERA, RESET_ITEM_TO_0, RESET_REMAP, REVERSE_GAMEPLAY,
+            RIGHT_OPERATOR, RIGHT_ROUND_MODE, RIGHT_SIGN_MODE, ROTATE_DEGREES, ROTATE_GAMEPLAY,
+            ROTATE_X360, ROTATION_OF_SPAWNED_PARTICLES, ROTATION_OFFSET, ROTATION_TARGET_ID,
             ROTATION_VARIATION_OF_SPAWNED_PARTICLES, SCALE_OF_SPAWNED_PARTICLES,
             SCALE_VARIATION_OF_SPAWNED_PARTICLES, SECOND_ITEM_TYPE, SECOND_MODIFIER, SECONDS_ONLY,
             SET_PERSISTENT_ITEM, SHAKE_INTERVAL, SHAKE_STRENGTH, SILENT_MOVE, SMALL_STEP,
@@ -48,9 +49,10 @@ use crate::gdobj::{
             TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, TRIGGER_ON_EXIT,
             USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
             X_OFFSET_OF_SPAWNED_PARTICLES, X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
-            X_REFERENCE_IS_RELATIVE, X_REFERENCE_POSITION, XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER,
-            Y_OFFSET_OF_SPAWNED_PARTICLES, Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
-            Y_REFERENCE_IS_RELATIVE, Y_REFERENCE_POSITION, YAXIS_FOLLOW_MOD,
+            X_REFERENCE_IS_RELATIVE, X_REFERENCE_POSITION, X_SCALE, XAXIS_FOLLOW_MOD,
+            Y_MOVEMENT_MULTIPLIER, Y_OFFSET_OF_SPAWNED_PARTICLES,
+            Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, Y_REFERENCE_IS_RELATIVE, Y_REFERENCE_POSITION,
+            Y_SCALE, YAXIS_FOLLOW_MOD,
         },
     },
 };
@@ -331,6 +333,34 @@ pub struct CopyColourConfig {
     pub hsv_config: HSVColour,
     pub use_legacy_hsv: bool,
     pub copy_opacity: bool,
+}
+
+/// Enum for rotation configs
+pub enum RotationMode {
+    Default(RotationNormal),
+    Aim(RotationAim),
+    Follow(RotationAim),
+}
+
+pub struct RotationNormal {
+    pub degrees: f64,
+    pub x360: i32,
+}
+
+pub enum RotationPlayerTarget {
+    Player1,
+    Player2,
+}
+
+/// Config struct for aim mode rotation
+/// # Fields
+/// * `aim_target`: Group around which to rotate
+/// * `rot_offset`: Rotation offset of the rotating group
+/// * `player_target`: Overrides aim_target if not None, uses either P1 or P2 as the target instead.
+pub struct RotationAim {
+    pub aim_target: i16,
+    pub rot_offset: f64,
+    pub player_target: Option<RotationPlayerTarget>,
 }
 
 /// Returns a move trigger object
@@ -1017,7 +1047,6 @@ pub fn item_edit(
         TRIGGER_ITEM_EDIT,
         config,
         vec![
-            (IS_INTERACTIBLE, GDValue::Int(1)),
             (TARGET_ITEM, GDValue::Item(target_id)),
             (INPUT_ITEM_1, GDValue::Int(op_1.0)),
             (INPUT_ITEM_2, GDValue::Int(op_2.0)),
@@ -1627,34 +1656,6 @@ pub fn ui_config_trigger(
     )
 }
 
-/// Enum for rotation configs
-pub enum RotationMode {
-    Default(RotationNormal),
-    Aim(RotationAim),
-    Follow(RotationAim),
-}
-
-pub struct RotationNormal {
-    pub degrees: f64,
-    pub x360: i32,
-}
-
-pub enum RotationPlayerTarget {
-    Player1,
-    Player2,
-}
-
-/// Config struct for aim mode rotation
-/// # Fields
-/// * `aim_target`: Group around which to rotate
-/// * `rot_offset`: Rotation offset of the rotating group
-/// * `player_target`: Overrides aim_target if not None, uses either P1 or P2 as the target instead.
-pub struct RotationAim {
-    pub aim_target: i16,
-    pub rot_offset: f64,
-    pub player_target: Option<RotationPlayerTarget>,
-}
-
 /// Returns a rotate trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -1740,6 +1741,56 @@ pub fn rotate_trigger(
     }
 
     GDObject::new(TRIGGER_ROTATION, config, properties)
+}
+
+/// Returns a scale trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `x_scale`: Scale of target on x-axis
+/// * `y_scale`: Scale of target on y-axis
+/// * `div_by_value_x`: Divides the x scale by the existing x-axis scale value of the target
+/// * `div_by_value_y`: Divides the y scale by the existing y-axis scale value of the target
+/// * `easing`: Optional move easing and rate. See [`MoveEasing`]
+/// * `center_group_id`: Center of group that is being scaled. Leave as 0 to use the default center
+/// * `target_group`: Group that is being scaled.
+/// * `duration`: How long the scaling will be
+/// * `only_move`: Makes the objects only move as if they were scaled, but not actually scale them
+/// * `relative_scale`: Bases scaling on the center object
+/// * `relative_rotation`: Rotates the x and y axes too
+pub fn scale_trigger(
+    config: GDObjConfig,
+    x_scale: f64,
+    y_scale: f64,
+    div_by_value_x: bool,
+    div_by_value_y: bool,
+    easing: Option<(MoveEasing, f64)>,
+    center_group_id: i16,
+    target_group: i16,
+    duration: f64,
+    only_move: bool,
+    relative_scale: bool,
+    relative_rotation: bool,
+) -> GDObject {
+    let mut properties = vec![
+        (NEW_X_SCALE, GDValue::Float(x_scale)),
+        (NEW_Y_SCALE, GDValue::Float(y_scale)),
+        (DIV_BY_VALUE_X, GDValue::Bool(div_by_value_x)),
+        (DIV_BY_VALUE_Y, GDValue::Bool(div_by_value_y)),
+        (TARGET_ITEM, GDValue::Group(target_group)),
+        (TARGET_ITEM_2, GDValue::Group(center_group_id)),
+        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(duration)),
+        (ONLY_MOVE, GDValue::Bool(only_move)),
+        (RELATIVE_SCALE, GDValue::Bool(relative_scale)),
+        (RELATIVE_ROTATION, GDValue::Bool(relative_rotation)),
+    ];
+
+    if let Some((easing, rate)) = easing {
+        properties.extend_from_slice(&[
+            (MOVE_EASING, GDValue::Easing(easing)),
+            (EASING_RATE, GDValue::Float(rate)),
+        ])
+    }
+    GDObject::new(TRIGGER_SCALE, config, properties)
 }
 
 /* TODO: trigger constructors

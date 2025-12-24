@@ -102,6 +102,7 @@ pub mod objects {
     pub const TRIGGER_TIME_WARP: i32 = 1935;
     pub const CAMERA_GUIDE: i32 = 2016;
     pub const TRIGGER_GRAVITY: i32 = 2066;
+    pub const TRIGGER_SCALE: i32 = 2067;
     pub const TRIGGER_ADVANCED_RANDOM: i32 = 2068;
     pub const TRIGGER_ROTATE_GAMEPLAY: i32 = 2900;
     pub const TRIGGER_END: i32 = 3600;
@@ -150,7 +151,7 @@ pub mod properties {
     pub const SCALE: u16 = 32u16;
     pub const IS_GROUP_PARENT: u16 = 34u16;
     pub const OPACITY: u16 = 35u16;
-    pub const IS_INTERACTIBLE: u16 = 36u16;
+    pub const IS_INTERACTABLE: u16 = 36u16;
     pub const PULSE_FADE_IN_TIME: u16 = 45u16;
     pub const PULSE_HOLD_TIME: u16 = 46u16;
     pub const PULSE_FADE_OUT_TIME: u16 = 47u16;
@@ -203,6 +204,7 @@ pub mod properties {
     pub const Y_SCALE: u16 = 129u16;
     pub const Y_WARP_ANGLE: u16 = 131u16;
     pub const X_WARP_ANGLE: u16 = 132u16;
+    pub const ONLY_MOVE: u16 = 133u16;
     pub const PASSABLE: u16 = 134u16;
     pub const HIDDEN: u16 = 135u16;
     pub const NONSTICK_X: u16 = 136u16;
@@ -213,7 +215,11 @@ pub mod properties {
     pub const X_MOVEMENT_MULTIPLIER: u16 = 143u16;
     pub const Y_MOVEMENT_MULTIPLIER: u16 = 144u16;
     pub const GRAVITY: u16 = 148u16;
+    pub const NEW_X_SCALE: u16 = 150u16;
+    pub const NEW_Y_SCALE: u16 = 151u16;
     pub const RANDOM_PROBABLITIES_LIST: u16 = 152u16;
+    pub const DIV_BY_VALUE_X: u16 = 153u16;
+    pub const DIV_BY_VALUE_Y: u16 = 154u16;
     pub const GRIP_SLOPE: u16 = 193u16;
     pub const CONTROLLING_PLAYER_2: u16 = 200u16;
     pub const CONTROLLING_TARGET_PLAYER: u16 = 201u16;
@@ -259,6 +265,7 @@ pub mod properties {
     pub const NO_MULTIACTIVATE_PLATFORMER: u16 = 444u16;
     pub const CLAIM_TOUCH: u16 = 445u16;
     pub const OBJECT_MATERIAL: u16 = 446u16;
+    pub const RELATIVE_ROTATION: u16 = 452u16;
     pub const NO_END_EFFECTS: u16 = 460u16;
     pub const INSTANT_END: u16 = 461u16;
     pub const IS_TIMER: u16 = 466u16;
@@ -310,6 +317,7 @@ pub mod properties {
     pub const SCALE_OF_SPAWNED_PARTICLES: u16 = 554u16;
     pub const SCALE_VARIATION_OF_SPAWNED_PARTICLES: u16 = 555u16;
     pub const SPAWN_DELAY_VARIATION: u16 = 556u16;
+    pub const RELATIVE_SCALE: u16 = 577u16;
     pub const LEFT_SIGN_MODE: u16 = 578u16;
     pub const RIGHT_SIGN_MODE: u16 = 579u16;
     pub const STOP_MODE: u16 = 580u16;

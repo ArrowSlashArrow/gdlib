@@ -455,6 +455,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1935, "Trigger Time warp"),
     (2016, "Camera guide"),
     (2066, "Trigger Gravity"),
+    (2067, "Trigger Scale"),
     (2068, "Trigger Advanced random"),
     (2900, "Trigger rotate gameplay"),
     (3600, "Trigger End"),
