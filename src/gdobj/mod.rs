@@ -442,6 +442,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (1615, "Counter"),
     (1616, "Trigger Stop"),
     (1812, "Trigger On death"),
+    (1812, "Trigger follow player y"),
     (1815, "Trigger Collision"),
     (1816, "Collision block"),
     (1818, "BG effect on"),

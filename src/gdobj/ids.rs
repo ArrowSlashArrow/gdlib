@@ -89,6 +89,7 @@ pub mod objects {
     pub const COUNTER: i32 = 1615;
     pub const TRIGGER_STOP: i32 = 1616;
     pub const TRIGGER_ON_DEATH: i32 = 1812;
+    pub const TRIGGER_FOLLOW_PLAYER_Y: i32 = 1812;
     pub const TRIGGER_COLLISION: i32 = 1815;
     pub const COLLISION_BLOCK: i32 = 1816;
     pub const BG_EFFECT_ON: i32 = 1818;
@@ -186,6 +187,9 @@ pub mod properties {
     pub const EASING_RATE: u16 = 85u16;
     pub const EXCLUSIVE_PULSE_MODE: u16 = 86u16;
     pub const MULTITRIGGERABLE: u16 = 87u16;
+    pub const FOLLOW_SPEED: u16 = 90u16;
+    pub const FOLLOW_DELAY: u16 = 91u16;
+    pub const FOLLOW_OFFSET: u16 = 92u16;
     pub const TRIGGER_ON_EXIT: u16 = 93u16;
     pub const DYNAMIC_BLOCK: u16 = 94u16;
     pub const INPUT_ITEM_2: u16 = 95u16;
@@ -196,6 +200,7 @@ pub mod properties {
     pub const DISABLE_PREVIEW: u16 = 102u16;
     pub const IS_HIGH_DETAIL: u16 = 103u16;
     pub const COUNT_TRIGGER_MULTI_ACTIVATE: u16 = 104u16;
+    pub const MAX_FOLLOW_SPEED: u16 = 105u16;
     pub const NO_OBJECT_EFFECTS: u16 = 116u16;
     pub const REVERSES_GAMEPLAY: u16 = 117u16;
     pub const TIMEWARP_AMOUNT: u16 = 120u16;

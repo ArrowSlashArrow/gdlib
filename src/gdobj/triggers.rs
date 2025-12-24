@@ -10,12 +10,12 @@ use crate::gdobj::{
             COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
             MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ADVANCED_RANDOM, TRIGGER_ANIMATE,
             TRIGGER_CAMERA_ZOOM, TRIGGER_COLLISION, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END,
-            TRIGGER_FOLLOW, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT,
-            TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
-            TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
-            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SCALE, TRIGGER_SHAKE,
-            TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME_CONTROL,
-            TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
+            TRIGGER_FOLLOW, TRIGGER_FOLLOW_PLAYER_Y, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE,
+            TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH,
+            TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM,
+            TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SCALE,
+            TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
+            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
@@ -25,12 +25,13 @@ use crate::gdobj::{
             DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DIV_BY_VALUE_X,
             DIV_BY_VALUE_Y, DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK, DYNAMIC_MOVE,
             EASING_RATE, ENTEREXIT_TRANSITION_CONFIG, EVENT_TARGET_TIME, EXCLUSIVE_PULSE_MODE,
-            FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT,
-            FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, GRAVITY, GREEN, INPUT_ITEM_1,
-            INPUT_ITEM_2, INSTANT_END, IS_DISABLED, IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE,
-            LEFT_SIGN_MODE, LOCK_OBJECT_ROTATION, MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAXX_ID,
-            MAXY_ID, MINX_ID, MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y,
-            MULTI_ACTIVATE, MULTIACTIVATABLE_TIME_EVENT, NEW_X_SCALE, NEW_Y_SCALE, NO_END_EFFECTS,
+            FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_DELAY,
+            FOLLOW_OFFSET, FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, FOLLOW_SPEED,
+            GRAVITY, GREEN, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END, IS_DISABLED, IS_TIMER,
+            LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE, LOCK_OBJECT_ROTATION,
+            MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAX_FOLLOW_SPEED, MAXX_ID, MAXY_ID, MINX_ID,
+            MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE,
+            MULTIACTIVATABLE_TIME_EVENT, NEW_X_SCALE, NEW_Y_SCALE, NO_END_EFFECTS,
             NO_END_SOUND_EFFECTS, NO_LEGACY_HSV, ONLY_MOVE, OPACITY, PULSE_DETAIL_COLOUR_ONLY,
             PULSE_FADE_IN_TIME, PULSE_FADE_OUT_TIME, PULSE_GROUP, PULSE_HOLD_TIME,
             PULSE_MAIN_COLOUR_ONLY, RANDOM_PROBABLITIES_LIST, RED, RELATIVE_ROTATION,
@@ -49,10 +50,9 @@ use crate::gdobj::{
             TARGET_TRANSITION_CHANNEL, TIMER, TIMEWARP_AMOUNT, TOLERANCE, TRIGGER_ON_EXIT,
             USE_CONTROL_ID, USING_PLAYER_COLOUR_1, USING_PLAYER_COLOUR_2, X_MOVEMENT_MULTIPLIER,
             X_OFFSET_OF_SPAWNED_PARTICLES, X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
-            X_REFERENCE_IS_RELATIVE, X_REFERENCE_POSITION, X_SCALE, XAXIS_FOLLOW_MOD,
-            Y_MOVEMENT_MULTIPLIER, Y_OFFSET_OF_SPAWNED_PARTICLES,
-            Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, Y_REFERENCE_IS_RELATIVE, Y_REFERENCE_POSITION,
-            Y_SCALE, YAXIS_FOLLOW_MOD,
+            X_REFERENCE_IS_RELATIVE, X_REFERENCE_POSITION, XAXIS_FOLLOW_MOD, Y_MOVEMENT_MULTIPLIER,
+            Y_OFFSET_OF_SPAWNED_PARTICLES, Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+            Y_REFERENCE_IS_RELATIVE, Y_REFERENCE_POSITION, YAXIS_FOLLOW_MOD,
         },
     },
 };
@@ -1743,9 +1743,6 @@ pub fn rotate_trigger(
     GDObject::new(TRIGGER_ROTATION, config, properties)
 }
 
-/// Returns a scale trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
 /// * `x_scale`: Scale of target on x-axis
 /// * `y_scale`: Scale of target on y-axis
 /// * `div_by_value_x`: Divides the x scale by the existing x-axis scale value of the target
@@ -1792,13 +1789,41 @@ pub fn scale_trigger(
     }
     GDObject::new(TRIGGER_SCALE, config, properties)
 }
+/// Returns a scale trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+/// * `speed`: Follow speed in the range [0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
+/// * `delay`: Delay of the following group
+/// * `offset`: Y offset of the following group
+/// * `max_speed`: Speed limit of the following group
+/// * `move_time`: How long the group will follow the player
+/// * `target_group`: The group that is following the player's y-pos
+#[inline(always)]
+pub fn follow_player_y(
+    config: GDObjConfig,
+    speed: f64,
+    delay: f64,
+    offset: i32,
+    max_speed: f64,
+    move_time: f64,
+    target_group: i16,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_FOLLOW_PLAYER_Y,
+        config,
+        vec![
+            (FOLLOW_SPEED, GDValue::Float(speed)),
+            (FOLLOW_DELAY, GDValue::Float(delay)),
+            (FOLLOW_OFFSET, GDValue::Int(offset)),
+            (MAX_FOLLOW_SPEED, GDValue::Float(max_speed)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(move_time)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
+        ],
+    )
+}
 
 /* TODO: trigger constructors
  * Animation triggers
- * rotate trigger
- * scale trigger
- * animate trigger
- * frame trigger
  * follor player y
  * advanced follow
  * edit advanced follow

@@ -42,7 +42,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
     write!(buffer, "    pub const {const_name}: i32 = {id};\n").unwrap();
 }
 
-fn warn<T: Into<String>>(s: T) {
+fn _warn<T: Into<String>>(s: T) {
     println!("cargo:warning={}", s.into());
 }
 
