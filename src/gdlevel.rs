@@ -108,39 +108,6 @@ impl Levels {
         self.levels.insert(0, level);
     }
 
-    fn default_properties() -> HashMap<String, Value> {
-        let mut ki6_dict = Dictionary::new();
-        for i in 0..15 {
-            ki6_dict.insert(format!("{i}"), Value::from("0"));
-        }
-
-        // genuienly have no clue wht any of these are
-        let properties = vec![
-            ("kCEK", Value::from(4)),
-            ("k18", Value::from(1)),
-            (
-                "k101",
-                Value::from("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"),
-            ),
-            ("k11", Value::from(4598)),
-            ("k13", Value::from(true)),
-            ("k21", Value::from(2)),
-            ("k16", Value::from(1)),
-            ("k27", Value::from(4598)),
-            ("k50", Value::from(45)),
-            ("k47", Value::from(true)),
-            ("kI1", Value::from(100.0)),
-            ("kI2", Value::from(100.0)),
-            ("kI3", Value::from(1.0)),
-            ("kI6", Value::from(ki6_dict)),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect::<HashMap<String, Value>>();
-
-        return properties;
-    }
-
     /// Exports this struct as XML to a String
     pub fn export_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
@@ -225,8 +192,41 @@ impl Level {
                 objects: vec![],
             })),
             song,
-            properties: Levels::default_properties(),
+            properties: Level::default_properties(),
         }
+    }
+
+    pub fn default_properties() -> HashMap<String, Value> {
+        let mut ki6_dict = Dictionary::new();
+        for i in 0..15 {
+            ki6_dict.insert(format!("{i}"), Value::from("0"));
+        }
+
+        // genuienly have no clue wht any of these are
+        let properties = vec![
+            ("kCEK", Value::from(4)),
+            ("k18", Value::from(1)),
+            (
+                "k101",
+                Value::from("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"),
+            ),
+            ("k11", Value::from(4598)),
+            ("k13", Value::from(true)),
+            ("k21", Value::from(2)),
+            ("k16", Value::from(1)),
+            ("k27", Value::from(4598)),
+            ("k50", Value::from(45)),
+            ("k47", Value::from(true)),
+            ("kI1", Value::from(100.0)),
+            ("kI2", Value::from(100.0)),
+            ("kI3", Value::from(1.0)),
+            ("kI6", Value::from(ki6_dict)),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect::<HashMap<String, Value>>();
+
+        return properties;
     }
 
     /// Parses a .gmd file to a `Level` object

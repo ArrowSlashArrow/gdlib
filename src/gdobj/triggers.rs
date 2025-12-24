@@ -1824,7 +1824,6 @@ pub fn follow_player_y(
 
 /* TODO: trigger constructors
  * Animation triggers
- * follor player y
  * advanced follow
  * edit advanced follow
  * re-target advanced follow

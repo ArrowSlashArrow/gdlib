@@ -12,8 +12,8 @@ mod tests {
     use std::time::Instant;
 
     use crate::{
-        deserialiser::decode_levels_to_string,
-        gdlevel::{Level, Levels},
+        deserialiser::{decode_levels_to_string, decompress, decrypt},
+        gdlevel::{EncryptedLevelData, Level, LevelState, Levels},
         gdobj::{
             GDObjConfig, MoveEasing,
             misc::default_block,
@@ -230,6 +230,7 @@ mod tests {
         let data = level.get_decrypted_data().unwrap();
         for obj in data.objects {
             println!("{obj:?}");
+            println!("{}", obj.to_string())
         }
     }
 
@@ -241,6 +242,15 @@ mod tests {
             level.export_to_gmd("GMD_tests/big2.gmd")
         });
     }
+
+    // #[test]
+    // fn _temp_level() {
+    //     let level = Level::from_gmd("GMDS/Unnamed 25.gmd").unwrap();
+    //     if let LevelState::Encrypted(e) = level.data.unwrap() {
+    //         let dec = decompress(e.data.into_bytes()).unwrap();
+    //         println!("{}", String::from_utf8(dec).unwrap())
+    //     }
+    // }
 
     // #[test]
     // fn _temp_avg_level_size() {

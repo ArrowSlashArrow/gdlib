@@ -846,15 +846,12 @@ impl GDObjConfig {
     /// Converts this config to a properties hashmap
     pub fn to_string(&self) -> String {
         let mut properties = format!(
-            ",2,{},3,{},6,{},128,{},129,{},11,{},62,{},87,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},534,{}{}",
+            ",2,{},3,{},6,{},128,{},129,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},534,{}{}",
             self.pos.0,
             self.pos.1,
             self.angle,
             self.scale.0,
             self.scale.1,
-            self.trigger_cfg.touchable as u8,
-            self.trigger_cfg.spawnable as u8,
-            self.trigger_cfg.multitriggerable as u8,
             self.editor_layers.0,
             self.editor_layers.1,
             self.colour_channels.0.as_i32(),
@@ -866,6 +863,18 @@ impl GDObjConfig {
             self.material_control_id,
             self.attributes.get_property_str()
         );
+
+        let bool_fields = [
+            ("11", self.trigger_cfg.touchable),
+            ("62", self.trigger_cfg.spawnable),
+            ("87", self.trigger_cfg.multitriggerable),
+        ];
+
+        for (id, field) in bool_fields {
+            if field {
+                let _ = write!(properties, "{id},1,");
+            }
+        }
 
         if !self.groups.is_empty() {
             properties += "57";
