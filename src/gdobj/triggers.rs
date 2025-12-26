@@ -11,10 +11,10 @@ use crate::gdobj::{
             MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ADVANCED_RANDOM, TRIGGER_ANIMATE,
             TRIGGER_CAMERA_ZOOM, TRIGGER_COLLISION, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END,
             TRIGGER_FOLLOW, TRIGGER_FOLLOW_PLAYER_Y, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE,
-            TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MOVE, TRIGGER_ON_DEATH,
-            TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM,
-            TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SCALE,
-            TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
+            TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MIDDLEGROUND_CONFIG, TRIGGER_MOVE,
+            TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE,
+            TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION,
+            TRIGGER_SCALE, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
             TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
@@ -1822,6 +1822,25 @@ pub fn follow_player_y(
     )
 }
 
+/// Returns a middleground config trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+#[inline(always)]
+pub fn mg_config(
+    config: GDObjConfig,
+    offset_y: i32,
+    easing: Option<(MoveEasing, f64)>,
+) -> GDObject {
+    let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(offset_y))];
+    if let Some((easing, rate)) = easing {
+        properties.extend_from_slice(&[
+            (MOVE_EASING, GDValue::Easing(easing)),
+            (EASING_RATE, GDValue::Float(rate)),
+        ])
+    }
+    GDObject::new(TRIGGER_MIDDLEGROUND_CONFIG, config, properties)
+}
+
 /* TODO: trigger constructors
  * Animation triggers
  * advanced follow
@@ -1853,7 +1872,6 @@ pub fn follow_player_y(
  * switch bg
  * sdwitch ground
  * switch mg
- * middleground config
  *
  * Item triggers
  * touch trigger

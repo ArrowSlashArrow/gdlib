@@ -106,6 +106,7 @@ pub mod objects {
     pub const TRIGGER_SCALE: i32 = 2067;
     pub const TRIGGER_ADVANCED_RANDOM: i32 = 2068;
     pub const TRIGGER_ROTATE_GAMEPLAY: i32 = 2900;
+    pub const TRIGGER_MIDDLEGROUND_CONFIG: i32 = 2900;
     pub const TRIGGER_END: i32 = 3600;
     pub const BG_SPEED_CONFIG: i32 = 3606;
     pub const TRIGGER_SPAWN_PARTICLE: i32 = 3608;
