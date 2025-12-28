@@ -1,6 +1,9 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::fmt::{Debug, Display, Write};
+use std::{
+    default,
+    fmt::{Debug, Display, Write},
+};
 
 use crate::gdobj::{
     ids::properties::{
@@ -86,6 +89,7 @@ pub enum GDObjPropType {
     Item,
     Easing,
     ColourChannel,
+    Toggle,
     Unknown,
 }
 
@@ -123,13 +127,14 @@ impl ZLayer {
 }
 
 /// Enum for colour channels and their IDs
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum ColourChannel {
     Channel(i32),
     Background,
     Ground1,
     Ground2,
     Line,
+    #[default]
     Object,
     ThreeDLine,
     MiddleGround,
@@ -231,6 +236,7 @@ pub enum GDValue {
     Int(i32),
     Float(f64),
     Bool(bool),
+    Toggle(bool),
     Group(i16),
     Item(i16),
     GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
@@ -264,6 +270,7 @@ impl GDValue {
     pub fn from(t: GDObjPropType, s: &str) -> Self {
         match t {
             GDObjPropType::Bool => Self::Bool(s == "1"),
+            GDObjPropType::Toggle => Self::Toggle(s == "1"),
             GDObjPropType::ColourChannel => Self::ColourChannel(ColourChannel::from_i32(
                 s.parse::<i32>().unwrap_or_default(),
             )),
@@ -305,7 +312,7 @@ impl Display for GDValue {
         let mut d_buf = dtoa::Buffer::new();
 
         match self {
-            GDValue::Bool(b) => write!(
+            GDValue::Bool(b) | GDValue::Toggle(b) => write!(
                 f,
                 "{}",
                 match b {
@@ -675,7 +682,7 @@ impl GDObject {
     /// use gdlib::gdobj::{GDObject, GDObjConfig, GDObjProperties};
     ///
     /// let object_str = GDObject::new(1, GDObjConfig::default(), GDObjProperties::new()).to_string();
-    /// assert_eq!(object_str, "1,1,155,1,2,0.0,3,0.0,64,1,67,1;");
+    /// assert_eq!(object_str, "1,1,2,0.0,3,0.0,64,1,67,1;");
     /// ```
     pub fn to_string(&self) -> String {
         let mut properties_string = String::with_capacity(self.properties.len() * 8);
@@ -846,36 +853,54 @@ impl GDObjConfig {
 
     /// Converts this config to a properties hashmap
     pub fn to_string(&self) -> String {
-        let mut properties = format!(
-            ",2,{},3,{},6,{},128,{},129,{},20,{},61,{},21,{},22,{},24,{},25,{},343,{},446,{},534,{}{}",
+        let mut properties = String::with_capacity(64);
+        let _ = write!(
+            properties,
+            ",2,{},3,{}{}",
             self.pos.0,
             self.pos.1,
-            self.angle,
-            self.scale.0,
-            self.scale.1,
-            self.editor_layers.0,
-            self.editor_layers.1,
-            self.colour_channels.0.as_i32(),
-            self.colour_channels.1.as_i32(),
-            self.z_layer as i32,
-            self.z_order,
-            self.enter_effect_channel,
-            self.material_id,
-            self.material_control_id,
             self.attributes.get_property_str()
         );
 
-        let bool_fields = [
-            ("11", self.trigger_cfg.touchable),
-            ("62", self.trigger_cfg.spawnable),
-            ("87", self.trigger_cfg.multitriggerable),
-        ];
+        // bools
+        serialise_bools(
+            &[
+                ("11", self.trigger_cfg.touchable),
+                ("62", self.trigger_cfg.spawnable),
+                ("87", self.trigger_cfg.multitriggerable),
+            ],
+            &mut properties,
+        );
 
-        for (id, field) in bool_fields {
-            if field {
-                let _ = write!(properties, "{id},1,");
-            }
-        }
+        // f64
+        serialise_fields(
+            &[
+                ("6", self.angle, 0.0),
+                ("128", self.scale.0, 1.0),
+                ("129", self.scale.1, 1.0),
+            ],
+            &mut properties,
+        );
+
+        // i32
+        serialise_fields(
+            &[
+                ("20", self.editor_layers.0, 0),
+                ("61", self.editor_layers.1, 0),
+                (
+                    "21",
+                    self.colour_channels.0.as_i32(),
+                    ColourChannel::Object.as_i32(),
+                ),
+                ("22", self.colour_channels.1.as_i32(), 1),
+                ("24", self.z_layer as i32, ZLayer::T1 as i32),
+                ("25", self.z_order, 0),
+                ("343", self.enter_effect_channel, 0),
+                ("446", self.material_id, 0),
+                ("534", self.material_control_id, 0),
+            ],
+            &mut properties,
+        );
 
         if !self.groups.is_empty() {
             properties += "57";
@@ -1269,7 +1294,6 @@ impl GDObjAttributes {
                 let _ = write!(properties_str, ",{id},1");
             }
         }
-
         properties_str
     }
 
@@ -1277,5 +1301,22 @@ impl GDObjAttributes {
     #[inline(always)]
     pub fn default() -> Self {
         Self::new()
+    }
+}
+
+fn serialise_fields<T: PartialEq + Display>(fields: &[(&str, T, T)], buf: &mut String) {
+    for (id, field, default) in fields {
+        if field != default {
+            let _ = write!(buf, "{id},{field},");
+        }
+    }
+}
+
+/// Function is separate from [`serialise_fields`] to optimise boolean serialising
+fn serialise_bools(fields: &[(&str, bool)], buf: &mut String) {
+    for (id, field) in fields {
+        if *field {
+            let _ = write!(buf, "{id},1,");
+        }
     }
 }

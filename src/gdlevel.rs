@@ -136,6 +136,13 @@ impl Levels {
         Ok(())
     }
 
+    /// Exports this struct as encrypted XML to a given file
+    pub fn export_to_file(&mut self, file: PathBuf) -> Result<(), GDError> {
+        let export_str = encrypt_savefile_str(self.export_to_string());
+        write(file, export_str)?;
+        Ok(())
+    }
+
     /// Exports this struct as encrypted XML to CCLocalLevels.dat and creates a backup, CCLocalLevels.dat.bak
     pub fn export_to_savefile_with_backup(&mut self) -> Result<(), GDError> {
         let savefile = get_local_levels_path().unwrap();
