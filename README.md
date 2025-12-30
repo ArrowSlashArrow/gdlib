@@ -31,7 +31,7 @@ new_level.add_object(triggers::triggers::move_trigger(
         y_lock: None
     }), 
     0.50, 1, false, true, Some((MoveEasing::ElasticInOut, 1.50))
-);
+));
 new_level.add_object(misc::default_block(GDObjConfig::default().pos(15.0, 15.0)));
 
 // Add level to master Levels object and export back to savefile

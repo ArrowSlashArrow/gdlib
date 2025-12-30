@@ -323,6 +323,7 @@ pub mod properties {
     pub const SCALE_OF_SPAWNED_PARTICLES: u16 = 554u16;
     pub const SCALE_VARIATION_OF_SPAWNED_PARTICLES: u16 = 555u16;
     pub const SPAWN_DELAY_VARIATION: u16 = 556u16;
+    pub const RESPAWN_TIME: u16 = 574u16;
     pub const RELATIVE_SCALE: u16 = 577u16;
     pub const LEFT_SIGN_MODE: u16 = 578u16;
     pub const RIGHT_SIGN_MODE: u16 = 579u16;

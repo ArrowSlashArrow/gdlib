@@ -1743,6 +1743,9 @@ pub fn rotate_trigger(
     GDObject::new(TRIGGER_ROTATION, config, properties)
 }
 
+/// Returns a scale trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
 /// * `x_scale`: Scale of target on x-axis
 /// * `y_scale`: Scale of target on y-axis
 /// * `div_by_value_x`: Divides the x scale by the existing x-axis scale value of the target

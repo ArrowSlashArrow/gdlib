@@ -307,17 +307,26 @@ impl GDValue {
 }
 
 impl Display for GDValue {
+    // also the serialisation
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut i_buf = itoa::Buffer::new();
         let mut d_buf = dtoa::Buffer::new();
 
         match self {
-            GDValue::Bool(b) | GDValue::Toggle(b) => write!(
+            GDValue::Bool(b) => write!(
                 f,
                 "{}",
                 match b {
                     true => "1",
                     false => "0",
+                }
+            ),
+            GDValue::Toggle(b) => write!(
+                f,
+                "{}",
+                match b {
+                    true => "1",
+                    false => "-1",
                 }
             ),
             GDValue::ColourChannel(v) => write!(f, "{}", i_buf.format(v.as_i32())),
@@ -658,7 +667,7 @@ impl GDObject {
         );
     }
 
-    /// TODO
+    /// Sets the prpoerty ID to the value, and craetes it if it doesn't exist
     pub fn set_property(&mut self, p: u16, val: GDValue) {
         if let Some(v) = self.properties.iter_mut().find(|(k, _)| *k == p) {
             v.1 = val;

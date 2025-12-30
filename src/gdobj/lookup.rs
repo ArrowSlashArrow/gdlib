@@ -5,7 +5,7 @@ use crate::gdobj::GDObjPropType;
 /// Names of properties (INCOMPLETE):
 /// (property, name)  
 ///
-/// Reference: https://flowvix.github.io/gd-info-explorer/props
+/// Reference: <https://flowvix.github.io/gd-info-explorer/props>
 pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     1u16 => ("object ID", GDObjPropType::Int),
     2u16 => ("x pos", GDObjPropType::Float),
@@ -204,6 +204,7 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     554u16 => ("Scale of spawned particles", GDObjPropType::Float),
     555u16 => ("Scale variation of spawned particles", GDObjPropType::Float),
     556u16 => ("Spawn delay variation", GDObjPropType::Float),
+    574u16 => ("Respawn time", GDObjPropType::Float),
     577u16 => ("Relative scale", GDObjPropType::Bool),
     578u16 => ("Left sign mode", GDObjPropType::Unknown),
     579u16 => ("Right sign mode", GDObjPropType::Unknown),

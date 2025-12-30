@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 use std::{fmt::Write, fs};
 
 use syn::{Expr, ExprArray, ExprLit, ExprTuple, Item, Lit};
@@ -42,9 +41,9 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
     write!(buffer, "    pub const {const_name}: i32 = {id};\n").unwrap();
 }
 
-fn _warn<T: Into<String>>(s: T) {
-    println!("cargo:warning={}", s.into());
-}
+// fn _warn<T: Into<String>>(s: T) {
+//     println!("cargo:warning={}", s.into());
+// }
 
 fn main() {
     let mut properties_out_str = String::new();
