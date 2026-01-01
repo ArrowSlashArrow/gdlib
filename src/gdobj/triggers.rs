@@ -391,10 +391,7 @@ pub fn move_trigger(
         (SILENT_MOVE, GDValue::Int(silent as i32)),
     ];
 
-    if let Some((easing, rate)) = easing {
-        properties.push((MOVE_EASING, GDValue::Int(easing as i32)));
-        properties.push((EASING_RATE, GDValue::Float(rate)));
-    }
+    add_easing(&mut properties, easing);
 
     match move_config {
         MoveMode::Default(config) => {
@@ -1724,13 +1721,7 @@ pub fn rotate_trigger(
         }
     }
 
-    if let Some((easing, rate)) = easing {
-        properties.extend_from_slice(&[
-            (MOVE_EASING, GDValue::Easing(easing)),
-            (EASING_RATE, GDValue::Float(rate)),
-        ]);
-    }
-
+    add_easing(&mut properties, easing);
     if let Some((min_x, min_y, max_x, max_y)) = bounding_box {
         properties.extend_from_slice(&[
             (MINX_ID, GDValue::Group(min_x)),
@@ -1784,14 +1775,10 @@ pub fn scale_trigger(
         (RELATIVE_ROTATION, GDValue::Bool(relative_rotation)),
     ];
 
-    if let Some((easing, rate)) = easing {
-        properties.extend_from_slice(&[
-            (MOVE_EASING, GDValue::Easing(easing)),
-            (EASING_RATE, GDValue::Float(rate)),
-        ])
-    }
+    add_easing(&mut properties, easing);
     GDObject::new(TRIGGER_SCALE, config, properties)
 }
+
 /// Returns a scale trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -1835,13 +1822,18 @@ pub fn mg_config(
     easing: Option<(MoveEasing, f64)>,
 ) -> GDObject {
     let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(offset_y))];
+    add_easing(&mut properties, easing);
+    GDObject::new(TRIGGER_MIDDLEGROUND_CONFIG, config, properties)
+}
+
+// util fn to add easing to properties if it is specified
+fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
     if let Some((easing, rate)) = easing {
         properties.extend_from_slice(&[
             (MOVE_EASING, GDValue::Easing(easing)),
             (EASING_RATE, GDValue::Float(rate)),
         ])
     }
-    GDObject::new(TRIGGER_MIDDLEGROUND_CONFIG, config, properties)
 }
 
 /* TODO: trigger constructors
