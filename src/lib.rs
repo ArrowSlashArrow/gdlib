@@ -12,8 +12,8 @@ mod tests {
     use std::time::Instant;
 
     use crate::{
-        deserialiser::{decode_levels_to_string, decompress, decrypt},
-        gdlevel::{EncryptedLevelData, Level, LevelState, Levels},
+        deserialiser::decode_levels_to_string,
+        gdlevel::{Level, Levels},
         gdobj::{
             GDObjConfig, MoveEasing,
             misc::default_block,
@@ -55,7 +55,7 @@ mod tests {
         );
 
         new_level.add_object(triggers::move_trigger(
-            GDObjConfig::default().pos(45.0, 45.0).groups([1234]),
+            &GDObjConfig::default().pos(45.0, 45.0).groups([1234]),
             triggers::MoveMode::Default(triggers::DefaultMove {
                 dx: 45.0,
                 dy: 54.0,
@@ -69,7 +69,7 @@ mod tests {
             Some((MoveEasing::ElasticInOut, 1.50)),
         ));
 
-        new_level.add_object(default_block(GDObjConfig::default().x(15.0).y(15.0)));
+        new_level.add_object(default_block(&GDObjConfig::default().x(15.0).y(15.0)));
 
         levels.add_level(new_level);
         levels.export_to_savefile_with_backup().unwrap();
@@ -90,7 +90,7 @@ mod tests {
     fn move_constructor() {
         let mut level = Level::new("move trigger t3st", "arrowslasharrow", None, None);
         level.add_object(move_trigger(
-            GDObjConfig::default().pos(45.0, 45.0).dont_fade(true),
+            &GDObjConfig::default().pos(45.0, 45.0).dont_fade(true),
             triggers::MoveMode::Default(DefaultMove {
                 dx: 45.0,
                 dy: 54.0,
@@ -136,7 +136,7 @@ mod tests {
             .set_z_layer(crate::gdobj::ZLayer::B3)
             .set_base_colour(crate::gdobj::ColourChannel::Background);
 
-        let block = default_block(config);
+        let block = default_block(&config);
         let mut level = Level::new("porpeties", "arrowslasharrow", None, None);
         level.add_object(block);
 
@@ -148,7 +148,7 @@ mod tests {
         // used to test kAXX proerties
         let mut level = Level::new("startpos test", "me", None, None);
         let sp = start_pos(
-            GDObjConfig::default().pos(45.0, 45.0),
+            &GDObjConfig::default().pos(45.0, 45.0),
             triggers::StartingSpeed::X0Point5,
             triggers::Gamemode::Ball,
             false,
@@ -172,7 +172,7 @@ mod tests {
     fn adv_random() {
         let mut level = Level::new("adv random", "me", None, None);
         level.add_object(advanced_random_trigger(
-            GDObjConfig::default().pos(45.0, 45.0),
+            &GDObjConfig::default().pos(45.0, 45.0),
             vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
         ));
         let _ = level.export_to_gmd("GMDS/adv_random.gmd");

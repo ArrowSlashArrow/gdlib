@@ -721,10 +721,10 @@ impl GDObject {
 
     /// Creates a new GDObject from ID, config, and extra proerties
     #[inline(always)]
-    pub fn new(id: i32, config: GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
+    pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
         GDObject {
             id,
-            config,
+            config: config.clone(),
             properties,
         }
     }
@@ -912,13 +912,14 @@ impl GDObjConfig {
         );
 
         if !self.groups.is_empty() {
-            properties += "57";
-            properties += &self
+            properties.push_str(",57,");
+            let group_str = &self
                 .groups
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<String>>()
                 .join(".");
+            properties.push_str(group_str);
         };
 
         return properties;
@@ -928,6 +929,26 @@ impl GDObjConfig {
     #[inline(always)]
     pub fn groups<T: IntoIterator<Item = i16>>(mut self, groups: T) -> Self {
         self.groups = groups.into_iter().collect();
+        self
+    }
+    /// Adds groups to this object's groups
+    #[inline(always)]
+    pub fn add_groups<T: AsRef<[i16]>>(mut self, groups: T) -> Self {
+        self.groups.extend_from_slice(groups.as_ref());
+        self
+    }
+    /// Adds group to this object's groups
+    #[inline(always)]
+    pub fn add_group(mut self, group: i16) -> Self {
+        self.groups.push(group);
+        self
+    }
+    /// Removes this group from this object's groups
+    #[inline(always)]
+    pub fn remove_group(mut self, group: i16) -> Self {
+        if let Some(idx) = self.groups.iter().position(|&g| g == group) {
+            self.groups.swap_remove(idx);
+        }
         self
     }
     /// Sets x position of this object
@@ -1316,7 +1337,7 @@ impl GDObjAttributes {
 fn serialise_fields<T: PartialEq + Display>(fields: &[(&str, T, T)], buf: &mut String) {
     for (id, field, default) in fields {
         if field != default {
-            let _ = write!(buf, "{id},{field},");
+            let _ = write!(buf, ",{id},{field}");
         }
     }
 }
@@ -1325,7 +1346,7 @@ fn serialise_fields<T: PartialEq + Display>(fields: &[(&str, T, T)], buf: &mut S
 fn serialise_bools(fields: &[(&str, bool)], buf: &mut String) {
     for (id, field) in fields {
         if *field {
-            let _ = write!(buf, "{id},1,");
+            let _ = write!(buf, ",{id},1");
         }
     }
 }

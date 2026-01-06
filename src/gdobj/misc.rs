@@ -15,7 +15,7 @@ use crate::gdobj::{
 /// # Arguments
 /// `config`: Object config
 #[inline(always)]
-pub fn default_block(config: GDObjConfig) -> GDObject {
+pub fn default_block(config: &GDObjConfig) -> GDObject {
     GDObject::new(DEFAULT_BLOCK, config, vec![])
 }
 
@@ -24,7 +24,7 @@ pub fn default_block(config: GDObjConfig) -> GDObject {
 /// `config`: Object config
 /// `text`: Text in the objecty
 /// `kerning`: Spacing between chars. Default is 0
-pub fn text<T: AsRef<str>>(config: GDObjConfig, text: T, kerning: i32) -> GDObject {
+pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
     GDObject::new(
         TEXT_OBJECT,
         config,
