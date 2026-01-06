@@ -1,5 +1,10 @@
 # Changelog
 
+## Update 0.2.7
+ * Added triggers: rotate, scale, follow y-pos, middleground config
+ * Minor doc fixes
+ * formatter patches + utility functions in GDObjConfig
+
 ## Update 0.2.6
  * Added error type
  * Removed all\* magic numbers from trigger constructor functions in triggers.rs
@@ -20,7 +25,7 @@
     * player control
     * gravity
     * end
-    * full move trigger contrsuctor
+    * full move trigger constructor
     * timewarp
     * camera zoom
     * camera guide
