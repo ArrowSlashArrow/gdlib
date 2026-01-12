@@ -113,6 +113,7 @@ pub mod objects {
     pub const TRIGGER_INSTANT_COLLISION: i32 = 3609;
     pub const MG_SPEED_CONFIG: i32 = 3612;
     pub const UI_CONFIG: i32 = 3613;
+    pub const TRIGGER_TIME: i32 = 3614;
     pub const TRIGGER_TIME_EVENT: i32 = 3615;
     pub const TRIGGER_TIME_CONTROL: i32 = 3617;
     pub const TRIGGER_RESET_GROUP: i32 = 3618;
@@ -273,11 +274,16 @@ pub mod properties {
     pub const OBJECT_MATERIAL: u16 = 446u16;
     pub const RELATIVE_ROTATION: u16 = 452u16;
     pub const NO_END_EFFECTS: u16 = 460u16;
-    pub const INSTANT_END: u16 = 461u16;
+    pub const NO_END_SOUND_EFFECTS: u16 = 461u16;
     pub const IS_TIMER: u16 = 466u16;
-    pub const NO_END_SOUND_EFFECTS: u16 = 467u16;
+    pub const START_TIME: u16 = 467u16;
+    pub const DONT_OVERRIDE: u16 = 468u16;
+    pub const IGNORE_TIMEWARP: u16 = 469u16;
+    pub const TIME_VALUE_MULTIPLER: u16 = 470u16;
+    pub const START_PAUSED_TIMER: u16 = 471u16;
     pub const STOP_TIME_COUNTER: u16 = 472u16;
-    pub const EVENT_TARGET_TIME: u16 = 473u16;
+    pub const TARGET_TIME: u16 = 473u16;
+    pub const PAUSE_AT_TARGET_TIME: u16 = 474u16;
     pub const MULTIACTIVATABLE_TIME_EVENT: u16 = 475u16;
     pub const FIRST_ITEM_TYPE: u16 = 476u16;
     pub const SECOND_ITEM_TYPE: u16 = 477u16;
@@ -290,6 +296,7 @@ pub mod properties {
     pub const TOLERANCE: u16 = 484u16;
     pub const LEFT_ROUND_MODE: u16 = 485u16;
     pub const RIGHT_ROUND_MODE: u16 = 486u16;
+    pub const INSTANT_END: u16 = 487u16;
     pub const KERNING: u16 = 488u16;
     pub const SET_PERSISTENT_ITEM: u16 = 491u16;
     pub const TARGET_ALL_PERSISTENT_ITEMS: u16 = 492u16;
