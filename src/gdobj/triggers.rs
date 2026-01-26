@@ -1075,7 +1075,10 @@ pub fn item_edit(
 /// * `false_id`: Group that is activated when the comparison is false
 /// * \*`lhs`: (id, item type, modifier, modifier operator: [`Op`], [`RoundMode`], [`SignMode`]) config tuple for left-hand side operator.
 /// * \*`rhs`: (id, item type, modifier, modifier operator: [`Op`], [`RoundMode`], [`SignMode`]) config tuple for right-hand side operator.
-/// The right-hand side will be just the modifier is the item id is left as 0 (not specified)
+/// The modifier is applied to each respective operand according to the specified modifier operator.
+/// The round and sign modes are applied at the end of evaluation to each operand.
+/// The right-hand side will be just the modifier if the item id is left as 0 (not specified).
+/// This is useful when it is necessary to compare an item value and an integer or float literal.
 /// * `compare_op`: Operator used to compare the two sides. See [`CompareOp`] enum.
 /// * `tolerance`: Tolerant range of comparsion. Comparsion will be true if the absolute resulting value is less than or equal to the tolerance.
 ///
