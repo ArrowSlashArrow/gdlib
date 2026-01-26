@@ -1007,31 +1007,30 @@ pub fn counter_object(
 /// * `target_id`: Target item id
 /// * `target_type`: Target item type
 /// * `modifier`: f64 modifier; default is 1.0
-/// * `assign_op`: operator for assigning to result; see [`Op`] enum.
-/// * `mod_op`: operator for applying mod to result; see [`Op`] enum.
+/// * `assign_op`: operator for modifying target; see [`Op`] enum. An `Op::Add` is equivalent to `+=`.
+/// * `multiply_mod`: whether the result between operands should be multiplied or divided by the mod.
 /// * `id_op`: operator between operands 1 and 2; see [`Op`] enum.
-/// * `id_rounding`: operand rounding function; see [`RoundMode`] enum.
-/// * `result_rounding`: final rounding function; see [`RoundMode`] enum.
-/// * `id_sign`: operand signing function; see [`SignMode`] enum.
-/// * `result_sign`: final signing function; see [`SignMode`] enum.
+/// * `id_rounding`: rounding mode of the result after both operands are evaluated; see [`RoundMode`] enum.
+/// * `result_rounding`: rounding mode of the final result; see [`RoundMode`] enum.
+/// * `id_sign`: sign mode of the result after both operands are evaluated; see [`SignMode`] enum.
+/// * `result_sign`: sign mode of the final result; see [`SignMode`] enum.
 pub fn item_edit(
     config: &GDObjConfig,
-    operand1: Option<(i32, ItemType)>,
-    operand2: Option<(i32, ItemType)>,
-    target_id: i16,
-    target_type: ItemType,
+    operand1: Option<(i16, ItemType)>,
+    operand2: Option<(i16, ItemType)>,
+    target: (i16, ItemType),
     modifier: f64,
     assign_op: Op,
-    mod_op: Option<Op>,
+    multiply_mod: bool,
     id_op: Option<Op>,
     id_rounding: RoundMode,
     result_rounding: RoundMode,
     id_sign: SignMode,
     result_sign: SignMode,
 ) -> GDObject {
-    let mod_op = match mod_op {
-        Some(op) => op,
-        None => Op::Mul,
+    let mod_op = match multiply_mod {
+        true => Op::Mul,
+        false => Op::Div,
     };
     let id_op = match id_op {
         Some(op) => op,
@@ -1051,12 +1050,12 @@ pub fn item_edit(
         TRIGGER_ITEM_EDIT,
         config,
         vec![
-            (TARGET_ITEM, GDValue::Item(target_id)),
-            (INPUT_ITEM_1, GDValue::Int(op_1.0)),
-            (INPUT_ITEM_2, GDValue::Int(op_2.0)),
+            (TARGET_ITEM, GDValue::Item(target.0)),
+            (INPUT_ITEM_1, GDValue::Item(op_1.0)),
+            (INPUT_ITEM_2, GDValue::Item(op_2.0)),
             (FIRST_ITEM_TYPE, GDValue::Int(op_1.1 as i32)),
             (SECOND_ITEM_TYPE, GDValue::Int(op_2.1 as i32)),
-            (TARGET_ITEM_TYPE, GDValue::Int(target_type as i32)),
+            (TARGET_ITEM_TYPE, GDValue::Int(target.1 as i32)),
             (MODIFIER, GDValue::Float(modifier)),
             (LEFT_OPERATOR, GDValue::Int(assign_op as i32)),
             (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
@@ -1085,8 +1084,8 @@ pub fn item_compare(
     config: &GDObjConfig,
     true_id: i16,
     false_id: i16,
-    lhs: (i32, ItemType, f64, Op, RoundMode, SignMode),
-    rhs: (i32, ItemType, f64, Op, RoundMode, SignMode),
+    lhs: (i16, ItemType, f64, Op, RoundMode, SignMode),
+    rhs: (i16, ItemType, f64, Op, RoundMode, SignMode),
     compare_op: CompareOp,
     tolerance: f64,
 ) -> GDObject {
@@ -1094,8 +1093,8 @@ pub fn item_compare(
         (TARGET_ITEM, GDValue::Item(true_id)),
         (TARGET_ITEM_2, GDValue::Item(false_id)),
         // ids
-        (INPUT_ITEM_1, GDValue::Int(lhs.0)),
-        (INPUT_ITEM_2, GDValue::Int(rhs.0)),
+        (INPUT_ITEM_1, GDValue::Item(lhs.0)),
+        (INPUT_ITEM_2, GDValue::Item(rhs.0)),
         // types
         (FIRST_ITEM_TYPE, GDValue::Int(lhs.1 as i32)),
         (SECOND_ITEM_TYPE, GDValue::Int(rhs.1 as i32)),
