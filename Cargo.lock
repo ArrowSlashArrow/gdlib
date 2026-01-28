@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "gdlib"
-version = "0.2.7"
+version = "0.2.7-hotfix.1"
 dependencies = [
  "aho-corasick",
  "base64",

@@ -1211,6 +1211,8 @@ impl GDObjConfig {
     }
 
     /// Enables `single_ptouch` on this object.
+    /// If enabled, this object will ignore the second player's input
+    /// if both player inputs are pressed on the same tick.
     #[inline(always)]
     pub fn single_ptouch(mut self, toggle: bool) -> Self {
         self.attributes.single_ptouch = toggle;
