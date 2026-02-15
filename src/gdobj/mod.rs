@@ -964,6 +964,14 @@ impl GDObjConfig {
         self.pos.1 = y;
         self
     }
+
+    /// Applies a translation to this object's position
+    pub fn translate(mut self, x: f64, y: f64) -> Self {
+        self.pos.0 += x;
+        self.pos.1 += y;
+        self
+    }
+
     /// Sets x and y position of this object
     #[inline(always)]
     pub fn pos(mut self, x: f64, y: f64) -> Self {
