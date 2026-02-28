@@ -4,10 +4,14 @@ use std::fmt::{Debug, Display, Write};
 
 use crate::gdobj::{
     ids::properties::{
-        CENTER_EFFECT, DONT_BOOST_X, DONT_BOOST_Y, DONT_ENTER, DONT_FADE, EXTRA_STICKY, GRIP_SLOPE,
+        CENTER_EFFECT, DONT_BOOST_X, DONT_BOOST_Y, DONT_ENTER, DONT_FADE, EDITOR_LAYER_1,
+        EDITOR_LAYER_2, ENTER_EFFECT_CHANNEL, EXTRA_STICKY, GRIP_SLOPE, GROUPS,
         HAS_EXTENDED_COLLISION, HIDDEN, IS_AREA_PARENT, IS_GROUP_PARENT, IS_HIGH_DETAIL,
-        IS_ICE_BLOCK, NO_AUDIO_SCALE, NO_GLOW, NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH,
-        NONSTICK_X, NONSTICK_Y, PASSABLE, REVERSES_GAMEPLAY, SCALE_STICK, SINGLE_PLAYER_TOUCH,
+        IS_ICE_BLOCK, MATERIAL_CONTROL_ID, MULTITRIGGERABLE, NO_AUDIO_SCALE, NO_END_EFFECTS,
+        NO_GLOW, NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH, NONSTICK_X, NONSTICK_Y, OBJECT_COLOUR,
+        OBJECT_ID, OBJECT_MATERIAL, PARENT_GROUPS, PASSABLE, REVERSES_GAMEPLAY, ROTATION,
+        SCALE_STICK, SECONDARY_COLOUR, SINGLE_PLAYER_TOUCH, SPAWN_TRIGGERABLE, TOUCH_TRIGGERABLE,
+        X_POS, X_SCALE, Y_POS, Y_SCALE, Z_LAYER, Z_ORDER,
     },
     lookup::get_property_type,
 };
@@ -542,8 +546,20 @@ impl GDValue {
     }
 
     #[inline(always)]
-    pub fn from_group_list(g: Vec<i16>) -> Self {
-        Self::GroupList(SmallVec::from_vec(g))
+    pub fn from_group_list(g: Vec<Group>) -> Self {
+        Self::GroupList(SmallVec::from_vec(g.iter().map(|&g| g.id()).collect()))
+    }
+
+    #[inline(always)]
+    pub fn parents_group_list(g: Vec<Group>) -> Self {
+        Self::GroupList(SmallVec::from_vec(
+            g.iter()
+                .filter_map(|g| match g {
+                    Group::Parent(p) => Some(*p),
+                    Group::Regular(_) => None,
+                })
+                .collect(),
+        ))
     }
 
     #[inline(always)]
@@ -774,7 +790,7 @@ impl Display for GDObject {
                 self.config
                     .groups
                     .iter()
-                    .map(|g| format!("{g}"))
+                    .map(|g| format!("{}", g.id()))
                     .collect::<Vec<String>>()
                     .join(", ")
             ),
@@ -857,59 +873,89 @@ impl GDObject {
             };
 
             match idx_u16 {
-                1 => obj.id = val.parse().unwrap_or(0),
-                2 => obj.config.pos.0 = val.parse().unwrap_or(0.0),
-                3 => obj.config.pos.1 = val.parse().unwrap_or(0.0),
-                6 => obj.config.angle = val.parse().unwrap_or(0.0),
-                11 => obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false),
-                62 => obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false),
-                87 => obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false),
-                57 => {
-                    obj.config.groups = val
-                        .trim_matches('"')
-                        .split(".")
-                        .filter_map(|g| g.parse::<i16>().ok())
-                        .collect()
+                OBJECT_ID => obj.id = val.parse().unwrap_or(0),
+                X_POS => obj.config.pos.0 = val.parse().unwrap_or(0.0),
+                Y_POS => obj.config.pos.1 = val.parse().unwrap_or(0.0),
+                ROTATION => obj.config.angle = val.parse().unwrap_or(0.0),
+                TOUCH_TRIGGERABLE => {
+                    obj.config.trigger_cfg.touchable = val.parse().unwrap_or(false)
                 }
-                128 => obj.config.scale.0 = val.parse().unwrap_or(1.0),
-                129 => obj.config.scale.1 = val.parse().unwrap_or(1.0),
-                20 => obj.config.editor_layers.0 = val.parse().unwrap_or(0),
-                61 => obj.config.editor_layers.1 = val.parse().unwrap_or(0),
-                21 => {
+                SPAWN_TRIGGERABLE => {
+                    obj.config.trigger_cfg.spawnable = val.parse().unwrap_or(false)
+                }
+                MULTITRIGGERABLE => {
+                    obj.config.trigger_cfg.multitriggerable = val.parse().unwrap_or(false)
+                }
+                GROUPS => {
+                    obj.config.add_groups(
+                        val.trim_matches('"')
+                            .split(".")
+                            .filter_map(|g| g.parse::<i16>().ok())
+                            .map(|id| Group::Regular(id))
+                            .collect::<Vec<Group>>(),
+                    );
+                }
+                X_SCALE => obj.config.scale.0 = val.parse().unwrap_or(1.0),
+                Y_SCALE => obj.config.scale.1 = val.parse().unwrap_or(1.0),
+                EDITOR_LAYER_1 => obj.config.editor_layers.0 = val.parse().unwrap_or(0),
+                EDITOR_LAYER_2 => obj.config.editor_layers.1 = val.parse().unwrap_or(0),
+                OBJECT_COLOUR => {
                     obj.config.colour_channels.0 = ColourChannel::from_i32(val.parse().unwrap_or(0))
                 }
-                22 => {
+                SECONDARY_COLOUR => {
                     obj.config.colour_channels.1 = ColourChannel::from_i32(val.parse().unwrap_or(0))
                 }
-                24 => obj.config.z_layer = ZLayer::from_i32(val.parse().unwrap_or(0)),
-                25 => obj.config.z_order = val.parse().unwrap_or(0),
-                343 => obj.config.enter_effect_channel = val.parse().unwrap_or(0),
-                446 => obj.config.material_id = val.parse().unwrap_or(0),
-                64 => obj.config.attributes.dont_fade = val.parse().unwrap_or(false),
-                67 => obj.config.attributes.dont_enter = val.parse().unwrap_or(false),
-                116 => obj.config.attributes.no_effects = val.parse().unwrap_or(false),
-                34 => obj.config.attributes.is_group_parent = val.parse().unwrap_or(false),
-                279 => obj.config.attributes.is_area_parent = val.parse().unwrap_or(false),
-                509 => obj.config.attributes.dont_boost_x = val.parse().unwrap_or(false),
-                496 => obj.config.attributes.dont_boost_y = val.parse().unwrap_or(false),
-                103 => obj.config.attributes.high_detail = val.parse().unwrap_or(false),
-                121 => obj.config.attributes.no_touch = val.parse().unwrap_or(false),
-                134 => obj.config.attributes.passable = val.parse().unwrap_or(false),
-                135 => obj.config.attributes.hidden = val.parse().unwrap_or(false),
-                136 => obj.config.attributes.non_stick_x = val.parse().unwrap_or(false),
-                289 => obj.config.attributes.non_stick_y = val.parse().unwrap_or(false),
-                495 => obj.config.attributes.extra_sticky = val.parse().unwrap_or(false),
-                511 => obj.config.attributes.extended_collision = val.parse().unwrap_or(false),
-                137 => obj.config.attributes.is_ice_block = val.parse().unwrap_or(false),
-                193 => obj.config.attributes.grip_slope = val.parse().unwrap_or(false),
-                96 => obj.config.attributes.no_glow = val.parse().unwrap_or(false),
-                507 => obj.config.attributes.no_particles = val.parse().unwrap_or(false),
-                356 => obj.config.attributes.scale_stick = val.parse().unwrap_or(false),
-                372 => obj.config.attributes.no_audio_scale = val.parse().unwrap_or(false),
-                284 => obj.config.attributes.single_ptouch = val.parse().unwrap_or(false),
-                369 => obj.config.attributes.center_effect = val.parse().unwrap_or(false),
-                117 => obj.config.attributes.reverse = val.parse().unwrap_or(false),
-                534 => obj.config.material_control_id = val.parse().unwrap_or(0),
+                Z_LAYER => obj.config.z_layer = ZLayer::from_i32(val.parse().unwrap_or(0)),
+                Z_ORDER => obj.config.z_order = val.parse().unwrap_or(0),
+                ENTER_EFFECT_CHANNEL => obj.config.enter_effect_channel = val.parse().unwrap_or(0),
+                OBJECT_MATERIAL => obj.config.material_id = val.parse().unwrap_or(0),
+                DONT_FADE => obj.config.attributes.dont_fade = val.parse().unwrap_or(false),
+                DONT_ENTER => obj.config.attributes.dont_enter = val.parse().unwrap_or(false),
+                NO_OBJECT_EFFECTS => {
+                    obj.config.attributes.no_effects = val.parse().unwrap_or(false)
+                }
+                IS_GROUP_PARENT => {
+                    obj.config.attributes.is_group_parent = val.parse().unwrap_or(false)
+                }
+                IS_AREA_PARENT => {
+                    obj.config.attributes.is_area_parent = val.parse().unwrap_or(false)
+                }
+                DONT_BOOST_X => obj.config.attributes.dont_boost_x = val.parse().unwrap_or(false),
+                DONT_BOOST_Y => obj.config.attributes.dont_boost_y = val.parse().unwrap_or(false),
+                IS_HIGH_DETAIL => obj.config.attributes.high_detail = val.parse().unwrap_or(false),
+                NO_TOUCH => obj.config.attributes.no_touch = val.parse().unwrap_or(false),
+                PASSABLE => obj.config.attributes.passable = val.parse().unwrap_or(false),
+                HIDDEN => obj.config.attributes.hidden = val.parse().unwrap_or(false),
+                NONSTICK_X => obj.config.attributes.non_stick_x = val.parse().unwrap_or(false),
+                NONSTICK_Y => obj.config.attributes.non_stick_y = val.parse().unwrap_or(false),
+                EXTRA_STICKY => obj.config.attributes.extra_sticky = val.parse().unwrap_or(false),
+                HAS_EXTENDED_COLLISION => {
+                    obj.config.attributes.extended_collision = val.parse().unwrap_or(false)
+                }
+                IS_ICE_BLOCK => obj.config.attributes.is_ice_block = val.parse().unwrap_or(false),
+                GRIP_SLOPE => obj.config.attributes.grip_slope = val.parse().unwrap_or(false),
+                NO_GLOW => obj.config.attributes.no_glow = val.parse().unwrap_or(false),
+                NO_PARTICLES => obj.config.attributes.no_particles = val.parse().unwrap_or(false),
+                SCALE_STICK => obj.config.attributes.scale_stick = val.parse().unwrap_or(false),
+                NO_AUDIO_SCALE => {
+                    obj.config.attributes.no_audio_scale = val.parse().unwrap_or(false)
+                }
+                SINGLE_PLAYER_TOUCH => {
+                    obj.config.attributes.single_ptouch = val.parse().unwrap_or(false)
+                }
+                CENTER_EFFECT => obj.config.attributes.center_effect = val.parse().unwrap_or(false),
+                REVERSES_GAMEPLAY => obj.config.attributes.reverse = val.parse().unwrap_or(false),
+                MATERIAL_CONTROL_ID => obj.config.material_control_id = val.parse().unwrap_or(0),
+                PARENT_GROUPS => {
+                    // add groups method handles deduping
+                    obj.config.add_groups(
+                        val.trim_matches('"')
+                            .split(".")
+                            .filter_map(|g| g.parse::<i16>().ok())
+                            .map(|id| Group::Parent(id))
+                            .collect::<Vec<Group>>(),
+                    );
+                }
                 n => obj.set_property_raw(n, val),
             }
         }
@@ -1061,6 +1107,65 @@ pub struct TriggerConfig {
     pub multitriggerable: bool,
 }
 
+/// Group ID container for regular and parent groups
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
+pub enum Group {
+    Regular(i16),
+    Parent(i16),
+}
+
+impl Ord for Group {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // check ids first
+        // check the types only if equal
+        match self.id().cmp(&other.id()) {
+            std::cmp::Ordering::Equal => self.get_type().cmp(&other.get_type()),
+            o => o,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd)]
+/// Group type enum
+pub enum GroupType {
+    Regular,
+    Parent,
+}
+
+impl Ord for GroupType {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other {
+            std::cmp::Ordering::Equal
+        } else if *self == Self::Regular {
+            // other is parent, so is less
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Less
+        }
+    }
+}
+
+impl Group {
+    pub fn id(&self) -> i16 {
+        match self {
+            Self::Regular(id) => *id,
+            Self::Parent(id) => *id,
+        }
+    }
+    pub fn get_type(&self) -> GroupType {
+        match self {
+            Group::Parent(_) => GroupType::Parent,
+            Group::Regular(_) => GroupType::Regular,
+        }
+    }
+}
+
+impl From<i16> for Group {
+    fn from(value: i16) -> Self {
+        Self::Regular(value)
+    }
+}
+
 /// Object config, used for defining general properties of an object:
 /// * position
 /// * scale
@@ -1072,7 +1177,7 @@ pub struct GDObjConfig {
     pub pos: (f64, f64),
     pub scale: (f64, f64),
     pub angle: f64,
-    pub groups: Vec<i16>,
+    pub groups: Vec<Group>,
     pub trigger_cfg: TriggerConfig,
     pub z_order: i32,
     pub z_layer: ZLayer,
@@ -1178,7 +1283,7 @@ impl GDObjConfig {
             let group_str = &self
                 .groups
                 .iter()
-                .map(ToString::to_string)
+                .map(|g| g.id().to_string())
                 .collect::<Vec<String>>()
                 .join(".");
             properties.push_str(group_str);
@@ -1187,31 +1292,37 @@ impl GDObjConfig {
         return properties;
     }
 
+    fn dedup_groups(&mut self) {
+        // sort beforehand
+        self.groups.sort_by(|a, b| a.cmp(&b));
+        self.groups.dedup_by(|a, b| a.id() == b.id());
+    }
+
     /// Sets groups of this object
     #[inline(always)]
-    pub fn groups<T: IntoIterator<Item = i16>>(mut self, groups: T) -> Self {
-        self.groups = groups.into_iter().collect();
+    pub fn groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) -> Self {
+        self.groups = groups.into_iter().map(|g| g.into()).collect();
+        self.dedup_groups();
         self
     }
     /// Adds groups to this object's groups
     #[inline(always)]
-    pub fn add_groups<T: AsRef<[i16]>>(mut self, groups: T) -> Self {
+    pub fn add_groups<T: AsRef<[Group]>>(&mut self, groups: T) {
         self.groups.extend_from_slice(groups.as_ref());
-        self
+        self.dedup_groups();
     }
     /// Adds group to this object's groups
     #[inline(always)]
-    pub fn add_group(mut self, group: i16) -> Self {
+    pub fn add_group(&mut self, group: Group) {
         self.groups.push(group);
-        self
+        self.dedup_groups();
     }
     /// Removes this group from this object's groups
     #[inline(always)]
-    pub fn remove_group(mut self, group: i16) -> Self {
+    pub fn remove_group(&mut self, group: Group) {
         if let Some(idx) = self.groups.iter().position(|&g| g == group) {
             self.groups.swap_remove(idx);
         }
-        self
     }
     /// Sets x position of this object
     #[inline(always)]
@@ -1227,10 +1338,9 @@ impl GDObjConfig {
     }
 
     /// Applies a translation to this object's position
-    pub fn translate(mut self, x: f64, y: f64) -> Self {
+    pub fn translate(&mut self, x: f64, y: f64) {
         self.pos.0 += x;
         self.pos.1 += y;
-        self
     }
 
     /// Sets x and y position of this object

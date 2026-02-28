@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::core::GDError;
+use crate::{core::GDError, gdobj::Group};
 
 use plist::{Dictionary, Value};
 
@@ -432,7 +432,7 @@ impl LevelData {
     }
 
     /// Returns a list of all the groups that contain at least one object
-    pub fn get_used_groups(&self) -> Vec<i16> {
+    pub fn get_used_groups(&self) -> Vec<Group> {
         if self.objects.len() == 0 {
             return vec![];
         }
@@ -442,17 +442,17 @@ impl LevelData {
         for object in self.objects.iter() {
             groups.extend(object.config.groups.iter());
         }
-        let mut arr: Vec<i16> = groups.into_iter().collect();
+        let mut arr: Vec<Group> = groups.into_iter().collect();
         arr.sort();
         return arr;
     }
 
     /// Returns a list of all the groups that do not contain any objects
-    pub fn get_unused_groups(&self) -> Vec<i16> {
-        let all: BTreeSet<i16> = (1..10000).collect();
-        let used: BTreeSet<i16> = self.get_used_groups().into_iter().collect();
+    pub fn get_unused_groups(&self) -> Vec<Group> {
+        let all: BTreeSet<Group> = (1..10000).map(|id| Group::Regular(id)).collect();
+        let used: BTreeSet<Group> = self.get_used_groups().into_iter().collect();
 
-        all.difference(&used).cloned().collect::<Vec<i16>>()
+        all.difference(&used).cloned().collect::<Vec<Group>>()
     }
 
     /// Returns a list of all groups used as arguments in triggers
