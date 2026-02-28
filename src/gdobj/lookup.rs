@@ -2,6 +2,8 @@ use phf::{Map, phf_map};
 
 use crate::gdobj::GDObjPropType;
 
+// TODO: make the types not unknown
+// note: if it;s a number but not specifically an int, don't say it's an int.
 /// Names of properties (INCOMPLETE):
 /// (property, name)  
 ///
@@ -147,11 +149,13 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     410u16 => ("End offset in ms", GDObjPropType::Int),
     411u16 => ("Fade out time in ms", GDObjPropType::Int),
     413u16 => ("Loop song?", GDObjPropType::Bool),
+    430u16 => ("Event listeners", GDObjPropType::EventsList),
     432u16 => ("Song channel", GDObjPropType::Unknown),
     441u16 => ("Spawn ordered", GDObjPropType::Bool),
     444u16 => ("No multiactivate platformer", GDObjPropType::Bool),
     445u16 => ("Claim touch?", GDObjPropType::Bool),
     446u16 => ("Object material", GDObjPropType::Unknown),
+    447u16 => ("Event extra ID", GDObjPropType::Group),
     452u16 => ("Relative rotation", GDObjPropType::Bool),
     460u16 => ("No end effects?", GDObjPropType::Bool),
     461u16 => ("No end sound effects?", GDObjPropType::Bool),
@@ -193,6 +197,7 @@ pub const PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     517u16 => ("MinY ID", GDObjPropType::Group),
     518u16 => ("MaxX ID", GDObjPropType::Group),
     519u16 => ("MaxY ID", GDObjPropType::Group),
+    525u16 => ("Event Extra ID 2", GDObjPropType::Bool),
     534u16 => ("Material control ID", GDObjPropType::Int),
     535u16 => ("Use control ID", GDObjPropType::Bool),
     540u16 => ("Stop player jump", GDObjPropType::Bool),

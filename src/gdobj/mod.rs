@@ -1,9 +1,6 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
 //! This module also contains the GDObjConfig struct for creating new GDObjects
-use std::{
-    default,
-    fmt::{Debug, Display, Write},
-};
+use std::fmt::{Debug, Display, Write};
 
 use crate::gdobj::{
     ids::properties::{
@@ -24,7 +21,7 @@ pub mod triggers;
 
 pub mod animation_ids {
     #[repr(i32)]
-    #[derive(Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum BigBeast {
         Bite = 0,
         Attack01 = 1,
@@ -32,7 +29,7 @@ pub mod animation_ids {
         Idle01 = 3,
     }
     #[repr(i32)]
-    #[derive(Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Bat {
         Idle01 = 0,
         Idle02 = 1,
@@ -46,7 +43,7 @@ pub mod animation_ids {
         Attack02Loop = 9,
     }
     #[repr(i32)]
-    #[derive(Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Spikeball {
         Idle01 = 0,
         Idle02 = 1,
@@ -60,6 +57,7 @@ pub mod animation_ids {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Anim {
     Other(i32),
     BigBeast(animation_ids::BigBeast),
@@ -78,8 +76,71 @@ impl Anim {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Item {
+    Counter(i16),
+    Timer(i16),
+    Points,
+    Attempts,
+    MainTime,
+}
+
+impl Item {
+    pub fn get_type(&self) -> ItemType {
+        match self {
+            Self::Attempts => ItemType::Attempts,
+            Self::Counter(_) => ItemType::Counter,
+            Self::MainTime => ItemType::MainTime,
+            Self::Points => ItemType::Points,
+            Self::Timer(_) => ItemType::Timer,
+        }
+    }
+    pub fn get_type_as_i32(&self) -> i32 {
+        self.get_type() as i32
+    }
+    pub fn as_special_mode(&self) -> Option<CounterMode> {
+        match self {
+            Self::Attempts => Some(CounterMode::Attempts),
+            Self::MainTime => Some(CounterMode::MainTime),
+            Self::Points => Some(CounterMode::Points),
+            _ => None,
+        }
+    }
+    pub fn as_special_mode_i32(&self) -> i32 {
+        self.as_special_mode().unwrap() as i32
+    }
+
+    pub fn id(&self) -> i16 {
+        match self {
+            Self::Counter(c) => *c,
+            Self::Timer(t) => *t,
+            _ => 0,
+        }
+    }
+}
+
+/// Enum for counter types
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ItemType {
+    Counter = 1,
+    Timer = 2,
+    Points = 3,
+    MainTime = 4,
+    Attempts = 5,
+}
+
+/// Enum for counter modes
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CounterMode {
+    Attempts = -3,
+    Points = -2,
+    MainTime = -1,
+}
+
 #[repr(u8)]
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Copy)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 pub enum GDObjPropType {
     Int,
     Float,
@@ -88,13 +149,14 @@ pub enum GDObjPropType {
     Group,
     Item,
     Easing,
+    EventsList,
     ColourChannel,
     Toggle,
     Unknown,
 }
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ZLayer {
     B5 = -5,
     B4 = -3,
@@ -127,7 +189,7 @@ impl ZLayer {
 }
 
 /// Enum for colour channels and their IDs
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ColourChannel {
     Channel(i32),
     Background,
@@ -179,7 +241,7 @@ impl ColourChannel {
 
 /// Enum for all the move easings
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum MoveEasing {
     #[default]
     None = 0,
@@ -231,7 +293,7 @@ impl MoveEasing {
 
 const LIST_ALLOCSIZE: usize = 5;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GDValue {
     Int(i32),
     Float(f64),
@@ -244,7 +306,189 @@ pub enum GDValue {
     Easing(MoveEasing),
     ColourChannel(ColourChannel),
     ZLayer(ZLayer),
+    Events(Vec<Event>),
     String(String), // fallback
+}
+
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Event {
+    // zamn!! that's a lot of events
+    TinyLanding = 1,
+    FeatherLanding = 2,
+    SoftLanding = 3,
+    NormalLanding = 4,
+    HardLanding = 5,
+    HitHead = 6,
+    OrbTouched = 7,
+    OrbActivated = 8,
+    PadActivated = 9,
+    GravityInverted = 10,
+    GravityRestored = 11,
+    NormalJump = 12,
+    RobotBoostStart = 13,
+    RobotBoostStop = 14,
+    UFOJump = 15,
+    ShipBoostStart = 16,
+    ShipBoostEnd = 17,
+    SpiderTeleport = 18,
+    BallSwitch = 19,
+    SwingSwitch = 20,
+    WavePush = 21,
+    WaveRelease = 22,
+    DashStart = 23,
+    DashStop = 24,
+    Teleported = 25,
+    PortalNormal = 26,
+    PortalShip = 27,
+    PortalBall = 28,
+    PortalUFO = 29,
+    PortalWave = 30,
+    PortalRobot = 31,
+    PortalSpider = 32,
+    PortalSwing = 33,
+    YellowOrb = 34,
+    PinkOrb = 35,
+    RedOrb = 36,
+    GravityOrb = 37,
+    GreenOrb = 38,
+    DropOrb = 39,
+    CustomOrb = 40,
+    DashOrb = 41,
+    GravityDashOrb = 42,
+    SpiderOrb = 43,
+    TeleportOrb = 44,
+    YellowPad = 45,
+    PinkPad = 46,
+    RedPad = 47,
+    GravityPad = 48,
+    SpiderPad = 49,
+    PortalGravityFlip = 50,
+    PortalGravityNormal = 51,
+    PortalGravityInvert = 52,
+    PoratlFlip = 53,
+    PortalUnflip = 54,
+    PortalNormalScale = 55,
+    PortalMiniScale = 56,
+    PortalDualOn = 57,
+    PortalDualOff = 58,
+    PortalTeleport = 59,
+    Checkpoint = 60,
+    DestroyBlock = 61,
+    UserCoin = 62,
+    PickupItem = 63,
+    FallLow = 65,
+    FallMed = 66,
+    FallHigh = 67,
+    FallVHigh = 68,
+    JumpPush = 69,
+    JumpRelease = 70,
+    LeftPush = 71,
+    LeftRelease = 72,
+    RightPush = 73,
+    RightRelease = 74,
+    PlayerReversed = 75,
+    CheckpointRespawn = 64, // <- intentionally placed here, the ordering follows that in gd.
+    FallSpeedLow = 76,
+    FallSpeedMed = 77,
+    FallSpeedHigh = 78,
+}
+
+impl Event {
+    /// Converts the event ID to the variant of the [`Event`] enum. Default to TinyLanding.
+    pub fn from_i32(i: i32) -> Self {
+        match i {
+            1 => Self::TinyLanding,
+            2 => Self::FeatherLanding,
+            3 => Self::SoftLanding,
+            4 => Self::NormalLanding,
+            5 => Self::HardLanding,
+            6 => Self::HitHead,
+            7 => Self::OrbTouched,
+            8 => Self::OrbActivated,
+            9 => Self::PadActivated,
+            10 => Self::GravityInverted,
+            11 => Self::GravityRestored,
+            12 => Self::NormalJump,
+            13 => Self::RobotBoostStart,
+            14 => Self::RobotBoostStop,
+            15 => Self::UFOJump,
+            16 => Self::ShipBoostStart,
+            17 => Self::ShipBoostEnd,
+            18 => Self::SpiderTeleport,
+            19 => Self::BallSwitch,
+            20 => Self::SwingSwitch,
+            21 => Self::WavePush,
+            22 => Self::WaveRelease,
+            23 => Self::DashStart,
+            24 => Self::DashStop,
+            25 => Self::Teleported,
+            26 => Self::PortalNormal,
+            27 => Self::PortalShip,
+            28 => Self::PortalBall,
+            29 => Self::PortalUFO,
+            30 => Self::PortalWave,
+            31 => Self::PortalRobot,
+            32 => Self::PortalSpider,
+            33 => Self::PortalSwing,
+            34 => Self::YellowOrb,
+            35 => Self::PinkOrb,
+            36 => Self::RedOrb,
+            37 => Self::GravityOrb,
+            38 => Self::GreenOrb,
+            39 => Self::DropOrb,
+            40 => Self::CustomOrb,
+            41 => Self::DashOrb,
+            42 => Self::GravityDashOrb,
+            43 => Self::SpiderOrb,
+            44 => Self::TeleportOrb,
+            45 => Self::YellowPad,
+            46 => Self::PinkPad,
+            47 => Self::RedPad,
+            48 => Self::GravityPad,
+            49 => Self::SpiderPad,
+            50 => Self::PortalGravityFlip,
+            51 => Self::PortalGravityNormal,
+            52 => Self::PortalGravityInvert,
+            53 => Self::PoratlFlip,
+            54 => Self::PortalUnflip,
+            55 => Self::PortalNormalScale,
+            56 => Self::PortalMiniScale,
+            57 => Self::PortalDualOn,
+            58 => Self::PortalDualOff,
+            59 => Self::PortalTeleport,
+            60 => Self::Checkpoint,
+            61 => Self::DestroyBlock,
+            62 => Self::UserCoin,
+            63 => Self::PickupItem,
+            65 => Self::FallLow,
+            66 => Self::FallMed,
+            67 => Self::FallHigh,
+            68 => Self::FallVHigh,
+            69 => Self::JumpPush,
+            70 => Self::JumpRelease,
+            71 => Self::LeftPush,
+            72 => Self::LeftRelease,
+            73 => Self::RightPush,
+            74 => Self::RightRelease,
+            75 => Self::PlayerReversed,
+            64 => Self::CheckpointRespawn,
+            76 => Self::FallSpeedLow,
+            77 => Self::FallSpeedMed,
+            // this will be the default because i said so
+            // it has event id 78
+            _ => Self::FallSpeedHigh,
+        }
+    }
+}
+
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ExtraID2 {
+    #[default]
+    All = 0,
+    P1 = 1,
+    P2 = 2,
 }
 
 // for debug purposes
@@ -266,6 +510,12 @@ pub enum GDValue {
 //     }
 // }
 
+macro_rules! parse {
+    ($v:expr => $t:ty) => {
+        $v.parse::<$t>().unwrap_or_default()
+    };
+}
+
 impl GDValue {
     pub fn from(t: GDObjPropType, s: &str) -> Self {
         match t {
@@ -279,6 +529,12 @@ impl GDValue {
             }
             GDObjPropType::Float => Self::Float(s.parse::<f64>().unwrap_or_default()),
             GDObjPropType::Int => Self::Int(s.parse::<i32>().unwrap_or_default()),
+            GDObjPropType::EventsList => Self::Events(
+                s.split('.')
+                    .into_iter()
+                    .map(|i| Event::from_i32(parse!(i => i32)))
+                    .collect(),
+            ),
             GDObjPropType::Group => Self::Group(s.parse::<i16>().unwrap_or_default()),
             GDObjPropType::Item => Self::Item(s.parse::<i16>().unwrap_or_default()),
             GDObjPropType::Text | GDObjPropType::Unknown => Self::String(s.to_owned()),
@@ -306,6 +562,36 @@ impl GDValue {
     }
 }
 
+macro_rules! fmt_intlist {
+    // Vec<int>
+    ($vals:expr, $i_buf:expr) => {{
+        let mut items_str = String::with_capacity($vals.len() * 4);
+        for (idx, item) in $vals.iter().enumerate() {
+            if idx != 0 {
+                items_str.push('.');
+            }
+            items_str.push_str($i_buf.format(*item as i32));
+        }
+        items_str
+    }};
+}
+
+macro_rules! fmt_inttuples {
+    // Vec<(int, int)>
+    ($vals:expr, $i_buf:expr) => {{
+        let mut items_str = String::with_capacity($vals.len() * 8);
+        for (idx, item) in $vals.iter().enumerate() {
+            if idx != 0 {
+                items_str.push('.');
+            }
+            items_str.push_str($i_buf.format(item.0));
+            items_str.push('.');
+            items_str.push_str($i_buf.format(item.1));
+        }
+        items_str
+    }};
+}
+
 impl Display for GDValue {
     // also the serialisation
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -313,14 +599,7 @@ impl Display for GDValue {
         let mut d_buf = dtoa::Buffer::new();
 
         match self {
-            GDValue::Bool(b) => write!(
-                f,
-                "{}",
-                match b {
-                    true => "1",
-                    false => "0",
-                }
-            ),
+            GDValue::Bool(b) => write!(f, "{}", if *b { '1' } else { '0' }),
             GDValue::Toggle(b) => write!(
                 f,
                 "{}",
@@ -333,36 +612,17 @@ impl Display for GDValue {
             GDValue::Easing(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Float(v) => write!(f, "{}", d_buf.format(*v)),
             GDValue::Group(v) | GDValue::Item(v) => write!(f, "{}", i_buf.format(*v)),
-            GDValue::GroupList(v) => write!(f, "{}", {
-                let mut g_str = String::with_capacity(v.len() * 4);
-                for (idx, g) in v.iter().enumerate() {
-                    if idx != 0 {
-                        g_str.push('.');
-                    }
-                    g_str.push_str(i_buf.format(*g));
-                }
-                g_str
-            }),
-            GDValue::ProbabilitiesList(v) => write!(f, "{}", {
-                let mut g_str = String::with_capacity(v.len() * 8);
-                for (idx, g) in v.iter().enumerate() {
-                    if idx != 0 {
-                        g_str.push('.');
-                    }
-                    g_str.push_str(i_buf.format(g.0));
-                    g_str.push('.');
-                    g_str.push_str(i_buf.format(g.1));
-                }
-                g_str
-            }),
+            GDValue::GroupList(v) => write!(f, "{}", fmt_intlist!(v, i_buf)),
+            GDValue::ProbabilitiesList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::Int(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
             GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts, i_buf)),
         }
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct GDObjProperty {
     pub name: u16,
     pub desc: &'static str,
@@ -376,7 +636,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (3, "Waffle block corner"),
     (4, "Waffle block inner corner"),
     (5, "Waffle block filler"),
-    (6, "Waffle block no bottom"), // todo
+    (6, "Waffle block no bottom"),
     (7, "Waffle block straight"),
     (8, "Spike"),
     (9, "Ground spikes"),
@@ -477,6 +737,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
     (2900, "Trigger rotate gameplay"),
     (2900, "Trigger Middleground config"),
     (3600, "Trigger End"),
+    (3604, "Trigger Event"),
     (3606, "BG speed config"),
     (3608, "Trigger Spawn particle"),
     (3609, "Trigger Instant collision"),
@@ -498,7 +759,7 @@ const OBJECT_NAMES: &[(i32, &str)] = &[
 /// * `id`: The object's ID.
 /// * `config`: General properties like position and scale.
 /// * `properties`: Object-specific properties like target group for a move trigger
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct GDObject {
     pub id: i32,
     pub config: GDObjConfig,
@@ -678,7 +939,7 @@ impl GDObject {
         }
     }
 
-    /// TODO
+    /// Removes the property from this object's property map by its ID.
     pub fn del_property(&mut self, p: u16) {
         if let Ok(idx) = self.properties.binary_search_by_key(&p, |t| t.0) {
             self.properties.remove(idx);
@@ -730,9 +991,9 @@ impl GDObject {
         }
     }
 
-    // TODO: GDValue enum for this
     pub fn get_property(&self, p: u16) -> Option<GDValue> {
         match p {
+            // one of the most fascinating matches of all time
             1 => Some(GDValue::Int(self.id)),
             2 => Some(GDValue::Float(self.config.pos.0)),
             3 => Some(GDValue::Float(self.config.pos.1)),

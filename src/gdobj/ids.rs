@@ -108,6 +108,7 @@ pub mod objects {
     pub const TRIGGER_ROTATE_GAMEPLAY: i32 = 2900;
     pub const TRIGGER_MIDDLEGROUND_CONFIG: i32 = 2900;
     pub const TRIGGER_END: i32 = 3600;
+    pub const TRIGGER_EVENT: i32 = 3604;
     pub const BG_SPEED_CONFIG: i32 = 3606;
     pub const TRIGGER_SPAWN_PARTICLE: i32 = 3608;
     pub const TRIGGER_INSTANT_COLLISION: i32 = 3609;
@@ -267,11 +268,13 @@ pub mod properties {
     pub const END_OFFSET_IN_MS: u16 = 410u16;
     pub const FADE_OUT_TIME_IN_MS: u16 = 411u16;
     pub const LOOP_SONG: u16 = 413u16;
+    pub const EVENT_LISTENERS: u16 = 430u16;
     pub const SONG_CHANNEL: u16 = 432u16;
     pub const SPAWN_ORDERED: u16 = 441u16;
     pub const NO_MULTIACTIVATE_PLATFORMER: u16 = 444u16;
     pub const CLAIM_TOUCH: u16 = 445u16;
     pub const OBJECT_MATERIAL: u16 = 446u16;
+    pub const EVENT_EXTRA_ID: u16 = 447u16;
     pub const RELATIVE_ROTATION: u16 = 452u16;
     pub const NO_END_EFFECTS: u16 = 460u16;
     pub const NO_END_SOUND_EFFECTS: u16 = 461u16;
@@ -313,6 +316,7 @@ pub mod properties {
     pub const MINY_ID: u16 = 517u16;
     pub const MAXX_ID: u16 = 518u16;
     pub const MAXY_ID: u16 = 519u16;
+    pub const EVENT_EXTRA_ID_2: u16 = 525u16;
     pub const MATERIAL_CONTROL_ID: u16 = 534u16;
     pub const USE_CONTROL_ID: u16 = 535u16;
     pub const STOP_PLAYER_JUMP: u16 = 540u16;

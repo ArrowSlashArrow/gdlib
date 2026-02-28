@@ -15,9 +15,11 @@ mod tests {
         deserialiser::decode_levels_to_string,
         gdlevel::{Level, Levels},
         gdobj::{
-            GDObjConfig, MoveEasing,
+            Event, GDObjConfig, MoveEasing,
             misc::default_block,
-            triggers::{self, DefaultMove, advanced_random_trigger, move_trigger, start_pos},
+            triggers::{
+                self, DefaultMove, advanced_random_trigger, event_trigger, move_trigger, start_pos,
+            },
         },
     };
 
@@ -279,5 +281,29 @@ mod tests {
     #[test]
     fn local_levels_parse_benchmark() {
         benchmark("local levels parse", || Levels::from_local().unwrap());
+    }
+
+    #[test]
+    fn _temp_trigger_from_savefile() {
+        let levels = Levels::from_local().unwrap();
+        let level = &levels.levels[0];
+        let data = level.get_decrypted_data().unwrap();
+        for obj in data.objects {
+            println!("{obj:?}");
+            println!("{}", obj.to_string())
+        }
+    }
+
+    #[test]
+    fn event_trigger_test() {
+        let mut level = Level::new("event trigger test", "gdlib", None, None);
+        let mut cfg = GDObjConfig::new().pos(45.0, 45.0);
+        level.add_object(crate::gdobj::triggers::event_trigger(
+            &cfg,
+            123,
+            vec![Event::BallSwitch, Event::FallSpeedLow],
+            0,
+            crate::gdobj::ExtraID2::All,
+        ));
     }
 }

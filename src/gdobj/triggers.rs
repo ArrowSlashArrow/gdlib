@@ -3,20 +3,21 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use crate::gdobj::{
-    Anim, ColourChannel, GDObjConfig, GDObject, GDValue, MoveEasing,
+    Anim, ColourChannel, Event, ExtraID2, GDObjConfig, GDObject, GDValue, Item, ItemType,
+    MoveEasing,
     ids::{
         objects::{
             BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
             COLLISION_STATE_BLOCK, COUNTER, DISABLE_PLAYER_TRAIL, ENABLE_PLAYER_TRAIL,
             MG_SPEED_CONFIG, START_POS, TOGGLE_BLOCK, TRIGGER_ADVANCED_RANDOM, TRIGGER_ANIMATE,
             TRIGGER_CAMERA_ZOOM, TRIGGER_COLLISION, TRIGGER_COLOUR, TRIGGER_COUNT, TRIGGER_END,
-            TRIGGER_FOLLOW, TRIGGER_FOLLOW_PLAYER_Y, TRIGGER_GRAVITY, TRIGGER_ITEM_COMPARE,
-            TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE, TRIGGER_MIDDLEGROUND_CONFIG, TRIGGER_MOVE,
-            TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM, TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE,
-            TRIGGER_RANDOM, TRIGGER_RESET_GROUP, TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION,
-            TRIGGER_SCALE, TRIGGER_SHAKE, TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP,
-            TRIGGER_TIME, TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP,
-            TRIGGER_TOGGLE, UI_CONFIG,
+            TRIGGER_EVENT, TRIGGER_FOLLOW, TRIGGER_FOLLOW_PLAYER_Y, TRIGGER_GRAVITY,
+            TRIGGER_ITEM_COMPARE, TRIGGER_ITEM_EDIT, TRIGGER_LINK_VISIBLE,
+            TRIGGER_MIDDLEGROUND_CONFIG, TRIGGER_MOVE, TRIGGER_ON_DEATH, TRIGGER_PERSISTENT_ITEM,
+            TRIGGER_PLAYER_CONTROL, TRIGGER_PULSE, TRIGGER_RANDOM, TRIGGER_RESET_GROUP,
+            TRIGGER_REVERSE_GAMEPLAY, TRIGGER_ROTATION, TRIGGER_SCALE, TRIGGER_SHAKE,
+            TRIGGER_SPAWN, TRIGGER_SPAWN_PARTICLE, TRIGGER_STOP, TRIGGER_TIME,
+            TRIGGER_TIME_CONTROL, TRIGGER_TIME_EVENT, TRIGGER_TIME_WARP, TRIGGER_TOGGLE, UI_CONFIG,
         },
         properties::{
             ACTIVATE_GROUP, ANIMATION_ID, BLENDING_ENABLED, BLUE, CAMERA_GUIDE_PREVIEW_OPACITY,
@@ -25,10 +26,11 @@ use crate::gdobj::{
             COPY_COLOUR_FROM_CHANNEL, COPY_COLOUR_SPECS, COPY_OPACITY, COUNTER_ALIGNMENT,
             DIRECTIONAL_MODE_DISTANCE, DIRECTIONAL_MOVE_MODE, DISABLE_PREVIEW, DIV_BY_VALUE_X,
             DIV_BY_VALUE_Y, DONT_OVERRIDE, DURATION_GROUP_TRIGGER_CHANCE, DYNAMIC_BLOCK,
-            DYNAMIC_MOVE, EASING_RATE, ENTEREXIT_TRANSITION_CONFIG, EXCLUSIVE_PULSE_MODE,
-            FIRST_ITEM_TYPE, FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_DELAY,
-            FOLLOW_OFFSET, FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, FOLLOW_SPEED,
-            GRAVITY, GREEN, IGNORE_TIMEWARP, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END, IS_DISABLED,
+            DYNAMIC_MOVE, EASING_RATE, ENTEREXIT_TRANSITION_CONFIG, EVENT_EXTRA_ID,
+            EVENT_EXTRA_ID_2, EVENT_LISTENERS, EXCLUSIVE_PULSE_MODE, FIRST_ITEM_TYPE,
+            FOLLOW_CAMERAS_X_MOVEMENT, FOLLOW_CAMERAS_Y_MOVEMENT, FOLLOW_DELAY, FOLLOW_OFFSET,
+            FOLLOW_PLAYERS_X_MOVEMENT, FOLLOW_PLAYERS_Y_MOVEMENT, FOLLOW_SPEED, GRAVITY, GREEN,
+            IGNORE_TIMEWARP, INPUT_ITEM_1, INPUT_ITEM_2, INSTANT_END, IS_DISABLED, IS_INTERACTABLE,
             IS_TIMER, LEFT_OPERATOR, LEFT_ROUND_MODE, LEFT_SIGN_MODE, LOCK_OBJECT_ROTATION,
             MATCH_ROTATION_OF_SPAWNED_PARTICLES, MAX_FOLLOW_SPEED, MAXX_ID, MAXY_ID, MINX_ID,
             MINY_ID, MODIFIER, MOVE_EASING, MOVE_UNITS_X, MOVE_UNITS_Y, MULTI_ACTIVATE,
@@ -59,26 +61,13 @@ use crate::gdobj::{
     },
 };
 
-/*
-template
-
-/// Returns a <TRIGGER> trigger
-///
-/// <overview> // todo
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-
-pub fn FN_NAME(
-    config: &GDObjConfig
-) -> GDObject {
-    GDObject::new(id, config, vec![()])
+/// Enum for move targets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MoveTarget {
+    Group(i16),
+    Player1,
+    Player2,
 }
-*/
-
-/// Constant distinct arbitrary value for player 1 position.
-pub const POS_PLAYER1: i16 = 0x7ABC;
-/// Constant distinct arbitrary value for player 2 position.
-pub const POS_PLAYER2: i16 = 0x7ABD;
 
 /// Enum for the GD gamemodes corresponding to their internal values
 #[repr(i32)]
@@ -112,15 +101,6 @@ pub enum ItemAlign {
     Right = 2,
 }
 
-/// Enum for counter modes
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CounterMode {
-    Attempts = -3,
-    Points = -2,
-    MainTime = -1,
-}
-
 /// Enum for transition object enter/exit config
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -132,7 +112,7 @@ pub enum TransitionMode {
 
 /// Enum for transition object type (from top, from bottom, etc.)
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum TransitionType {
     Fade = 22,
     FromBottom = 23,
@@ -146,18 +126,8 @@ pub enum TransitionType {
     AwayToRight = 57,
     AwayFromMiddle = 58,
     TowardsMiddle = 59,
+    #[default]
     None = 1915,
-}
-
-/// Enum for counter types
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ItemType {
-    Counter = 1,
-    Timer = 2,
-    Points = 3,
-    MainTime = 4,
-    Attempts = 5,
 }
 
 /// Enum for item operators
@@ -257,7 +227,7 @@ pub struct DefaultMove {
 /// * `axis_only`: Optional axis restriction. Use constants `MOVE_X_ONLY` and `MOVE_Y_ONLY` to specify axis.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TargetMove {
-    pub target_group_id: i16,
+    pub target_group_id: MoveTarget,
     pub center_group_id: Option<i16>,
     pub axis_only: Option<AxisOnlyMove>,
 }
@@ -276,7 +246,7 @@ pub enum AxisOnlyMove {
 /// * `distance`: Distance in units to move in the direction of the target objects.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirectionalMove {
-    pub target_group_id: i16,
+    pub target_group_id: MoveTarget,
     pub center_group_id: Option<i16>,
     pub distance: i32,
 }
@@ -419,9 +389,9 @@ pub fn move_trigger(
     let mut properties = vec![
         (TARGET_ITEM, GDValue::Group(target_group)),
         (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
-        (SMALL_STEP, GDValue::Int(1)),
-        (DYNAMIC_MOVE, GDValue::Int(dynamic as i32)),
-        (SILENT_MOVE, GDValue::Int(silent as i32)),
+        (SMALL_STEP, GDValue::Bool(true)),
+        (DYNAMIC_MOVE, GDValue::Bool(dynamic)),
+        (SILENT_MOVE, GDValue::Bool(silent)),
     ];
 
     add_easing(&mut properties, easing);
@@ -465,9 +435,9 @@ pub fn move_trigger(
             }
 
             match config.target_group_id {
-                POS_PLAYER1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                POS_PLAYER2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                id => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
+                MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
             };
         }
         MoveMode::Directional(config) => {
@@ -476,9 +446,9 @@ pub fn move_trigger(
             }
 
             match config.target_group_id {
-                POS_PLAYER1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                POS_PLAYER2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                id => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
+                MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
             };
 
             properties.push((DIRECTIONAL_MOVE_MODE, GDValue::Int(1)));
@@ -686,7 +656,7 @@ pub fn stop_trigger(
         config,
         vec![
             (TARGET_ITEM, GDValue::Group(target_group)),
-            (USE_CONTROL_ID, GDValue::Int(use_control_id as i32)),
+            (USE_CONTROL_ID, GDValue::Bool(use_control_id)),
             (STOP_MODE, GDValue::Int(stop_mode as i32)),
         ],
     )
@@ -1007,24 +977,34 @@ pub fn end_trigger(
 /// * `timer`: Is a timer?
 /// * `align`: Visual alignment of counter object. See [`ItemAlign`] struct.
 /// * `seconds_only`: Show only seconds if timer?
-/// * `special_mode`: Other special mode of timer. See [`CounterMode`] struct.
+/// * `special_mode`: Other special mode of timer. See CounterMode struct.
 pub fn counter_object(
     config: &GDObjConfig,
-    item_id: i16,
-    timer: bool,
+    item: Item,
     align: ItemAlign,
     seconds_only: bool,
-    special_mode: Option<CounterMode>,
 ) -> GDObject {
     let mut properties = vec![
-        (INPUT_ITEM_1, GDValue::Item(item_id)),
         (SECONDS_ONLY, GDValue::Bool(seconds_only)),
         (COUNTER_ALIGNMENT, GDValue::Int(align as i32)),
-        (IS_TIMER, GDValue::Bool(timer)),
     ];
 
-    if let Some(mode) = special_mode {
-        properties.push((SPECIAL_COUNTER_MODE, GDValue::Int(mode as i32)));
+    match item {
+        Item::Attempts | Item::MainTime | Item::Points => {
+            properties.push((
+                SPECIAL_COUNTER_MODE,
+                GDValue::Int(item.as_special_mode_i32()),
+            ));
+        }
+        Item::Counter(c) => {
+            properties.push((INPUT_ITEM_1, GDValue::Item(c)));
+        }
+        Item::Timer(t) => {
+            properties.extend_from_slice(&[
+                (INPUT_ITEM_1, GDValue::Item(t)),
+                (IS_TIMER, GDValue::Bool(true)),
+            ]);
+        }
     }
 
     GDObject::new(COUNTER, config, properties)
@@ -1047,9 +1027,9 @@ pub fn counter_object(
 /// * `result_sign`: sign mode of the final result; see [`SignMode`] enum.
 pub fn item_edit(
     config: &GDObjConfig,
-    operand1: Option<(i16, ItemType)>,
-    operand2: Option<(i16, ItemType)>,
-    target: (i16, ItemType),
+    operand1: Option<Item>,
+    operand2: Option<Item>,
+    target: Item,
     modifier: f64,
     assign_op: Op,
     multiply_mod: bool,
@@ -1059,6 +1039,7 @@ pub fn item_edit(
     id_sign: SignMode,
     result_sign: SignMode,
 ) -> GDObject {
+    // set default values
     let mod_op = match multiply_mod {
         true => Op::Mul,
         false => Op::Div,
@@ -1068,45 +1049,67 @@ pub fn item_edit(
         None => Op::Add,
     };
 
-    let op_1 = match operand1 {
-        Some(cfg) => cfg,
-        None => (0, ItemType::Counter),
-    };
-    let op_2 = match operand2 {
-        Some(cfg) => cfg,
-        None => (0, ItemType::Counter),
-    };
+    let mut properties = vec![
+        (TARGET_ITEM, GDValue::Item(target.id())),
+        (TARGET_ITEM_TYPE, GDValue::Int(target.get_type_as_i32())),
+        (MODIFIER, GDValue::Float(modifier)),
+        (LEFT_OPERATOR, GDValue::Int(assign_op as i32)),
+        (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
+        (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
+        (LEFT_ROUND_MODE, GDValue::Int(id_rounding as i32)),
+        (RIGHT_ROUND_MODE, GDValue::Int(result_rounding as i32)),
+        (LEFT_SIGN_MODE, GDValue::Int(id_sign as i32)),
+        (RIGHT_SIGN_MODE, GDValue::Int(result_sign as i32)),
+    ];
 
-    GDObject::new(
-        TRIGGER_ITEM_EDIT,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Item(target.0)),
-            (INPUT_ITEM_1, GDValue::Item(op_1.0)),
-            (INPUT_ITEM_2, GDValue::Item(op_2.0)),
-            (FIRST_ITEM_TYPE, GDValue::Int(op_1.1 as i32)),
-            (SECOND_ITEM_TYPE, GDValue::Int(op_2.1 as i32)),
-            (TARGET_ITEM_TYPE, GDValue::Int(target.1 as i32)),
-            (MODIFIER, GDValue::Float(modifier)),
-            (LEFT_OPERATOR, GDValue::Int(assign_op as i32)),
-            (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
-            (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
-            (LEFT_ROUND_MODE, GDValue::Int(id_rounding as i32)),
-            (RIGHT_ROUND_MODE, GDValue::Int(result_rounding as i32)),
-            (LEFT_SIGN_MODE, GDValue::Int(id_sign as i32)),
-            (RIGHT_SIGN_MODE, GDValue::Int(result_sign as i32)),
-        ],
-    )
+    if let Some(item) = operand1 {
+        properties.extend_from_slice(&[
+            (INPUT_ITEM_1, GDValue::Item(item.id())),
+            (FIRST_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+        ]);
+    }
+
+    if let Some(item) = operand2 {
+        properties.extend_from_slice(&[
+            (INPUT_ITEM_2, GDValue::Item(item.id())),
+            (SECOND_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+        ]);
+    }
+
+    GDObject::new(TRIGGER_ITEM_EDIT, config, properties)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CompareOperand {
-    pub id: i16,
-    pub kind: ItemType,
+    pub operand_item: Item,
     pub modifier: f64,
     pub mod_op: Op,
     pub rounding: RoundMode,
-    pub sign: RoundMode,
+    pub sign: SignMode,
+}
+
+impl CompareOperand {
+    pub fn number_literal(num: f64) -> Self {
+        Self {
+            operand_item: Item::Counter(0),
+            modifier: num,
+            mod_op: Op::Mul,
+            rounding: RoundMode::None,
+            sign: SignMode::None,
+        }
+    }
+}
+
+impl From<Item> for CompareOperand {
+    fn from(value: Item) -> Self {
+        Self {
+            operand_item: value,
+            modifier: 1.0,
+            mod_op: Op::Mul,
+            rounding: RoundMode::None,
+            sign: SignMode::None,
+        }
+    }
 }
 
 /// Returns an item compare trigger
@@ -1137,11 +1140,17 @@ pub fn item_compare(
         (TARGET_ITEM, GDValue::Item(true_id)),
         (TARGET_ITEM_2, GDValue::Item(false_id)),
         // ids
-        (INPUT_ITEM_1, GDValue::Item(lhs.id)),
-        (INPUT_ITEM_2, GDValue::Item(rhs.id)),
+        (INPUT_ITEM_1, GDValue::Item(lhs.operand_item.id())),
+        (INPUT_ITEM_2, GDValue::Item(rhs.operand_item.id())),
         // types
-        (FIRST_ITEM_TYPE, GDValue::Int(lhs.kind as i32)),
-        (SECOND_ITEM_TYPE, GDValue::Int(rhs.kind as i32)),
+        (
+            FIRST_ITEM_TYPE,
+            GDValue::Int(lhs.operand_item.get_type_as_i32()),
+        ),
+        (
+            SECOND_ITEM_TYPE,
+            GDValue::Int(rhs.operand_item.get_type_as_i32()),
+        ),
         // modifiers
         (MODIFIER, GDValue::Float(lhs.modifier)),
         (SECOND_MODIFIER, GDValue::Float(rhs.modifier)),
@@ -1930,6 +1939,29 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
     }
 }
 
+/// Returns an event config trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+pub fn event_trigger(
+    config: &GDObjConfig,
+    target_group: i16,
+    events: Vec<Event>,
+    extra_id: i16,
+    extra_id2: ExtraID2,
+) -> GDObject {
+    GDObject::new(
+        TRIGGER_EVENT,
+        config,
+        vec![
+            (IS_INTERACTABLE, GDValue::Bool(true)),
+            (TARGET_ITEM, GDValue::Group(target_group)),
+            (EVENT_LISTENERS, GDValue::Events(events)),
+            (EVENT_EXTRA_ID, GDValue::Group(extra_id)),
+            (EVENT_EXTRA_ID_2, GDValue::Int(extra_id2 as i32)),
+        ],
+    )
+}
+
 /* TODO: trigger constructors
  * Animation triggers
  * advanced follow
@@ -1969,7 +2001,6 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
  *
  * Spawner triggers
  * sequence
- * event trigger
  *
  * Camera
  * static camera
