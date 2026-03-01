@@ -1,5 +1,12 @@
 # Changelog
 
+## Update 0.3.0
+ * Added various QOL improvements
+   * Derived standard traits for structs and enums
+   * Added better enums and structs
+   * Added proper handling of parent groups
+ * Removed bad tests
+
 ## Update 0.2.7
  * Added triggers: rotate, scale, follow y-pos, middleground config
  * Minor doc fixes
