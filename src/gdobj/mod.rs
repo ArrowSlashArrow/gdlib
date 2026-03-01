@@ -7,8 +7,8 @@ use crate::gdobj::{
         CENTER_EFFECT, DONT_BOOST_X, DONT_BOOST_Y, DONT_ENTER, DONT_FADE, EDITOR_LAYER_1,
         EDITOR_LAYER_2, ENTER_EFFECT_CHANNEL, EXTRA_STICKY, GRIP_SLOPE, GROUPS,
         HAS_EXTENDED_COLLISION, HIDDEN, IS_AREA_PARENT, IS_GROUP_PARENT, IS_HIGH_DETAIL,
-        IS_ICE_BLOCK, MATERIAL_CONTROL_ID, MULTITRIGGERABLE, NO_AUDIO_SCALE, NO_END_EFFECTS,
-        NO_GLOW, NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH, NONSTICK_X, NONSTICK_Y, OBJECT_COLOUR,
+        IS_ICE_BLOCK, MATERIAL_CONTROL_ID, MULTITRIGGERABLE, NO_AUDIO_SCALE, NO_GLOW,
+        NO_OBJECT_EFFECTS, NO_PARTICLES, NO_TOUCH, NONSTICK_X, NONSTICK_Y, OBJECT_COLOUR,
         OBJECT_ID, OBJECT_MATERIAL, PARENT_GROUPS, PASSABLE, REVERSES_GAMEPLAY, ROTATION,
         SCALE_STICK, SECONDARY_COLOUR, SINGLE_PLAYER_TOUCH, SPAWN_TRIGGERABLE, TOUCH_TRIGGERABLE,
         X_POS, X_SCALE, Y_POS, Y_SCALE, Z_LAYER, Z_ORDER,
@@ -945,7 +945,7 @@ impl GDObject {
                 }
                 CENTER_EFFECT => obj.config.attributes.center_effect = val.parse().unwrap_or(false),
                 REVERSES_GAMEPLAY => obj.config.attributes.reverse = val.parse().unwrap_or(false),
-                MATERIAL_CONTROL_ID => obj.config.material_control_id = val.parse().unwrap_or(0),
+                MATERIAL_CONTROL_ID => obj.config.control_id = val.parse().unwrap_or(0),
                 PARENT_GROUPS => {
                     // add groups method handles deduping
                     obj.config.add_groups(
@@ -1082,7 +1082,7 @@ impl GDObject {
             284 => Some(GDValue::Bool(self.config.attributes.single_ptouch)),
             369 => Some(GDValue::Bool(self.config.attributes.center_effect)),
             117 => Some(GDValue::Bool(self.config.attributes.reverse)),
-            534 => Some(GDValue::Int(self.config.material_control_id)),
+            534 => Some(GDValue::Int(self.config.control_id)),
             _ => self
                 .properties
                 .iter()
@@ -1166,12 +1166,7 @@ impl From<i16> for Group {
     }
 }
 
-/// Object config, used for defining general properties of an object:
-/// * position
-/// * scale
-/// * rotation angle
-/// * groups
-/// * trigger_cfg
+/// Object config, used for defining general properties of an object
 #[derive(Clone, Debug, PartialEq)]
 pub struct GDObjConfig {
     pub pos: (f64, f64),
@@ -1185,7 +1180,7 @@ pub struct GDObjConfig {
     pub colour_channels: (ColourChannel, ColourChannel),
     pub enter_effect_channel: i32,
     pub material_id: i32,
-    pub material_control_id: i32,
+    pub control_id: i32,
     pub attributes: GDObjAttributes,
 }
 
@@ -1216,7 +1211,7 @@ impl GDObjConfig {
             colour_channels: (ColourChannel::Object, ColourChannel::Channel(1)),
             enter_effect_channel: 0,
             material_id: 0,
-            material_control_id: 0,
+            control_id: 0,
             attributes: GDObjAttributes::new(),
         }
     }
@@ -1273,7 +1268,7 @@ impl GDObjConfig {
                 ("25", self.z_order, 0),
                 ("343", self.enter_effect_channel, 0),
                 ("446", self.material_id, 0),
-                ("534", self.material_control_id, 0),
+                ("534", self.control_id, 0),
             ],
             &mut properties,
         );
@@ -1437,6 +1432,12 @@ impl GDObjConfig {
     #[inline(always)]
     pub fn set_enter_channel(mut self, channel: i32) -> Self {
         self.enter_effect_channel = channel;
+        self
+    }
+    /// Sets this object's control ID
+    #[inline(always)]
+    pub fn set_control_id(mut self, id: i32) -> Self {
+        self.control_id = id;
         self
     }
 

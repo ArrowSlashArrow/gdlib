@@ -3,8 +3,7 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use crate::gdobj::{
-    Anim, ColourChannel, Event, ExtraID2, GDObjConfig, GDObject, GDValue, Item, ItemType,
-    MoveEasing,
+    Anim, ColourChannel, Event, ExtraID2, GDObjConfig, GDObject, GDValue, Item, MoveEasing,
     ids::{
         objects::{
             BG_EFFECT_OFF, BG_EFFECT_ON, BG_SPEED_CONFIG, CAMERA_GUIDE, COLLISION_BLOCK,
