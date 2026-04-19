@@ -1463,8 +1463,8 @@ pub fn item_compare(
         (LEFT_ROUND_MODE, GDValue::Int(lhs.rounding as i32)),
         (RIGHT_ROUND_MODE, GDValue::Int(rhs.rounding as i32)),
         // sign modes
-        (LEFT_SIGN_MODE, GDValue::Int(lhs.rounding as i32)),
-        (RIGHT_SIGN_MODE, GDValue::Int(rhs.rounding as i32)),
+        (LEFT_SIGN_MODE, GDValue::Int(lhs.sign as i32)),
+        (RIGHT_SIGN_MODE, GDValue::Int(rhs.sign as i32)),
     ];
 
     GDObject::new(TRIGGER_ITEM_COMPARE, config, properties)
