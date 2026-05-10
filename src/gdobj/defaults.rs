@@ -1,7 +1,5 @@
 //! Default constructors for all objects
 
-use phf::{Map, phf_map};
-
 use crate::gdobj::GDObjConfig;
 
 use super::GDObject;
@@ -58,7 +56,7 @@ use super::GDObject;
 /// Maps object IDs to their default GD object strings (as the editor would produce them).  
 /// Sourced from HDanke's [default object strings](https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/defaults/objects.py)
 /// This map only stores the unique object strings that are not shared
-pub static OBJECT_DEFAULTS_UNIQUE: Map<i32, &'static str> = phf_map! {
+pub static OBJECT_DEFAULTS_UNIQUE: phf::Map<i32, &'static str> = phf::phf_map! {
     29i32 => "1,29,2,0,3,0,36,1,7,255,8,255,9,255,10,0.5,35,1,23,1000;",
     30i32 => "1,30,2,0,3,0,36,1,7,255,8,255,9,255,10,0.5,35,1,23,1001;",
     31i32 => "1,31,2,0,3,0,36,1,kA2,0,kA3,1,kA8,1,kA4,0,kA9,1,kA10,1,kA22,1,kA23,1,kA24,1,kA27,1,kA40,1,kA41,1,kA42,1,kA28,1,kA29,1,kA31,1,kA32,1,kA36,0,kA43,1,kA44,0,kA45,1,kA46,1,kA33,1,kA34,1,kA35,1,kA37,1,kA38,1,kA39,1,kA19,1,kA26,0,kA20,1,kA21,1,kA11,1;",
@@ -129,13 +127,14 @@ pub fn default_object(id: i32) -> GDObject {
     match OBJECT_DEFAULTS_UNIQUE.get(&id) {
         Some(s) => GDObject::parse_str(s),
         None => match check_common_suffix(id) {
-            Some(suf) => GDObject::parse_str(&format!("1,{id}{suf}")),
+            Some(suf) => GDObject::parse_str(format!("1,{id}{suf}")),
             None => GDObject::new(id, &GDObjConfig::default(), vec![]),
         },
     }
 }
 
 /// Returns the raw object string of a default object by ID.
+#[must_use]
 pub fn default_object_string(id: i32) -> String {
     match OBJECT_DEFAULTS_UNIQUE.get(&id) {
         Some(s) => s.to_string(),
@@ -149,7 +148,8 @@ pub fn default_object_string(id: i32) -> String {
 
 /// Returns a common suffix if a default object ID uses it.
 /// Example: IDs 1 through 9 all end with `,2,0,3,0;`
-pub fn check_common_suffix(id: i32) -> Option<&'static str> {
+#[must_use]
+pub const fn check_common_suffix(id: i32) -> Option<&'static str> {
     // this match statement is particularly messy, so line breaks are forced through comments
     // otherwise, rustfmt makes skyscrapers out of the match arms
     match id {

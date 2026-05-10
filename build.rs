@@ -6,7 +6,7 @@ use syn::{Expr, ExprArray, ExprLit, ExprTuple, Item, Lit};
 // all of the currently implemented ids for objects and properties as consts.
 // currently broken due to `kAXX` properties
 
-fn to_const_name(s: String) -> String {
+fn to_const_name(s: &str) -> String {
     let mut seen_underscore = false;
     s.chars()
         .map(|c| {
@@ -37,7 +37,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
             }
         }
     }
-    let const_name = to_const_name(name);
+    let const_name = to_const_name(&name);
     writeln!(buffer, "    pub const {const_name}: i32 = {id};").unwrap();
 }
 
@@ -48,6 +48,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
 fn main() {
     let mut properties_out_str = String::new();
     let mut objects_out_str = String::new();
+    let mut group_property_ids = Vec::new();
     let other_file = fs::read_to_string("src/gdobj/lookup.rs").unwrap();
     let file = fs::read_to_string("src/gdobj/mod.rs").unwrap();
 
@@ -80,19 +81,27 @@ fn main() {
             let id = split.next().unwrap();
             let mut tuple_split = split.next().unwrap().split(", ");
             let desc = tuple_split.next().unwrap();
-            let const_name = to_const_name(desc.to_string());
+            let const_name = to_const_name(desc);
+            let prop_type = tuple_split.next().unwrap_or_default();
 
             writeln!(
                 properties_out_str,
                 "    pub const {const_name}: u16 = {id};"
             )
             .unwrap();
+
+        if prop_type.contains("GDObjPropType::Group") {
+                group_property_ids.push(id.to_string());
+            }
         } else if line.starts_with(
             "pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
         ) {
             seen_map = true;
         }
     }
+
+    let gids_len = group_property_ids.len();
+    let group_ids_literal = group_property_ids.join(", ");
 
     let out_str = format!(
         "\
@@ -102,7 +111,13 @@ pub mod objects {{
 
 /// Property ids submodule
 pub mod properties {{
-{properties_out_str}}}"
+{properties_out_str}}}
+
+/// Property metadata submodule
+pub mod metadata {{
+    pub static GROUP_PROPERTY_IDS: &[u16; {gids_len}] = &[{group_ids_literal}];
+}}
+"
     );
 
     let out_dir = env::var_os("OUT_DIR").unwrap();

@@ -7,14 +7,14 @@ use crate::gdobj::{
     GDObjConfig, GDObject, GDValue,
     ids::{
         objects::{DEFAULT_BLOCK, TEXT_OBJECT},
-        properties::*,
+        properties::{BASE64ENCODED_TEXT, KERNING},
     },
 };
 
 /// Returns a default block object.
 /// # Arguments
 /// `config`: Object config
-#[inline(always)]
+#[inline]
 pub fn default_block(config: &GDObjConfig) -> GDObject {
     GDObject::new(DEFAULT_BLOCK, config, vec![])
 }
@@ -24,6 +24,7 @@ pub fn default_block(config: &GDObjConfig) -> GDObject {
 /// `config`: Object config
 /// `text`: Text in the objecty
 /// `kerning`: Spacing between chars. Default is 0
+#[inline]
 pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
     GDObject::new(
         TEXT_OBJECT,

@@ -1,5 +1,6 @@
-#![doc = include_str!("../README.md")]
+#![warn(clippy::all)]
 #![deny(missing_docs)]
+#![doc = include_str!("../README.md")]
 
 pub mod core;
 pub mod deserialiser;
@@ -10,3 +11,5 @@ pub mod serialiser;
 
 #[cfg(test)]
 pub mod tests;
+
+pub use core::GDError;

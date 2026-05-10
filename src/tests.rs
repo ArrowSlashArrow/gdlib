@@ -19,7 +19,7 @@ fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
         "{name}: {:.3}ms",
         start.elapsed().as_micros() as f64 / 1000.0
     );
-    return result;
+    result
 }
 
 #[test]

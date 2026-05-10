@@ -1,4 +1,4 @@
-use gdlib::{core::GDError, gdlevel::Level, gdobj::Group};
+use gdlib::{GDError, gdlevel::Level, gdobj::Group};
 
 fn main() -> Result<(), GDError> {
     // Load level from .gmd file

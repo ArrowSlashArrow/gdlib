@@ -18,6 +18,7 @@ Features
 * Easy modification of objects through built-in methods and objects
 * Full support for read from and writing to .dat and .gmd files
 * Optimized to be fast and lightweight
+* Optional `parallel` feature to use Rayon-backed parallel object parse/serialise and savefile xor passes (use `cargo add gdlib --features parallel`)
 
 ## Usage instructions
 This crate can be added to a project by running `cargo add gdlib`.

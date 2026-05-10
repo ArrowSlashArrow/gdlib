@@ -245,6 +245,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
 };
 
 /// Get type of a property by ID
+#[must_use]
 pub fn get_property_type(p: u16) -> Option<GDObjPropType> {
     PROPERTY_TABLE.get(&p).map(|v| v.1)
 }
