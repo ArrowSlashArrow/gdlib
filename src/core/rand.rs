@@ -1,6 +1,6 @@
 //! Implementations and uses of Pseudo-RNG in Geometry Dash.
 
-use crate::gdobj::{GDValue, Group};
+use crate::cclocallevels::gdobj::structs::{GDValue, Group};
 
 const LCG_MULTIPLIER: u64 = 214013;
 const LCG_CONSTANT: u64 = 2531011;
@@ -37,9 +37,6 @@ pub fn fast_rand_bits_norm(seed: u64) -> f64 {
 /// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`].
 /// This is a key difference between this function and GD's version,
 /// since the official one automatically updates the seed when called.
-///
-/// **WARNING**: This function may rarely, for an unknown reason, erroneously determine that
-/// a seed will activate a group when in reality, it won't. Please be mindful of this when checking seeds.
 #[inline(always)]
 pub fn check_seed_random(seed: u64, chance: f64) -> bool {
     // Compare against the chance threshold

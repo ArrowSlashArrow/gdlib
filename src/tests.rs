@@ -2,14 +2,21 @@
 use std::time::Instant;
 
 use crate::{
-    gdlevel::Level,
-    gdobj::{
-        Event, GDObjAttributes, GDObjConfig, Group, MoveEasing,
-        ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
-        misc::default_block,
-        triggers::{self, DefaultMove, advanced_random_trigger, move_trigger},
+    cclocallevels::{
+        gdlevel::Level,
+        gdobj::{
+            constructors::{
+                misc::default_block,
+                triggers::{self, advanced_random_trigger, event_trigger, move_trigger},
+            },
+            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
+            meta::{GDObjAttributes, GDObjConfig},
+            structs::{
+                ColourChannel, DefaultMove, Event, ExtraID2, Group, MoveEasing, MoveMode, ZLayer,
+            },
+        },
     },
-    rand::check_seed_advanced_random,
+    core::rand::check_seed_advanced_random,
 };
 
 fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
@@ -37,7 +44,7 @@ fn move_constructor() {
     let mut level = Level::new("move trigger t3st", "gdlib", None, None);
     level.add_object(move_trigger(
         &GDObjConfig::default().pos(45.0, 45.0),
-        triggers::MoveMode::Default(DefaultMove {
+        MoveMode::Default(DefaultMove {
             dx: 45.0,
             dy: 54.0,
             x_lock: None,
@@ -77,8 +84,8 @@ fn obj_properties() {
         .groups([2, 3, 1738])
         .set_attribute_flag(GDObjAttributes::extra_sticky, true)
         .set_attribute_flag(GDObjAttributes::no_glow, true)
-        .set_z_layer(crate::gdobj::ZLayer::B3)
-        .set_base_colour(crate::gdobj::ColourChannel::Background);
+        .set_z_layer(ZLayer::B3)
+        .set_base_colour(ColourChannel::Background);
 
     let block = default_block(&config);
     let mut level = Level::new("porpeties", "gdlib", None, None);
@@ -151,12 +158,12 @@ fn serialise_level_benchmark() {
 fn event_trigger_test() {
     let mut level = Level::new("event trigger test", "gdlib", None, None);
     let cfg = GDObjConfig::new().pos(45.0, 45.0);
-    level.add_object(crate::gdobj::triggers::event_trigger(
+    level.add_object(event_trigger(
         &cfg,
         123,
         vec![Event::BallSwitch, Event::FallSpeedLow],
         0,
-        triggers::ExtraID2::All,
+        ExtraID2::All,
     ));
 }
 

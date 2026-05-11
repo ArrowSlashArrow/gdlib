@@ -1,22 +1,27 @@
-//! This file contains the necessary structs for interfacing with the level(s) themselves
+//! This module contains the objects necessary for operations relating to the CCLocalLevels file,
+//! the Level struct, and its constituent structs excluding the leveldata.
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    collections::HashMap,
     fmt::Display,
     fs::{self, read, write},
     io::Cursor,
     path::PathBuf,
 };
 
-use crate::{core::GDError, gdobj::Group};
+use crate::{
+    cclocallevels::gdlevel::leveldata::{EncryptedLevelData, LevelData, LevelState},
+    core::{GDError, vec_as_str},
+};
 
 use plist::{Dictionary, Value};
 
 use crate::{
+    cclocallevels::gdobj::GDObject,
+    core::io::{decode_levels_to_string, encrypt_savefile_str, stringify_xml},
     core::{b64_decode, b64_encode, get_local_levels_path, proper_plist_tags},
-    deserialiser::{decode_levels_to_string, decompress},
-    gdobj::{GDObjPropType, GDObject, lookup::PROPERTY_TABLE},
-    serialiser::{encrypt_level_str, encrypt_savefile_str, stringify_xml},
 };
+
+pub mod leveldata;
 
 /// This is the default level header
 pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0;";
@@ -41,34 +46,6 @@ pub struct Levels {
     pub headers: LevelsFileHeaders,
 }
 
-/// This struct contains level data that has not yet been decrypted
-#[derive(Clone, Debug, PartialEq)]
-pub struct EncryptedLevelData {
-    /// Raw level data
-    pub data: String,
-}
-
-/// This struct contains the objects of a level and its headers
-/// # Fields:
-/// * `objects`: Array of objects
-/// * `headers`: Other important information about the level
-#[derive(Clone, Debug, PartialEq)]
-pub struct LevelData {
-    /// Level header string
-    pub headers: String,
-    /// Level objects
-    pub objects: Vec<GDObject>,
-}
-
-/// Enum that contains either a raw encrypted level string or decrypted level object
-#[derive(Clone, Debug, PartialEq)]
-pub enum LevelState {
-    /// Raw encrypted data
-    Encrypted(EncryptedLevelData),
-    /// Parsed, structured data
-    Decrypted(LevelData),
-}
-
 impl Levels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
     #[inline(always)]
@@ -78,19 +55,23 @@ impl Levels {
 
     /// Parses raw savefile string into this struct
     pub fn from_decrypted(s: String) -> Result<Self, GDError> {
-        let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes())) {
+        let mut xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes()))
+        {
             Ok(v) => v.into_dictionary().unwrap(),
             Err(e) => return Err(GDError::BadPlist(e)),
         };
 
         let levels_dict = xmltree
-            .get("LLM_01")
-            .unwrap()
-            .to_owned()
+            .remove("LLM_01")
+            .ok_or(GDError::CorruptedSavefile("No LLM_01".into()))?
             .into_dictionary()
-            .unwrap();
-        let llm_02 = xmltree.get("LLM_02").unwrap().to_owned();
-        let llm_03 = xmltree.get("LLM_03").unwrap().to_owned();
+            .ok_or(GDError::CorruptedSavefile("LLM_01 is not a dict".into()))?;
+        let llm_02 = xmltree
+            .remove("LLM_02")
+            .ok_or(GDError::CorruptedSavefile("No LLM_02".into()))?;
+        let llm_03 = xmltree
+            .remove("LLM_03")
+            .ok_or(GDError::CorruptedSavefile("No LLM_03".into()))?;
 
         // these are stored as "k_0": <level>, "k_1": <level>, etc. in the savefile,
         // the vec prserves that order.
@@ -163,11 +144,6 @@ impl Levels {
         write(savefile, export_str)?;
         Ok(())
     }
-}
-
-#[inline(always)]
-fn vec_as_str(data: &[u8]) -> String {
-    String::from_utf8(data.to_vec()).unwrap()
 }
 
 /// This struct contains level-specific information
@@ -430,100 +406,5 @@ impl Display for Level {
                 .unwrap_or("<Unknown author>".to_string()),
             self.song.unwrap_or(0)
         )
-    }
-}
-
-impl LevelData {
-    /// Serialises this object to a string by serialising each subsequent component.
-    pub fn serialise_to_string(&self) -> String {
-        let objstr = self
-            .objects
-            .iter()
-            .map(|obj| obj.serialise_to_string())
-            .collect::<Vec<String>>()
-            .join("");
-        let unencrypted = format!("{};{objstr}", self.headers.clone());
-        vec_as_str(&encrypt_level_str(unencrypted))
-    }
-
-    /// Returns a list of all the groups that contain at least one object
-    pub fn get_used_groups(&self) -> Vec<Group> {
-        if self.objects.is_empty() {
-            return vec![];
-        }
-
-        let mut groups = HashSet::new();
-
-        for object in self.objects.iter() {
-            groups.extend(object.config.groups.iter());
-        }
-        let mut arr: Vec<Group> = groups.into_iter().collect();
-        arr.sort();
-        arr
-    }
-
-    /// Returns a list of all the groups that do not contain any objects
-    pub fn get_unused_groups(&self) -> Vec<Group> {
-        let all: BTreeSet<Group> = (1..10000).map(Group::Regular).collect();
-        let used: BTreeSet<Group> = self.get_used_groups().into_iter().collect();
-
-        all.difference(&used).cloned().collect::<Vec<Group>>()
-    }
-
-    /// Returns a list of all groups used as arguments in triggers
-    pub fn get_argument_groups(&self) -> Vec<i16> {
-        if self.objects.is_empty() {
-            return vec![];
-        }
-
-        // this should really be a const map, but that is impossible in the current version of rust.
-        // however, the performance cost is negligible since we only generate this list once per search.
-        let group_properties = PROPERTY_TABLE
-            .entries()
-            .filter_map(|(id, info)| {
-                if info.1 == GDObjPropType::Group {
-                    Some(*id)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<u16>>();
-
-        let mut groups = Vec::with_capacity(self.objects.len());
-
-        for object in self.objects.iter() {
-            for p in group_properties.iter() {
-                if let Some(val) = object.get_property(*p) {
-                    match val {
-                        crate::gdobj::GDValue::Group(g) => groups.push(g),
-                        crate::gdobj::GDValue::GroupList(gs) => groups.extend(gs.to_vec()),
-                        _ => {}
-                    }
-                }
-            }
-        }
-
-        groups.sort();
-        groups.dedup();
-        groups
-    }
-
-    /// Parse raw level data to this struct
-    pub fn parse(raw_data: String) -> Self {
-        // parse level data
-        let raw_data = decompress(raw_data.as_bytes().to_vec()).unwrap();
-        let decrypted = std::str::from_utf8(&raw_data[..]).unwrap();
-        let split = decrypted.split(";").collect::<Vec<&str>>();
-
-        let headers = split[0].to_string();
-        let mut objects = Vec::with_capacity(split.len() - 1);
-
-        for object in &split[1..] {
-            if object.len() > 1 {
-                objects.push(GDObject::parse_str(object));
-            }
-        }
-
-        LevelData { headers, objects }
     }
 }

@@ -1,10 +1,10 @@
-//! This module contains all of the encryption code for GD savefiles.
-use std::{fmt::Write, io::Write as IoWrite};
+//! This module contains all of the de/serialization code for GD savefiles.
+use std::{fmt::Write, fs, io::Read, io::Write as IoWrite};
 
-use flate2::{Compression, write::ZlibEncoder};
+use crate::core::{GDError, b64_encode, get_local_levels_path};
+use base64::{Engine, engine::general_purpose};
+use flate2::{Compression, read::DeflateDecoder, write::ZlibEncoder};
 use plist::{Dictionary, Value};
-
-use crate::core::b64_encode;
 
 fn zlib_compress(s: String) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -83,4 +83,53 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
         false => "</d>",
     });
     dict_str
+}
+
+// ------------ deserialiser ------------
+
+/// Decompresses a `Vec<u8>` of a base64ed gzip-compressed payload.
+///
+/// # Arguments
+/// * `data`: compressed input data
+///
+/// Returns decompressed base64ed gzip as a `Vec<u8>` if it sucessfully decoded, otherwise return Error
+pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
+    data.retain(|c| *c != 0);
+
+    // decode DEFLATE payload
+    let decoded = general_purpose::URL_SAFE.decode(data)?;
+    let sliced = &decoded[10..];
+
+    let mut decoder = DeflateDecoder::new(sliced);
+    let mut decompressed_buf = Vec::new();
+
+    decoder.read_to_end(&mut decompressed_buf).unwrap();
+
+    Ok(decompressed_buf)
+}
+
+/// Decrypts data by xoring with key 11 and decompressing it.
+/// This is the algorithm used to decrypt GD savefiles.
+///
+/// # Arguments
+/// * `data`: encrypted payload
+///
+/// Returns the raw file contents as a `Vec<u8>`
+#[inline(always)]
+pub fn decrypt(mut data: Vec<u8>) -> Vec<u8> {
+    for c in &mut data {
+        *c ^= 11;
+    }
+    decompress(data).unwrap()
+}
+
+/// Returns CCLocalLevels.dat decrypted if it exists
+pub fn decode_levels_to_string() -> Result<String, GDError> {
+    let savefile = match fs::read(get_local_levels_path().unwrap()) {
+        Ok(v) => v,
+        Err(e) => return Err(GDError::Io(e)),
+    };
+    let data = decrypt(savefile);
+
+    Ok(String::from_utf8(data.to_vec()).unwrap())
 }

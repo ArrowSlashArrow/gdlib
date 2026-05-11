@@ -48,9 +48,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
 fn main() {
     let mut properties_out_str = String::new();
     let mut objects_out_str = String::new();
-    let other_file = fs::read_to_string("src/gdobj/lookup.rs").unwrap();
-    let file = fs::read_to_string("src/gdobj/mod.rs").unwrap();
-
+    let file = fs::read_to_string("src/cclocallevels/gdobj/lookup.rs").unwrap();
     let ast: syn::File = syn::parse_str(&file).unwrap();
     for item in ast.items {
         if let Item::Const(c) = item
@@ -65,12 +63,10 @@ fn main() {
                 }
             }
         }
-
-        // warn(format!("found const {}", c.ident.to_string().as_str()));
     }
 
     let mut seen_map = false;
-    for line in other_file.split('\n') {
+    for line in file.split('\n') {
         if seen_map {
             if line.starts_with("};") {
                 break;

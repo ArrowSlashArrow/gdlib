@@ -2,7 +2,7 @@
 
 use phf::{Map, phf_map};
 
-use crate::gdobj::GDObjConfig;
+use crate::cclocallevels::gdobj::meta::GDObjConfig;
 
 use super::GDObject;
 

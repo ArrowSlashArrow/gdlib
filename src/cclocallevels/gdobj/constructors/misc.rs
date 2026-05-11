@@ -3,7 +3,7 @@
 //! **This file is incomplete. More objects will be added in future releases.**
 use base64::{Engine, engine::general_purpose};
 
-use crate::gdobj::{
+use crate::cclocallevels::gdobj::{
     GDObjConfig, GDObject, GDValue,
     ids::{
         objects::{DEFAULT_BLOCK, TEXT_OBJECT},
