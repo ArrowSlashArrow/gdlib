@@ -1,5 +1,5 @@
 use gdlib::{
-    cclocallevels::{gdlevel::Level, gdobj::Group},
+    cclocallevels::{gdlevel::Level, gdobj::structs::Group},
     core::GDError,
 };
 

@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Write};
 
 use crate::cclocallevels::gdobj::{
     ids::properties::*,
-    lookup::{OBJECT_NAMES, get_property_type},
+    lookup::{OBJECT_NAMES, get_obj_property_type},
     meta::{GDObjAttributes, GDObjConfig},
     structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, MoveEasing, ZLayer},
 };
@@ -288,7 +288,7 @@ impl GDObject {
         self.set_property(
             p,
             GDValue::from(
-                get_property_type(p).unwrap_or(GDObjPropType::Unknown),
+                get_obj_property_type(p).unwrap_or(GDObjPropType::Unknown),
                 value,
             ),
         );

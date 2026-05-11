@@ -701,6 +701,23 @@ pub enum Gamemode {
     Swing = 7,
 }
 
+impl TryFrom<i32> for Gamemode {
+    type Error = ();
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Cube),
+            1 => Ok(Self::Ship),
+            2 => Ok(Self::Ball),
+            3 => Ok(Self::Ufo),
+            4 => Ok(Self::Wave),
+            5 => Ok(Self::Robot),
+            6 => Ok(Self::Spider),
+            7 => Ok(Self::Swing),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Enum for stop trigger modes
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -932,13 +949,27 @@ pub struct DirectionalMove {
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[allow(missing_docs)]
-pub enum StartingSpeed {
+pub enum Speed {
     X0Point5 = 1,
     #[default]
     X1 = 0,
     X2 = 2,
     X3 = 3,
     X4 = 4,
+}
+
+impl TryFrom<i32> for Speed {
+    type Error = ();
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::X0Point5),
+            0 => Ok(Self::X1),
+            2 => Ok(Self::X2),
+            3 => Ok(Self::X3),
+            4 => Ok(Self::X4),
+            _ => Err(()),
+        }
+    }
 }
 
 /// Config struct for HSV colour settings
@@ -1192,7 +1223,7 @@ pub struct ParticleSpawnConfig {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct StartposConfig {
     /// Starting speed of player
-    pub start_speed: StartingSpeed,
+    pub start_speed: Speed,
     /// Starting gamemode; Default: Cube
     pub starting_gamemode: Gamemode,
     /// Starting as mini? Default: false

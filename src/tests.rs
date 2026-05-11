@@ -7,7 +7,7 @@ use crate::{
         gdobj::{
             constructors::{
                 misc::default_block,
-                triggers::{self, advanced_random_trigger, event_trigger, move_trigger},
+                triggers::{advanced_random_trigger, event_trigger, move_trigger},
             },
             ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
             meta::{GDObjAttributes, GDObjConfig},
@@ -199,4 +199,14 @@ fn _temp_read_objs() {
     for (idx, obj) in data.objects.iter().enumerate() {
         println!("{idx}: {obj:?}");
     }
+}
+
+#[test]
+#[ignore]
+fn _temp_level_header() -> anyhow::Result<()> {
+    let level = Level::from_gmd("test_gmds/level.gmd")?;
+    let data = level.get_decrypted_data().unwrap();
+    println!("{}", data.headers);
+
+    Ok(())
 }

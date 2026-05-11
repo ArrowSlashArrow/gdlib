@@ -1,12 +1,11 @@
 //! Properties lookup table
 use phf::{Map, phf_map};
 
-use crate::cclocallevels::gdobj::GDObjPropType;
+use crate::cclocallevels::{gdlevel::leveldata::HeaderValueType, gdobj::GDObjPropType};
 
 // TODO: make the types not unknown
 // note: if it;s a number but not specifically an int, don't say it's an int.
-/// Names of properties (INCOMPLETE):
-/// (property, name)  
+/// A map of object property IDs to their identifier and type.   
 ///
 /// Reference: <https://flowvix.github.io/gd-info-explorer/props>
 pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
@@ -244,9 +243,65 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     10035u16 => ("Reset camera?", GDObjPropType::Bool),
 };
 
-/// Get type of a property by ID
-pub fn get_property_type(p: u16) -> Option<GDObjPropType> {
+/// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
+/// while kSxx properties' indices are shifted 1000 upwards.
+///
+/// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level-components/level-start>
+pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = phf_map! {
+    1u16 => ("Audio track", HeaderValueType::Int),
+    2u16 => ("Gamemode", HeaderValueType::Gamemode),
+    3u16 => ("Mini mode", HeaderValueType::Bool),
+    4u16 => ("Speed", HeaderValueType::Speed),
+    5u16 => ("Obj2 blending", HeaderValueType::Bool),
+    6u16 => ("Background texture ID", HeaderValueType::Int),
+    7u16 => ("Ground texture ID", HeaderValueType::Int),
+    8u16 => ("Dual mode", HeaderValueType::Bool),
+    9u16 => ("Level or Startpos object", HeaderValueType::Bool),
+    10u16 => ("Two player mode", HeaderValueType::Bool),
+    11u16 => ("Flip gravity", HeaderValueType::Bool),
+    12u16 => ("Colour3 blending", HeaderValueType::Bool),
+    13u16 => ("Song offset seconds", HeaderValueType::Float),
+    14u16 => ("Guidelines", HeaderValueType::GuidelineString),
+    15u16 => ("Fade in", HeaderValueType::Bool),
+    16u16 => ("Fade out", HeaderValueType::Bool),
+    17u16 => ("Ground line ID", HeaderValueType::Int),
+    18u16 => ("Font ID", HeaderValueType::Int),
+    19u16 => ("Startpos target order", HeaderValueType::Int),
+    20u16 => ("Reverse gameplay", HeaderValueType::Bool),
+    21u16 => ("Startpos disabled", HeaderValueType::Bool),
+    22u16 => ("Plaformer mode", HeaderValueType::Bool),
+    25u16 => ("Middleground texture ID", HeaderValueType::Int),
+    26u16 => ("Startpos target channel", HeaderValueType::Int),
+    27u16 => ("Allow multi-rotation", HeaderValueType::Bool),
+    28u16 => ("Mirror mode", HeaderValueType::Bool),
+    29u16 => ("Rotate gameplay", HeaderValueType::Bool),
+    31u16 => ("Enable player squeeze", HeaderValueType::Bool),
+    32u16 => ("Fix gravity bug", HeaderValueType::Bool),
+    33u16 => ("Fix negative scale", HeaderValueType::Bool),
+    34u16 => ("Fix robot jump", HeaderValueType::Bool),
+    35u16 => ("Startpos reset camera", HeaderValueType::Bool),
+    36u16 => ("Spawn group", HeaderValueType::Int),
+    37u16 => ("Dynamic level height", HeaderValueType::Bool),
+    38u16 => ("Sort groups", HeaderValueType::Bool),
+    39u16 => ("Fix radius collision", HeaderValueType::Bool),
+    40u16 => ("Enable 2.2 changes", HeaderValueType::Bool),
+    41u16 => ("Allow static rotate", HeaderValueType::Bool),
+    42u16 => ("Reverse sync", HeaderValueType::Bool),
+    43u16 => ("No time penalty", HeaderValueType::Bool),
+    44u16 => ("Decrease boost slide", HeaderValueType::Bool),
+    /* Deprecated keys kS1-kS20 and kS29-kS37 are not included */
+    1038u16 => ("Colours", HeaderValueType::ColourString),
+    1039u16 => ("Colour page", HeaderValueType::Int),
+
+};
+
+/// Get type of an object property by ID
+pub fn get_obj_property_type(p: u16) -> Option<GDObjPropType> {
     PROPERTY_TABLE.get(&p).map(|v| v.1)
+}
+/// Get type of a level header property by ID
+pub fn get_level_header_property_type(p: u16) -> Option<HeaderValueType> {
+    LEVEL_HEADER_PROPERTIES.get(&p).map(|v| v.1)
 }
 
 /// Map of various object IDs to their names.

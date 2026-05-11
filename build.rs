@@ -45,8 +45,30 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
 //     println!("cargo:warning={}", s.into());
 // }
 
+fn get_map_from_line(file: &str, start_str: &str) -> String {
+    let mut out_str = String::new();
+    let mut seen_map = false;
+    for line in file.split('\n') {
+        if seen_map {
+            if line.starts_with("};") {
+                break;
+            }
+
+            let mut split = line.trim().split(" => (");
+            let id = split.next().unwrap();
+            let mut tuple_split = split.next().unwrap().split(", ");
+            let desc = tuple_split.next().unwrap();
+            let const_name = to_const_name(desc.to_string());
+
+            writeln!(out_str, "    pub const {const_name}: u16 = {id};").unwrap();
+        } else if line.starts_with(start_str) {
+            seen_map = true;
+        }
+    }
+    out_str
+}
+
 fn main() {
-    let mut properties_out_str = String::new();
     let mut objects_out_str = String::new();
     let file = fs::read_to_string("src/cclocallevels/gdobj/lookup.rs").unwrap();
     let ast: syn::File = syn::parse_str(&file).unwrap();
@@ -65,30 +87,14 @@ fn main() {
         }
     }
 
-    let mut seen_map = false;
-    for line in file.split('\n') {
-        if seen_map {
-            if line.starts_with("};") {
-                break;
-            }
-
-            let mut split = line.trim().split(" => (");
-            let id = split.next().unwrap();
-            let mut tuple_split = split.next().unwrap().split(", ");
-            let desc = tuple_split.next().unwrap();
-            let const_name = to_const_name(desc.to_string());
-
-            writeln!(
-                properties_out_str,
-                "    pub const {const_name}: u16 = {id};"
-            )
-            .unwrap();
-        } else if line.starts_with(
-            "pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
-        ) {
-            seen_map = true;
-        }
-    }
+    let properties_out_str = get_map_from_line(
+        &file,
+        "pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
+    );
+    let level_header_props = get_map_from_line(
+        &file,
+        "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
+    );
 
     let out_str = format!(
         "\
@@ -98,7 +104,11 @@ pub mod objects {{
 
 /// Property ids submodule
 pub mod properties {{
-{properties_out_str}}}"
+{properties_out_str}}}
+
+/// Level header properties
+pub mod level_header {{
+{level_header_props}}}"
     );
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
