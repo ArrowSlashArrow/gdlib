@@ -3,8 +3,9 @@ use std::time::Instant;
 
 use crate::{
     cclocallevels::{
-        gdlevel::Level,
+        gdlevel::{Level, leveldata::HeaderValue},
         gdobj::{
+            self,
             constructors::{
                 misc::default_block,
                 triggers::{advanced_random_trigger, event_trigger, move_trigger},
@@ -148,7 +149,7 @@ fn ref_vs_copy_benchmark() {
 #[test]
 fn serialise_level_benchmark() {
     let mut level = Level::from_gmd("test_gmds/big.gmd").unwrap();
-    level.decrypt_level_data();
+    level.decrypt_level_data().unwrap();
     let _ = benchmark("big.gmd serialise", || {
         level.export_to_gmd("test_gmds/generated_big2.gmd")
     });
@@ -206,7 +207,16 @@ fn _temp_read_objs() {
 fn _temp_level_header() -> anyhow::Result<()> {
     let level = Level::from_gmd("test_gmds/level.gmd")?;
     let data = level.get_decrypted_data().unwrap();
-    println!("{}", data.headers);
+    let colour_string = data
+        .headers
+        .get_property(gdobj::ids::level_header::COLOURS)
+        .unwrap();
+
+    if let HeaderValue::ColourString(cs) = colour_string {
+        for c in cs {
+            println!("{:?}", c);
+        }
+    }
 
     Ok(())
 }

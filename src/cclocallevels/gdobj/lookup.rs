@@ -292,7 +292,6 @@ pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = 
     /* Deprecated keys kS1-kS20 and kS29-kS37 are not included */
     1038u16 => ("Colours", HeaderValueType::ColourString),
     1039u16 => ("Colour page", HeaderValueType::Int),
-
 };
 
 /// Get type of an object property by ID

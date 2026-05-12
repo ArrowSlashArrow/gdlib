@@ -1001,6 +1001,48 @@ impl Display for HSVColour {
     }
 }
 
+macro_rules! set_value {
+    ($iter:expr => $t:ty) => {
+        match $iter.next() {
+            Some(v) => match v.parse::<$t>() {
+                Ok(v) => v,
+                Err(_) => return None,
+            },
+            None => return None,
+        }
+    };
+    ($iter:expr) => {
+        match $iter.next() {
+            Some(v) => match v.parse::<i32>() {
+                Ok(v) => v != 0,
+                Err(_) => return None,
+            },
+            None => return None,
+        }
+    };
+}
+
+impl HSVColour {
+    /// Parses a string to this object
+    pub fn parse(s: &str) -> Option<Self> {
+        let mut vals_iter = s.split("a").into_iter();
+        let mut new = Self {
+            hue_shift: 0,
+            saturation_mult: 1.0,
+            brightness_mult: 1.0,
+            static_bright_scalar: false,
+            static_sat_scalar: false,
+        };
+
+        new.hue_shift = set_value!(vals_iter => i32);
+        new.saturation_mult = set_value!(vals_iter => f64);
+        new.brightness_mult = set_value!(vals_iter => f64);
+        new.static_bright_scalar = set_value!(vals_iter);
+        new.static_sat_scalar = set_value!(vals_iter);
+        Some(new)
+    }
+}
+
 /// Enum for target of pulse
 #[derive(Debug, Clone, PartialEq)]
 pub enum PulseTarget {
@@ -1037,7 +1079,7 @@ pub enum PulseMode {
 }
 
 /// RGB colour tuple
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[allow(missing_docs)]
 pub struct Colour {
     pub red: u8,

@@ -5,11 +5,14 @@ use std::{
     env,
     error::Error,
     fmt::{Debug, Display},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 pub mod io;
 pub mod rand;
+
+/// Standard file path of GD savefiles on linux
+pub const LINUX_GD_FILES: &str = "~/.local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash";
 
 /// Error enum
 #[derive(Debug)]
@@ -22,6 +25,8 @@ pub enum GDError {
     BadPlist(plist::Error),
     /// Corrupted savefile
     CorruptedSavefile(String),
+    /// Unable to find the savefile
+    MissingSavefile,
 }
 
 impl Error for GDError {
@@ -31,6 +36,7 @@ impl Error for GDError {
             Self::DecodeError(e) => e.source(),
             Self::BadPlist(e) => e.source(),
             Self::CorruptedSavefile(_) => None,
+            Self::MissingSavefile => None,
         }
     }
 }
@@ -58,19 +64,26 @@ impl Display for GDError {
             Self::BadPlist(p) => write!(f, "Bad plist: {p}"),
             Self::Io(io) => write!(f, "{io}"),
             Self::CorruptedSavefile(reason) => write!(f, "Corrupted savefile: {reason}"),
+            Self::MissingSavefile => write!(f, "Unable to find savefile."),
         }
     }
 }
 
-/// Returns path of CCLocalLevels.dat if it exists
+/// Checks if the standard path
 pub fn get_local_levels_path() -> Option<PathBuf> {
-    if let Ok(local_appdata) = env::var("LOCALAPPDATA")
-        && Path::new(&local_appdata).exists()
-    {
-        Some(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
-    } else {
-        None
+    if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
+        let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
+        if path.exists() {
+            return Some(path);
+        }
     }
+
+    let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
+    if linux_path.exists() {
+        return Some(linux_path);
+    }
+
+    None
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`

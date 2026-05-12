@@ -1,15 +1,15 @@
 //! This module conatins methods and structs for operations with individual levels
 
-use std::collections::{BTreeSet, HashSet};
-use std::fmt::Display;
-
-use crate::cclocallevels::gdobj::lookup::get_level_header_property_type;
-use crate::cclocallevels::gdobj::structs::{Gamemode, Speed};
+use std::{
+    collections::{BTreeSet, HashSet},
+    fmt::{Display, Write},
+};
 
 use crate::{
     cclocallevels::gdobj::{
         GDObject,
-        lookup::PROPERTY_TABLE,
+        lookup::{PROPERTY_TABLE, get_level_header_property_type},
+        structs::{Colour, Gamemode, HSVColour, Speed},
         structs::{GDObjPropType, GDValue, Group},
     },
     core::{
@@ -50,6 +50,103 @@ pub enum LevelState {
     Encrypted(EncryptedLevelData),
     /// Parsed, structured data
     Decrypted(LevelData),
+}
+
+/// Contains the properties of the level header string.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LevelHeader {
+    /// All properties that are in kAxx format. There are at least 50 kA properties.
+    pub ka: [Option<HeaderValue>; KA_SIZE],
+    /// All properties that are in kSxx format. There are 39 known kS properties.
+    pub ks: [Option<HeaderValue>; KS_SIZE],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
+pub enum HeaderValue {
+    Int(i32),
+    Float(f32),
+    Bool(bool),
+    Gamemode(Gamemode),
+    Speed(Speed),
+    GuidelineString(GuidelineString),
+    ColourString(Vec<ColourString>),
+}
+
+/// Enum for colours of an individual guideline
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(missing_docs)]
+pub enum GuidelineColour {
+    Orange,
+    Yellow,
+    Green,
+    Transparent,
+}
+
+/// Descriptor struct for the guildeine string
+#[derive(Clone, Debug, PartialEq)]
+pub struct GuidelineString {
+    /// The guidelines themselves as (time, colour) tuples
+    pub guidelines: Vec<(f32, GuidelineColour)>,
+}
+
+/// Descriptor struct for the colour string.
+///
+/// Reference: <https://boomlings.dev/resources/client/level-components/color-string>
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct ColourString {
+    /// The colour itself
+    pub from: Colour,
+    /// What this colour changes to
+    pub to: Colour,
+    /// Player colour that is being copied by this colour
+    pub player_colour: PlayerColour,
+    /// Using blending
+    pub blending: bool,
+    /// This colour's channel index
+    pub colour_ch_idx: i32,
+    /// Opacity of this colour
+    pub from_opacity: f32,
+    /// What opacity this colour becomes
+    pub to_opacity: f32,
+    /// Toggles changing opacity
+    pub opacity_toggled: bool,
+    /// The channel index that this colour inherits (if any)
+    pub inherited_col_ch_idx: i32,
+    /// HSV of the copied colour
+    pub copied_hsv: Option<HSVColour>,
+    /// Delta used to change colour
+    pub deltatime: f32,
+    /// Time of transiton from `from` colour to `to` colour
+    pub duration: f32,
+    /// @nodoc
+    pub copy_opacity: bool,
+    /// Unknown property with index 18
+    pub unknown_property18: bool,
+}
+
+#[repr(i32)]
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+/// Copying one of these player colours. Used in [`ColourString`]
+pub enum PlayerColour {
+    #[default]
+    None = -1,
+    First = 1,
+    Second = 2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(missing_docs)]
+/// Type enum for header values
+pub enum HeaderValueType {
+    Int,
+    Float,
+    Bool,
+    Gamemode,
+    Speed,
+    GuidelineString,
+    ColourString,
 }
 
 impl LevelData {
@@ -130,8 +227,8 @@ impl LevelData {
     /// Parse raw level data to this struct
     pub fn parse(raw_data: String) -> Option<Self> {
         // parse level data
-        let raw_data = decompress(raw_data.as_bytes().to_vec()).unwrap();
-        let decrypted = std::str::from_utf8(&raw_data[..]).unwrap();
+        let raw_data = decompress(raw_data.as_bytes().to_vec()).ok()?;
+        let decrypted = std::str::from_utf8(&raw_data[..]).ok()?;
         let split = decrypted.split(";").collect::<Vec<&str>>();
 
         // level start string
@@ -152,29 +249,6 @@ impl LevelData {
     }
 }
 
-/// Contains the properties of the level header string.
-#[derive(Clone, Debug, PartialEq)]
-pub struct LevelHeader {
-    /// All properties that are in kAxx format. There are at least 50 kA properties.
-    pub ka: [Option<HeaderValue>; KA_SIZE],
-    /// All properties that are in kSxx format. There are 39 known kS properties.
-    pub ks: [Option<HeaderValue>; KS_SIZE],
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[allow(missing_docs)]
-pub enum HeaderValue {
-    Int(i32),
-    Float(f32),
-    Bool(bool),
-    Gamemode(Gamemode),
-    Speed(Speed),
-    // todo: parse
-    GuidelineString(String),
-    // todo: parse
-    ColourString(String),
-}
-
 impl HeaderValue {
     /// Parses an input string with a given type to this object
     pub fn parse(val: &str, ptype: HeaderValueType) -> Option<Self> {
@@ -188,23 +262,203 @@ impl HeaderValue {
             HeaderValueType::Speed => {
                 Some(Self::Speed(Speed::try_from(val.parse::<i32>().ok()?).ok()?))
             }
-            HeaderValueType::ColourString => Some(Self::ColourString(val.to_owned())),
-            HeaderValueType::GuidelineString => Some(Self::GuidelineString(val.to_owned())),
+            HeaderValueType::ColourString => Some(Self::ColourString({
+                // there's usually 14 segments
+                let mut segments = Vec::with_capacity(14);
+                for segment in val.split("|").into_iter() {
+                    segments.push(ColourString::parse(segment)?)
+                }
+                segments
+            })),
+            HeaderValueType::GuidelineString => {
+                Some(Self::GuidelineString(GuidelineString::parse(val)?))
+            }
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-/// Type enum for header values
-pub enum HeaderValueType {
-    Int,
-    Float,
-    Bool,
-    Gamemode,
-    Speed,
-    GuidelineString,
-    ColourString,
+impl GuidelineColour {
+    /// Determines the colour of the guideline based on the numerical colour value
+    pub fn from_f32(f: f32) -> Self {
+        if f == 0.9 {
+            Self::Yellow
+        } else if f == 1.0 {
+            Self::Green
+        } else if f == 0.0 || f >= 0.8 {
+            Self::Orange
+        } else {
+            Self::Transparent
+        }
+    }
+
+    /// Converts this object to its float form.
+    /// Note that it may not equal the orignal float since multiple float values may fall under
+    /// one variant of this enum.
+    pub fn to_float(&self) -> f32 {
+        match self {
+            Self::Green => 1.0,
+            Self::Yellow => 0.9,
+            Self::Orange => 0.0,
+            Self::Transparent => -1.0, // can be anything
+        }
+    }
+}
+
+impl GuidelineString {
+    /// Parses an input string to this object
+    pub fn parse(s: &str) -> Option<Self> {
+        let mut guidelines = vec![];
+        for g in s.split(".") {
+            let mut split_iter = g.split('~');
+            guidelines.push((
+                split_iter.next()?.parse::<f32>().ok()?,
+                GuidelineColour::from_f32(split_iter.next()?.parse::<f32>().ok()?),
+            ));
+        }
+
+        Some(Self { guidelines })
+    }
+
+    /// Serialises this object to a string
+    pub fn to_string(&self) -> String {
+        self.guidelines
+            .iter()
+            .map(|(t, c)| format!("{t}~{}", c.to_float()))
+            .collect::<Vec<String>>()
+            .join(".")
+    }
+}
+
+// this macro is used only for parsing in ColourString
+
+macro_rules! parse {
+    ($v:expr => $t:ty) => {{
+        match $v.parse::<$t>() {
+            Ok(v) => v,
+            Err(_) => return None,
+        }
+    }};
+
+    ($v:expr) => {{
+        match $v.parse::<i32>() {
+            Ok(v) => v != 0,
+            Err(_) => return None,
+        }
+    }};
+}
+
+impl ColourString {
+    /// Parses a colour string segment into this object
+    pub fn parse(s: &str) -> Option<Self> {
+        let mut kv_iter = s.split("_");
+        let mut new = Self::default();
+
+        while let (Some(k), Some(v)) = (kv_iter.next(), kv_iter.next()) {
+            let idx = match k.parse::<i32>() {
+                Ok(i) => i,
+                Err(_) => return None,
+            };
+
+            match idx {
+                1 => new.from.red = parse!(v => i32) as u8,
+                2 => new.from.green = parse!(v => i32) as u8,
+                3 => new.from.blue = parse!(v => i32) as u8,
+                4 => {
+                    new.player_colour = match v.parse::<i32>() {
+                        Ok(v) => match v {
+                            1 => PlayerColour::First,
+                            2 => PlayerColour::Second,
+                            _ => PlayerColour::None,
+                        },
+                        Err(_) => return None,
+                    }
+                }
+                5 => new.blending = parse!(v),
+                6 => new.colour_ch_idx = parse!(v => i32),
+                7 => new.from_opacity = parse!(v => f32),
+                8 => new.opacity_toggled = parse!(v),
+                9 => new.inherited_col_ch_idx = parse!(v => i32),
+                10 => {
+                    new.copied_hsv = match HSVColour::parse(v) {
+                        Some(v) => Some(v),
+                        None => return None,
+                    }
+                }
+                11 => new.to.red = parse!(v => i32) as u8,
+                12 => new.to.green = parse!(v => i32) as u8,
+                13 => new.to.blue = parse!(v => i32) as u8,
+                14 => new.deltatime = parse!(v => f32),
+                15 => new.to_opacity = parse!(v => f32),
+                16 => new.duration = parse!(v => f32),
+                17 => new.copy_opacity = parse!(v),
+                18 => new.unknown_property18 = parse!(v),
+                _ => {}
+            }
+        }
+
+        Some(new)
+    }
+
+    /// Serialises this object to a String.
+    pub fn to_string(&self) -> String {
+        // properties 1, 2, 3, 11, 12, 13, 18 are always present
+
+        // casting to f32 is essential to keep all properties as one type
+        // list: (id, value, is always present)
+        let properties = &[
+            (1, self.from.red as f32, true),
+            (2, self.from.green as f32, true),
+            (3, self.from.blue as f32, true),
+            (4, self.player_colour as i32 as f32, false),
+            (5, self.blending as i32 as f32, false),
+            (6, self.colour_ch_idx as f32, false),
+            (7, self.from_opacity, false),
+            (8, self.opacity_toggled as i32 as f32, false),
+            (9, self.inherited_col_ch_idx as f32, false),
+            /* Serialise property 10 later */
+            (11, self.to.red as f32, true),
+            (12, self.to.green as f32, true),
+            (13, self.to.blue as f32, true),
+            (14, self.deltatime, false),
+            (15, self.to_opacity, false),
+            (16, self.duration, false),
+            (17, self.copy_opacity as i32 as f32, false),
+            (18, self.unknown_property18 as i32 as f32, false),
+        ];
+
+        let mut i_buf = itoa::Buffer::new();
+        let mut d_buf = dtoa::Buffer::new();
+
+        let mut str_buf = String::with_capacity(64);
+        for (idx, val, omnipresent) in properties {
+            if !omnipresent && *val == 0.0 {
+                // only if the value is empty and not required
+                continue;
+            }
+            let _ = write!(
+                str_buf,
+                "{idx}_{}_",
+                if val.fract() == 0.0 {
+                    // is an int; likely not an f32
+                    i_buf.format(*val as i32)
+                } else {
+                    d_buf.format(*val)
+                }
+            );
+        }
+
+        // serialise property 10
+        if let Some(ref hsv) = self.copied_hsv {
+            let _ = write!(str_buf, "10_{}", hsv);
+        }
+
+        // remove trailing _ (that may mess with the kv pairs)
+        if str_buf.ends_with('_') {
+            str_buf.pop();
+        }
+
+        str_buf
+    }
 }
 
 impl Display for HeaderValue {
@@ -224,8 +478,12 @@ impl Display for HeaderValue {
                 Self::Int(i) => i.to_string(),
                 Self::Speed(s) => (*s as i32).to_string(),
                 Self::Gamemode(g) => (*g as i32).to_string(),
-                Self::ColourString(c) => c.clone(),
-                Self::GuidelineString(g) => g.clone(),
+                Self::ColourString(c) => c
+                    .iter()
+                    .map(ColourString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("|"),
+                Self::GuidelineString(g) => g.to_string(),
             },
         )
     }
@@ -266,7 +524,6 @@ impl Display for LevelHeader {
 impl LevelHeader {
     /// Parses the input string to this object
     pub fn parse(s: &str) -> Option<Self> {
-        println!("{s}");
         let mut headers_kv = s.split(",");
         let mut ka_props: [Option<HeaderValue>; KA_SIZE] = [const { None }; KA_SIZE];
         let mut ks_props: [Option<HeaderValue>; KS_SIZE] = [const { None }; KS_SIZE];

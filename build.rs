@@ -53,10 +53,15 @@ fn get_map_from_line(file: &str, start_str: &str) -> String {
             if line.starts_with("};") {
                 break;
             }
+            if line.trim_start().starts_with("/*") || line.trim_start().starts_with("//") {
+                continue;
+            }
 
             let mut split = line.trim().split(" => (");
             let id = split.next().unwrap();
+            println!("{id}");
             let mut tuple_split = split.next().unwrap().split(", ");
+            println!("{tuple_split:?}");
             let desc = tuple_split.next().unwrap();
             let const_name = to_const_name(desc.to_string());
 
@@ -93,7 +98,7 @@ fn main() {
     );
     let level_header_props = get_map_from_line(
         &file,
-        "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
+        "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = phf_map!",
     );
 
     let out_str = format!(
