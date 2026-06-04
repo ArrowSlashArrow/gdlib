@@ -10,8 +10,9 @@ use std::{
 
 pub mod io;
 pub mod rand;
+pub mod structs;
 
-/// Standard file path of GD savefiles on linux
+/// Standard file path of GD savefiles on linux.
 pub const LINUX_GD_FILES: &str = "~/.local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash";
 
 /// Error enum
@@ -69,7 +70,7 @@ impl Display for GDError {
     }
 }
 
-/// Checks if the standard path
+/// Checks if the standard path for GD savefiles exists
 pub fn get_local_levels_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
         let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
@@ -87,7 +88,7 @@ pub fn get_local_levels_path() -> Option<PathBuf> {
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
-pub fn proper_plist_tags(s: String) -> String {
+pub(crate) fn proper_plist_tags(s: String) -> String {
     // replace gd plist with proper plist
     // using aho-corasick for single-pass instead of many .replace()s
     let find = &[
@@ -117,7 +118,7 @@ pub fn proper_plist_tags(s: String) -> String {
 
 /// Quick function for decoding base64 bytes
 #[inline(always)]
-pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
+pub(crate) fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
     base64::engine::general_purpose::URL_SAFE
         .decode(encoded)
         .unwrap()
@@ -125,12 +126,12 @@ pub fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
 
 /// Quick function for encoding base64 bytes
 #[inline(always)]
-pub fn b64_encode(encoded: Vec<u8>) -> String {
+pub(crate) fn b64_encode(encoded: Vec<u8>) -> String {
     base64::engine::general_purpose::URL_SAFE.encode(encoded)
 }
 
 #[inline(always)]
 /// Quick function for converting a slice of u8 to an owned String
-pub fn vec_as_str(data: &[u8]) -> String {
+pub(crate) fn vec_as_str(data: &[u8]) -> String {
     String::from_utf8(data.to_vec()).unwrap()
 }

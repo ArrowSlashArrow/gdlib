@@ -6,11 +6,13 @@ use std::{
 };
 
 use crate::{
-    cclocallevels::gdobj::{
-        GDObject,
-        lookup::{PROPERTY_TABLE, get_level_header_property_type},
-        structs::{Colour, Gamemode, HSVColour, Speed},
-        structs::{GDObjPropType, GDValue, Group},
+    cclocallevels::{
+        gdobj::{
+            GDObject,
+            structs::{Colour, Gamemode, HSVColour, Speed},
+            structs::{GDObjPropType, GDValue, Group},
+        },
+        properties::{PROPERTY_TABLE, get_level_header_property_type},
     },
     core::{
         io::{decompress, encrypt_level_str},
@@ -32,9 +34,6 @@ pub struct EncryptedLevelData {
 }
 
 /// This struct contains the objects of a level and its headers
-/// # Fields:
-/// * `objects`: Array of objects
-/// * `headers`: Other important information about the level
 #[derive(Clone, Debug, PartialEq)]
 pub struct LevelData {
     /// Level header string

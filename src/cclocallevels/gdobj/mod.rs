@@ -1,12 +1,14 @@
 //! This module contains the GDObject struct, used for parsing to/from raw object strings
-//! This module also contains the GDObjConfig struct for creating new GDObjects
+//! This module also contains the GDObjConfig metadata descriptor struct for GDObjects
 use std::fmt::{Debug, Display, Write};
 
-use crate::cclocallevels::gdobj::{
-    ids::properties::*,
-    lookup::{OBJECT_NAMES, get_obj_property_type},
-    meta::{GDObjAttributes, GDObjConfig},
-    structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, MoveEasing, ZLayer},
+use crate::cclocallevels::{
+    gdobj::{
+        ids::properties::*,
+        meta::{GDObjAttributes, GDObjConfig},
+        structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, MoveEasing, ZLayer},
+    },
+    properties::{self, OBJECT_NAMES, get_obj_property_type},
 };
 
 pub mod defaults;
@@ -17,7 +19,6 @@ pub mod ids {
     include!(concat!(env!("OUT_DIR"), "/ids.rs"));
 }
 pub mod constructors;
-pub mod lookup;
 pub mod meta;
 pub mod structs;
 
@@ -103,7 +104,7 @@ impl Debug for GDObject {
         let mut property_str = String::with_capacity(self.properties.len() * 32);
 
         for (property, value) in self.properties.iter() {
-            let desc = lookup::PROPERTY_TABLE.get(property).map(|p| p.0);
+            let desc = properties::PROPERTY_TABLE.get(property).map(|p| p.0);
             if let Some(d) = desc {
                 write!(property_str, "\n    - {d}: {value:?}")
             } else {

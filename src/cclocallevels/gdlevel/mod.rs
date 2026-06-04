@@ -1,5 +1,5 @@
 //! This module contains the objects necessary for operations relating to the CCLocalLevels file,
-//! the Level struct, and its constituent structs excluding the leveldata.
+//! the Level struct, and its constituent structs.
 use std::{
     collections::HashMap,
     fmt::Display,
@@ -12,7 +12,7 @@ use crate::{
     cclocallevels::gdlevel::leveldata::{
         DEFAULT_LEVEL_HEADERS, EncryptedLevelData, LevelData, LevelHeader, LevelState,
     },
-    core::{GDError, vec_as_str},
+    core::{GDError, structs::KCEKValue, vec_as_str},
 };
 
 use plist::{Dictionary, Value};
@@ -24,27 +24,30 @@ use crate::{
 };
 
 pub mod leveldata;
+pub mod new;
+
+/// Standard header of a GD plist.
+pub const PLIST_HEADER: &str = "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">";
+/// Standard footer of a GD plist.
+pub const PLIST_FOOTER: &str = "</plist>";
 
 /// This struct contains other values found in the levels savefile that aren't of any particular use
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 // black box
 pub struct LevelsFileHeaders {
-    // black box
+    /// Unknown value
     pub llm02: Value,
-    // black box
+    /// Lists (uninmpelemented as of now)
     pub llm03: Value,
 }
 
-/// This struct contains all the levels of the savefile
-/// # Fields:
-/// * `levels`: The levels. Ones at the beginning are the most recently created.
-/// * `headers`: other information necessary for re-encoding
+/// Container struct for the CCLocalLevels savefile.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Levels {
-    /// All levels in the savefile
+    /// All levels in the savefile in order from newest to oldest.
     pub levels: Vec<Level>,
-    /// Headers of the level file
+    /// Headers of the level file. This struct contains other data that is present in the savefile but that is not used or parsable by this crate.
     pub headers: LevelsFileHeaders,
 }
 
@@ -57,6 +60,10 @@ impl Levels {
 
     /// Parses raw savefile string into this struct
     pub fn from_decrypted(s: String) -> Result<Self, GDError> {
+        if !s.starts_with(PLIST_HEADER) {
+            return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
+        };
+
         let mut xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes()))
         {
             Ok(v) => v.into_dictionary().unwrap(),
@@ -86,10 +93,10 @@ impl Levels {
             .collect::<Vec<Level>>();
 
         let levels = Levels {
-            levels: levels_parsed, // one of these might be for lists. will consider that later
+            levels: levels_parsed,
             headers: LevelsFileHeaders {
                 llm02: llm_02,
-                llm03: llm_03,
+                llm03: llm_03, // lists in here
             },
         };
 
@@ -115,13 +122,14 @@ impl Levels {
         dict.insert("LLM_02".to_string(), self.headers.llm02.clone());
         dict.insert("LLM_03".to_string(), self.headers.llm03.clone());
 
-        format!(
-            "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">{}</plist>",
-            stringify_xml(&dict, true)
-        )
+        format!("{PLIST_HEADER}{}{PLIST_FOOTER}", stringify_xml(&dict, true))
     }
 
-    /// Exports this struct as encrypted XML to CCLocalLevels.dat
+    /// Exports this struct as encrypted XML to the standard CCLocalLevels.dat location.
+    /// This function will return an error if it is unable to find the savefile at the standard location.
+    ///
+    /// Standard location on windows: %LOCALAPPDATA%\GeometryDash
+    /// Standard location on linux: [`LINUX_GD_FILES`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_local_levels_path().ok_or(GDError::MissingSavefile)?;
         let export_str = encrypt_savefile_str(self.export_to_string());
@@ -206,7 +214,7 @@ impl Level {
 
         // genuienly have no clue wht any of these are
         vec![
-            ("kCEK", Value::from(4)),
+            ("kCEK", Value::from(KCEKValue::GJGameLevel as i32)),
             ("k18", Value::from(1)),
             (
                 "k101",
@@ -219,9 +227,10 @@ impl Level {
             ("k27", Value::from(4598)),
             ("k50", Value::from(45)),
             ("k47", Value::from(true)),
+            // editor camera coordinates
             ("kI1", Value::from(100.0)),
             ("kI2", Value::from(100.0)),
-            ("kI3", Value::from(1.0)),
+            ("kI3", Value::from(1.0)), // editor camera zoom
             ("kI6", Value::from(ki6_dict)),
         ]
         .into_iter()
@@ -243,7 +252,7 @@ impl Level {
     /// Exports the level to a .gmd file
     pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         let export_str = format!(
-            "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">{}</plist>",
+            "{PLIST_HEADER}{}{PLIST_FOOTER}",
             stringify_xml(&self.to_dict(), true)
         );
 
@@ -387,17 +396,19 @@ impl Level {
 
 impl Display for Level {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let info_str = match &self.data {
-            Some(d) => match d {
-                LevelState::Encrypted(enc) => &format!("{} Bytes", enc.data.len()),
-                LevelState::Decrypted(dec) => &format!("{} Objects", dec.objects.len()),
-            },
-            None => "Empty",
+        let (num, suffix) = {
+            match &self.data {
+                Some(d) => match d {
+                    LevelState::Encrypted(enc) => (enc.data.len().to_string(), " Bytes"),
+                    LevelState::Decrypted(dec) => (dec.objects.len().to_string(), " Objects"),
+                },
+                None => ("Empty".to_owned(), ""),
+            }
         };
 
         write!(
             f,
-            "\"{}\" ({}) by {} using song {}; {info_str}",
+            "\"{}\" ({}) by {} using song {}; {num}{suffix}",
             self.title.clone().unwrap_or("<No title>".to_string()),
             vec_as_str(&b64_decode(
                 self.description
@@ -409,7 +420,7 @@ impl Display for Level {
             self.author
                 .clone()
                 .unwrap_or("<Unknown author>".to_string()),
-            self.song.unwrap_or(0)
+            self.song.unwrap_or(0),
         )
     }
 }

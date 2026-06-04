@@ -2,7 +2,7 @@
 A typesafe, rust library to interface with GD savefiles. It is intended to enable programmatic savefile operations, such as automatic level creation.
 
 Documentation can be found on [docs.rs](https://docs.rs/gdlib/latest/gdlib/).  
-As of v0.3.1, GDLib isgit  in active development.
+As of v0.3.3, GDLib isgit  in active development.
 
 ## Repository structure
 - `.github`: workflows for GitHub.
@@ -18,6 +18,9 @@ Features
 * Easy modification of objects through built-in methods and objects
 * Full support for read from and writing to .dat and .gmd files
 * Optimized to be fast and lightweight
+
+This crate is intended to have provide full coverage of both GD savefiles and full support for editing each individual component within.  
+As of v0.3.3, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 
 
 ## Usage instructions
 This crate can be added to a project by running `cargo add gdlib`.

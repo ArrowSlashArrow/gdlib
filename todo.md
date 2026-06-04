@@ -9,8 +9,7 @@
 - all trigger constructors
 - add all gd obj property types
     - then remove unknown property type
-- interface with server (feature)
-- waihave full api coverage of both savefiles
+- have full api coverage of both savefiles
 
 ## cclocallevels
 - llm03 parser for lists
@@ -33,7 +32,7 @@
 - everything
 - tbh idk what's in there because i have not explored that file
 
-## server
+## server (feature: "api")
 - all known request formats
 - utils stuff todo with formatting request inputs (e.g. GJP)
 - [useful thing](https://wyliemaster.github.io/gddocs/#/)

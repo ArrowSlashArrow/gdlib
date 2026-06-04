@@ -1,7 +1,7 @@
 //! Properties lookup table
 use phf::{Map, phf_map};
 
-use crate::cclocallevels::{gdlevel::leveldata::HeaderValueType, gdobj::GDObjPropType};
+use crate::cclocallevels::{gdlevel::leveldata::HeaderValueType, gdobj::structs::GDObjPropType};
 
 // TODO: make the types not unknown
 // note: if it;s a number but not specifically an int, don't say it's an int.

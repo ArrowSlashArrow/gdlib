@@ -3,7 +3,8 @@ use std::time::Instant;
 
 use crate::{
     cclocallevels::{
-        gdlevel::{Level, leveldata::HeaderValue},
+        gdlevel::{Level, Levels, leveldata::HeaderValue},
+        gdlist::{GDList, GDLists},
         gdobj::{
             self,
             constructors::{
@@ -192,9 +193,16 @@ fn advanced_random_predict() {
 }
 
 #[test]
+fn print_list_info() {
+    let savefile = Levels::from_local().unwrap();
+    GDLists::parse_from_value(&savefile.headers.llm03).unwrap();
+}
+
+#[test]
 #[ignore]
 fn _temp_read_objs() {
-    let level = Level::from_gmd("GMDS/swap.gmd").unwrap();
+    let level = Level::from_gmd("test_gmds/empty test level.gmd").unwrap();
+    println!("{:#?}", level.properties.get("kI6".into()));
     let data = level.get_decrypted_data().unwrap();
 
     for (idx, obj) in data.objects.iter().enumerate() {

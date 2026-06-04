@@ -75,7 +75,7 @@ fn get_map_from_line(file: &str, start_str: &str) -> String {
 
 fn main() {
     let mut objects_out_str = String::new();
-    let file = fs::read_to_string("src/cclocallevels/gdobj/lookup.rs").unwrap();
+    let file = fs::read_to_string("src/cclocallevels/properties.rs").unwrap();
     let ast: syn::File = syn::parse_str(&file).unwrap();
     for item in ast.items {
         if let Item::Const(c) = item
@@ -103,11 +103,11 @@ fn main() {
 
     let out_str = format!(
         "\
-/// Object ids submodule
+/// Object IDs
 pub mod objects {{
 {objects_out_str}}}
 
-/// Property ids submodule
+/// Object property IDs
 pub mod properties {{
 {properties_out_str}}}
 
