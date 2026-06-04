@@ -1,11 +1,11 @@
 use gdlib::{
-    cclocallevels::{gdlevel::Level, gdobj::structs::Group},
+    cclocallevels::{gdlevel::GDLevel, gdobj::structs::Group},
     core::GDError,
 };
 
 fn main() -> Result<(), GDError> {
     // Load level from .gmd file
-    let mut level = Level::from_gmd("test_gmds/level.gmd")?;
+    let mut level = GDLevel::from_gmd("test_gmds/level.gmd")?;
 
     // Get level data, which is None only if it hasn't been initialized.
     if let Some(data) = level.get_decrypted_data_ref() {

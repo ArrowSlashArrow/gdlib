@@ -126,8 +126,8 @@ pub(crate) fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
 
 /// Quick function for encoding base64 bytes
 #[inline(always)]
-pub(crate) fn b64_encode(encoded: Vec<u8>) -> String {
-    base64::engine::general_purpose::URL_SAFE.encode(encoded)
+pub(crate) fn b64_encode<T: AsRef<[u8]> + Debug>(payload: T) -> String {
+    base64::engine::general_purpose::URL_SAFE.encode(payload)
 }
 
 #[inline(always)]

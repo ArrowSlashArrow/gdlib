@@ -6,7 +6,7 @@ use anyhow::{Result, anyhow};
 use plist::{Dictionary, Value};
 
 use crate::{
-    cclocallevels::gdlevel::Level,
+    cclocallevels::gdlevel::GDLevel,
     core::{b64_decode, structs::Difficulty, vec_as_str},
 };
 
@@ -105,7 +105,7 @@ pub struct GDList {
     /// Dictionary of all the levels in the list. Levels in this dictionary are summaries and are missing many properties, notably, the level's object data.
     ///
     /// Internal key: `k97`
-    pub levels: Vec<Level>, // TODO: use new GDLevel
+    pub levels: Vec<GDLevel>, // TODO: use new GDLevel
     /// UNIX timestamp of the level's upload time in seconds.
     ///
     /// Internal key: `k98`

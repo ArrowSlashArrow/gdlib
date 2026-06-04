@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use crate::{
     cclocallevels::{
-        gdlevel::{Level, Levels, leveldata::HeaderValue},
+        gdlevel::{GDLevel, Levels, leveldata::HeaderValue},
         gdlist::{GDList, GDLists},
         gdobj::{
             self,
@@ -33,7 +33,7 @@ fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
 
 #[test]
 fn read_objs() {
-    let level = Level::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
+    let level = GDLevel::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
     let data = level.get_decrypted_data().unwrap();
 
     for (idx, obj) in data.objects.iter().enumerate() {
@@ -43,7 +43,9 @@ fn read_objs() {
 
 #[test]
 fn move_constructor() {
-    let mut level = Level::new("move trigger t3st", "gdlib", None, None);
+    let mut level = GDLevel::default();
+    level.identity.name = "move trigger t3st".into();
+    level.identity.creator = "gdlib".into();
     level.add_object(move_trigger(
         &GDObjConfig::default().pos(45.0, 45.0),
         MoveMode::Default(DefaultMove {
@@ -66,8 +68,8 @@ fn move_constructor() {
 
 #[test]
 fn level_display_test() {
-    let level = Level::from_gmd("test_gmds/big.gmd").unwrap();
-    println!("Level info: {level}");
+    let level = GDLevel::from_gmd("test_gmds/big.gmd").unwrap();
+    println!("GDLevel info: {level}");
     println!(
         "Unused groups: {:?}",
         level.get_decrypted_data().unwrap().get_unused_groups()
@@ -90,7 +92,7 @@ fn obj_properties() {
         .set_base_colour(ColourChannel::Background);
 
     let block = default_block(&config);
-    let mut level = Level::new("porpeties", "gdlib", None, None);
+    let mut level = GDLevel::default();
     level.add_object(block);
 
     level
@@ -100,7 +102,7 @@ fn obj_properties() {
 
 #[test]
 fn adv_random() {
-    let mut level = Level::new("adv random", "gdlib", None, None);
+    let mut level = GDLevel::default();
     level.add_object(advanced_random_trigger(
         &GDObjConfig::default().pos(45.0, 45.0),
         vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
@@ -110,7 +112,7 @@ fn adv_random() {
 
 #[test]
 fn big_level_parse() {
-    let level = Level::from_gmd("test_gmds/big.gmd").unwrap();
+    let level = GDLevel::from_gmd("test_gmds/big.gmd").unwrap();
     benchmark("Big level parse", || level.get_decrypted_data());
 }
 
@@ -120,7 +122,7 @@ fn ref_vs_copy_benchmark() {
     let mut ref_time: u128 = 0;
     let mut copy_time: u128 = 0;
 
-    let level = Level::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
+    let level = GDLevel::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
     for _ in 0..count {
         {
             let start = Instant::now();
@@ -128,7 +130,7 @@ fn ref_vs_copy_benchmark() {
             copy_time += start.elapsed().as_nanos();
         }
         {
-            let mut level = Level::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
+            let mut level = GDLevel::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
             let start = Instant::now();
             let _ = level.get_decrypted_data_ref();
             ref_time += start.elapsed().as_nanos();
@@ -149,7 +151,7 @@ fn ref_vs_copy_benchmark() {
 
 #[test]
 fn serialise_level_benchmark() {
-    let mut level = Level::from_gmd("test_gmds/big.gmd").unwrap();
+    let mut level = GDLevel::from_gmd("test_gmds/big.gmd").unwrap();
     level.decrypt_level_data().unwrap();
     let _ = benchmark("big.gmd serialise", || {
         level.export_to_gmd("test_gmds/generated_big2.gmd")
@@ -158,7 +160,7 @@ fn serialise_level_benchmark() {
 
 #[test]
 fn event_trigger_test() {
-    let mut level = Level::new("event trigger test", "gdlib", None, None);
+    let mut level = GDLevel::default();
     let cfg = GDObjConfig::new().pos(45.0, 45.0);
     level.add_object(event_trigger(
         &cfg,
@@ -171,7 +173,7 @@ fn event_trigger_test() {
 
 #[test]
 fn advanced_random_predict() {
-    let level = Level::from_gmd("test_gmds/advrand test.gmd").unwrap();
+    let level = GDLevel::from_gmd("test_gmds/advrand test.gmd").unwrap();
     // find adv random trigger
     let data = level.get_decrypted_data().unwrap();
     let adv_rand = data
@@ -193,6 +195,12 @@ fn advanced_random_predict() {
 }
 
 #[test]
+fn gmd_parse() {
+    let level = GDLevel::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
+    println!("{level:#?}");
+}
+
+#[test]
 fn print_list_info() {
     let savefile = Levels::from_local().unwrap();
     GDLists::parse_from_value(&savefile.headers.llm03).unwrap();
@@ -201,8 +209,7 @@ fn print_list_info() {
 #[test]
 #[ignore]
 fn _temp_read_objs() {
-    let level = Level::from_gmd("test_gmds/empty test level.gmd").unwrap();
-    println!("{:#?}", level.properties.get("kI6".into()));
+    let level = GDLevel::from_gmd("test_gmds/empty test level.gmd").unwrap();
     let data = level.get_decrypted_data().unwrap();
 
     for (idx, obj) in data.objects.iter().enumerate() {
@@ -213,7 +220,7 @@ fn _temp_read_objs() {
 #[test]
 #[ignore]
 fn _temp_level_header() -> anyhow::Result<()> {
-    let level = Level::from_gmd("test_gmds/level.gmd")?;
+    let level = GDLevel::from_gmd("test_gmds/level.gmd")?;
     let data = level.get_decrypted_data().unwrap();
     let colour_string = data
         .headers
