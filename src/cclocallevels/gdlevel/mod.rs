@@ -90,7 +90,7 @@ impl Levels {
             .iter()
             .filter_map(|(k, v)| match k.as_str() {
                 "_isArr" => None,
-                _ => Some(GDLevel::from_dict(v.as_dictionary().unwrap())?),
+                _ => Some(GDLevel::from_dict(v.as_dictionary()?)?),
             })
             .collect::<Vec<GDLevel>>();
 
@@ -682,15 +682,14 @@ impl GDLevel {
                 && let Ok(key_id) = k[2..].parse::<i32>()
             {
                 match key_id {
-                    1 => level.editor_state.camera_x = v.as_real()? as f32,
-                    2 => level.editor_state.camera_y = v.as_real()? as f32,
-                    3 => level.editor_state.camera_zoom = v.as_real()? as f32,
+                    1 => level.editor_state.camera_x = to_float(v)?,
+                    2 => level.editor_state.camera_y = to_float(v)?,
+                    3 => level.editor_state.camera_zoom = to_float(v)?,
                     4 => level.editor_state.build_tab_page = v.as_signed_integer()? as i32,
                     5 => level.editor_state.build_tab = v.as_signed_integer()? as i32,
                     6 => {
                         level.editor_state.build_tab_pages = {
                             let mut pages = SmallVec::new();
-                            println!("{v:#?}");
                             for (tab, page) in v.as_dictionary()? {
                                 let tab_idx = tab.parse::<usize>().ok()?;
                                 // this is horrible but necessary due to rob's savefile format
@@ -702,8 +701,7 @@ impl GDLevel {
                             pages
                         }
                     }
-                    7 => level.editor_state.editor_layer = v.as_real()? as f32,
-
+                    7 => level.editor_state.editor_layer = to_float(v)?,
                     _ => {
                         level.unknowns.other.insert(k.clone(), v.clone());
                     }
@@ -1335,5 +1333,15 @@ fn serialise_bool_fields(d: &mut Dictionary, fields: &[(&str, bool)]) {
         if *value {
             d.insert(id.to_string(), Value::Boolean(true));
         }
+    }
+}
+
+fn to_float(v: &Value) -> Option<f32> {
+    if let Some(f) = v.as_real() {
+        Some(f as f32)
+    } else if let Some(i) = v.as_signed_integer() {
+        Some(i as f32)
+    } else {
+        None
     }
 }
