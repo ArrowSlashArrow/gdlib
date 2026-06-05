@@ -28,32 +28,32 @@ const KS_SIZE: usize = 48;
 
 /// This struct contains level data that has not yet been decrypted
 #[derive(Clone, Debug, PartialEq)]
-pub struct EncryptedLevelData {
+pub struct GDEncryptedLevelData {
     /// Raw level data
     pub data: String,
 }
 
 /// This struct contains the objects of a level and its headers
 #[derive(Clone, Debug, PartialEq)]
-pub struct LevelData {
+pub struct GDLevelData {
     /// Level header string
-    pub headers: LevelHeader,
+    pub headers: GDLevelHeader,
     /// Level objects
     pub objects: Vec<GDObject>,
 }
 
 /// Enum that contains either a raw encrypted level string or decrypted level object
 #[derive(Clone, Debug, PartialEq)]
-pub enum LevelState {
+pub enum GDLevelState {
     /// Raw encrypted data
-    Encrypted(EncryptedLevelData),
+    Encrypted(GDEncryptedLevelData),
     /// Parsed, structured data
-    Decrypted(LevelData),
+    Decrypted(GDLevelData),
 }
 
 /// Contains the properties of the level header string.
 #[derive(Clone, Debug, PartialEq)]
-pub struct LevelHeader {
+pub struct GDLevelHeader {
     /// All properties that are in kAxx format. There are at least 50 kA properties.
     pub ka: [Option<HeaderValue>; KA_SIZE],
     /// All properties that are in kSxx format. There are 39 known kS properties.
@@ -148,7 +148,7 @@ pub enum HeaderValueType {
     ColourString,
 }
 
-impl LevelData {
+impl GDLevelData {
     /// Serialises this object to a string by serialising each subsequent component.
     pub fn serialise_to_string(&self) -> String {
         let objstr = self
@@ -232,7 +232,7 @@ impl LevelData {
 
         // level start string
         let headers = split[0].to_string();
-        let level_headers = LevelHeader::parse(&headers)?;
+        let level_headers = GDLevelHeader::parse(&headers)?;
         let mut objects = Vec::with_capacity(split.len() - 1);
 
         for object in &split[1..] {
@@ -241,7 +241,7 @@ impl LevelData {
             }
         }
 
-        Some(LevelData {
+        Some(GDLevelData {
             headers: level_headers,
             objects,
         })
@@ -488,7 +488,7 @@ impl Display for HeaderValue {
     }
 }
 
-impl Display for LevelHeader {
+impl Display for GDLevelHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kas = self
             .ka
@@ -520,7 +520,7 @@ impl Display for LevelHeader {
     }
 }
 
-impl LevelHeader {
+impl GDLevelHeader {
     /// Parses the input string to this object
     pub fn parse(s: &str) -> Option<Self> {
         let mut headers_kv = s.split(",");

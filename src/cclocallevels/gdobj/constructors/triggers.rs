@@ -305,7 +305,7 @@ pub fn stop_trigger(
         vec![
             (TARGET_ITEM, GDValue::Group(target_group)),
             (USE_CONTROL_ID, GDValue::Bool(use_control_id)),
-            (STOP_MODE, GDValue::Int(stop_mode as i32)),
+            (STOP_MODE, GDValue::Int(stop_mode.to_num())),
         ],
     )
 }
@@ -368,7 +368,7 @@ pub fn transition_object(
     let mut properties = vec![];
 
     if mode != TransitionMode::Both {
-        properties.push((ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(mode as i32)));
+        properties.push((ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(mode.to_num())));
     }
     if let Some(channel) = target_channel {
         properties.push((TARGET_TRANSITION_CHANNEL, GDValue::Int(channel)));
@@ -634,7 +634,7 @@ pub fn counter_object(
 ) -> GDObject {
     let mut properties = vec![
         (SECONDS_ONLY, GDValue::Bool(seconds_only)),
-        (COUNTER_ALIGNMENT, GDValue::Int(align as i32)),
+        (COUNTER_ALIGNMENT, GDValue::Int(align.to_num())),
     ];
 
     match item {
@@ -702,9 +702,9 @@ pub fn item_edit(
         (TARGET_ITEM, GDValue::Item(target.id())),
         (TARGET_ITEM_TYPE, GDValue::Int(target.get_type_as_i32())),
         (MODIFIER, GDValue::Float(modifier)),
-        (LEFT_OPERATOR, GDValue::Int(assign_op as i32)),
-        (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
-        (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
+        (LEFT_OPERATOR, GDValue::Int(assign_op.to_num())),
+        (RIGHT_OPERATOR, GDValue::Int(id_op.to_num())),
+        (COMPARE_OPERATOR, GDValue::Int(mod_op.to_num())),
         (LEFT_ROUND_MODE, GDValue::Int(id_rounding as i32)),
         (RIGHT_ROUND_MODE, GDValue::Int(result_rounding as i32)),
         (LEFT_SIGN_MODE, GDValue::Int(id_sign as i32)),
@@ -772,9 +772,9 @@ pub fn item_compare(
         (MODIFIER, GDValue::Float(lhs.modifier)),
         (SECOND_MODIFIER, GDValue::Float(rhs.modifier)),
         // modifiers ops
-        (LEFT_OPERATOR, GDValue::Int(lhs.mod_op as i32)),
-        (RIGHT_OPERATOR, GDValue::Int(rhs.mod_op as i32)),
-        (COMPARE_OPERATOR, GDValue::Int(compare_op as i32)),
+        (LEFT_OPERATOR, GDValue::Int(lhs.mod_op.to_num())),
+        (RIGHT_OPERATOR, GDValue::Int(rhs.mod_op.to_num())),
+        (COMPARE_OPERATOR, GDValue::Int(compare_op.to_num())),
         (TOLERANCE, GDValue::Float(tolerance)),
         // round modes
         (LEFT_ROUND_MODE, GDValue::Int(lhs.rounding as i32)),

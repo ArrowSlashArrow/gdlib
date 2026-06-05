@@ -3,8 +3,8 @@ use std::time::Instant;
 
 use crate::{
     cclocallevels::{
-        gdlevel::{GDLevel, Levels, leveldata::HeaderValue},
-        gdlist::{GDList, GDLists},
+        gdlevel::{CCLocalLevels, GDLevel, enums::GDListDifficulty, leveldata::HeaderValue},
+        gdlist::GDList,
         gdobj::{
             self,
             constructors::{
@@ -195,15 +195,14 @@ fn advanced_random_predict() {
 }
 
 #[test]
-fn gmd_parse() {
-    let level = GDLevel::from_gmd("test_gmds/All Object IDs.gmd").unwrap();
-    println!("{level:#?}");
-}
-
-#[test]
 fn print_list_info() {
-    let savefile = Levels::from_local().unwrap();
-    GDLists::parse_from_value(&savefile.headers.llm03).unwrap();
+    let mut cc = CCLocalLevels::from_local().unwrap();
+
+    cc.lists
+        .iter_mut()
+        .for_each(|l| l.difficulty = GDListDifficulty::ExtremeDemon);
+
+    cc.export_to_savefile().unwrap();
 }
 
 #[test]

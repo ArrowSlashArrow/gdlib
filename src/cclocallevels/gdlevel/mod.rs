@@ -14,7 +14,11 @@ use smallvec::SmallVec;
 
 use crate::{
     cclocallevels::{
-        gdlevel::leveldata::{EncryptedLevelData, LevelData, LevelState},
+        gdlevel::{
+            enums::{DemonType, DifficultyRating, EpicRating, GDLevelType, Length, OfficialSong},
+            leveldata::{GDEncryptedLevelData, GDLevelData, GDLevelState},
+        },
+        gdlist::GDList,
         gdobj::GDObject,
     },
     core::{
@@ -26,6 +30,7 @@ use crate::{
     },
 };
 
+pub mod enums;
 pub mod leveldata;
 
 /// Standard header of a GD plist.
@@ -33,31 +38,22 @@ pub const PLIST_HEADER: &str = "<?xml version=\"1.0\"?><plist version=\"1.0\" gj
 /// Standard footer of a GD plist.
 pub const PLIST_FOOTER: &str = "</plist>";
 
-/// This struct contains other values found in the levels savefile that aren't of any particular use
-#[derive(Debug, Clone, PartialEq)]
-#[allow(missing_docs)]
-// black box
-pub struct LevelsFileHeaders {
-    /// Unknown value
-    pub llm02: Value,
-    /// Lists (uninmpelemented as of now)
-    pub llm03: Value,
-}
-
 /// Container struct for the CCLocalLevels savefile.
 #[derive(Debug, Clone)]
-pub struct Levels {
+pub struct CCLocalLevels {
     /// All levels in the savefile in order from newest to oldest.
     pub levels: Vec<GDLevel>,
     /// Headers of the level file. This struct contains other data that is present in the savefile but that is not used or parsable by this crate.
-    pub headers: LevelsFileHeaders,
+    pub binary_version: Value,
+    /// All lists in the savefile in order from newest to oldest.
+    pub lists: Vec<GDList>,
 }
 
-impl Levels {
+impl CCLocalLevels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
     #[inline(always)]
     pub fn from_local() -> Result<Self, GDError> {
-        Levels::from_decrypted(decode_levels_to_string()?)
+        CCLocalLevels::from_decrypted(decode_levels_to_string().unwrap())
     }
 
     /// Parses raw savefile string into this struct
@@ -74,15 +70,15 @@ impl Levels {
 
         let levels_dict = xmltree
             .remove("LLM_01")
-            .ok_or(GDError::CorruptedSavefile("No LLM_01".into()))?
+            .ok_or(GDError::CorruptedSavefile("No LLM_01 (levels)".into()))?
             .into_dictionary()
             .ok_or(GDError::CorruptedSavefile("LLM_01 is not a dict".into()))?;
-        let llm_02 = xmltree
-            .remove("LLM_02")
-            .ok_or(GDError::CorruptedSavefile("No LLM_02".into()))?;
+        let llm_02 = xmltree.remove("LLM_02").ok_or(GDError::CorruptedSavefile(
+            "No LLM_02 (binary version)".into(),
+        ))?;
         let llm_03 = xmltree
             .remove("LLM_03")
-            .ok_or(GDError::CorruptedSavefile("No LLM_03".into()))?;
+            .ok_or(GDError::CorruptedSavefile("No LLM_03 (lists)".into()))?;
 
         // these are stored as "k_0": <level>, "k_1": <level>, etc. in the savefile,
         // the vec prserves that order.
@@ -90,19 +86,41 @@ impl Levels {
             .iter()
             .filter_map(|(k, v)| match k.as_str() {
                 "_isArr" => None,
-                _ => Some(GDLevel::from_dict(v.as_dictionary()?)?),
+                _ => Some(GDLevel::from_dict(v.as_dictionary().unwrap())?),
             })
             .collect::<Vec<GDLevel>>();
 
-        let levels = Levels {
+        let lists = CCLocalLevels::parse_from_value(&llm_03)?;
+
+        let levels = CCLocalLevels {
             levels: levels_parsed,
-            headers: LevelsFileHeaders {
-                llm02: llm_02,
-                llm03: llm_03, // lists in here
-            },
+            binary_version: llm_02,
+            lists,
         };
 
         Ok(levels)
+    }
+
+    /// Parses the given plist dictionary to this struct
+    pub(crate) fn parse_from_value(v: &Value) -> Result<Vec<GDList>, GDError> {
+        /* Input dict structure
+         * "_isArr": always Boolean(true)
+         * k_X: list at index X
+         */
+        let dict = v.as_dictionary().ok_or(GDError::CorruptedSavefile(
+            "Input value is not a dictionary.".into(),
+        ))?;
+        let mut lists = Vec::with_capacity(dict.len());
+
+        for (_, v) in dict {
+            if let Value::Dictionary(d) = v {
+                lists.push(GDList::from_dictionary(d).ok_or(GDError::CorruptedSavefile(
+                    "Unable to parse into a valid GD list.".into(),
+                ))?)
+            }
+        }
+
+        Ok(lists)
     }
 
     /// Adds a level to the beginning of `self.levels`
@@ -120,9 +138,15 @@ impl Levels {
             levels_dict.insert(format!("k_{idx}"), Value::from(level.to_dict()));
         }
 
-        dict.insert("LLM_01".to_string(), plist::Value::Dictionary(levels_dict));
-        dict.insert("LLM_02".to_string(), self.headers.llm02.clone());
-        dict.insert("LLM_03".to_string(), self.headers.llm03.clone());
+        let mut lists_dict = Dictionary::new();
+        lists_dict.insert("_isArr".to_string(), Value::from(true));
+        for (idx, level) in self.lists.iter().enumerate() {
+            lists_dict.insert(format!("k_{idx}"), Value::from(level.to_dict()));
+        }
+
+        dict.insert("LLM_01".to_string(), Value::Dictionary(levels_dict));
+        dict.insert("LLM_02".to_string(), self.binary_version.clone());
+        dict.insert("LLM_03".to_string(), Value::Dictionary(lists_dict));
 
         format!("{PLIST_HEADER}{}{PLIST_FOOTER}", stringify_xml(&dict, true))
     }
@@ -131,7 +155,7 @@ impl Levels {
     /// This function will return an error if it is unable to find the savefile at the standard location.
     ///
     /// Standard location on windows: %LOCALAPPDATA%\GeometryDash
-    /// Standard location on linux: [`LINUX_GD_FILES`]
+    /// Standard location on linux: [`crate::core::LINUX_GD_FILES`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_local_levels_path().ok_or(GDError::MissingSavefile)?;
         let export_str = encrypt_savefile_str(self.export_to_string());
@@ -176,7 +200,7 @@ pub struct GDLevel {
     /// Identity info: ID, name, descriptior, creator, version, level type, password
     pub identity: GDLevelIdentity,
     /// The level's data: object data, song list, used song ID, length, is platformer/2-player
-    pub content: GDLevelData,
+    pub content: GDLevelContents,
     /// Rating info: downloads, likes, stars, requested stars, epic rate, difficulty, type of demon, is auto
     pub ratings: GDLevelRatings,
     /// Coin info: required coins, obtainment status of coins
@@ -252,10 +276,10 @@ pub struct GDLevelIdentity {
 
 #[derive(Debug, Clone, Default)]
 /// Values to do with the level data / gameplay. Notably, the level data itself, object count, length, etc.
-pub struct GDLevelData {
-    /// The data of the level. See [`LevelState`]
+pub struct GDLevelContents {
+    /// The data of the level. See [`GDLevelState`]
     /// Internal key: `k4`
-    pub data: Option<LevelState>,
+    pub data: Option<GDLevelState>,
     /// Internal key: `k48`
     pub object_count: i32,
     /// Internal key: `k69`
@@ -274,12 +298,13 @@ pub struct GDLevelData {
     pub sfx_list: Option<Vec<i32>>,
     // note: use enum GDSong
     /// Internal key: `k8`
-    pub official_song_id: Option<i32>,
+    pub official_song_id: Option<OfficialSong>,
     /// Internal key: `k45`
     pub custom_song_id: Option<i32>,
-    // UNCLEAR: assuming that this means the level's length in gameticks
+    /// Length bracket of this level. See [`Length`].
+    ///
     /// Internal key: `k23`
-    pub length: i32,
+    pub length: Length,
     /// Internal key: `k43`
     pub two_player_mode: bool,
     /// Internal key: `k94`
@@ -340,9 +365,10 @@ impl Default for GDLevelMeta {
 #[derive(Debug, Clone, Default)]
 /// Rating data about a level (e.g. star rating, likes, downloads)
 pub struct GDLevelRatings {
-    // UNCLEAR
+    /// Difficulty rating of this level. See [`DifficultyRating`].
+    ///
     /// Internal key: `k9`
-    pub rating: i32,
+    pub rating: DifficultyRating,
     // UNCLEAR
     /// Internal key: `k10`
     pub rating_sum: i32,
@@ -371,8 +397,8 @@ pub struct GDLevelRatings {
     pub difficulty: i32,
     /// Internal key: `k25`
     pub is_demon: bool,
-    // todo
-    // note: add demon type enum (not sure what that is)
+    /// See [`DemonType`].
+    ///
     /// Internal key: `k76`
     pub demon_type: Option<DemonType>,
     /// Internal key: `k33`
@@ -431,21 +457,18 @@ pub struct GDLevelPlayerStats {
     pub best_points: Option<i32>,
     // PARSE: split at every comma and convert to int
     // STORE: convert to string and join with commas
-    // TODO: parse
     /// Comma-separated values in ms.
     ///
     /// Internal key: `k109`
     pub local_best_times: Vec<i32>,
     // PARSE: split at every comma and convert to int
     // STORE: convert to string and join with commas
-    // TODO: parse to Vec
     /// Comma-separated scores.
     ///
     /// Internal key: `k110`
     pub local_best_points: Vec<i32>,
     // PARSE: split at every comma and convert to int
     // STORE: convert to string and join with commas
-    // TODO: parse to Vec
     /// Comma-separated high score diffs.
     ///
     /// Internal key: `k88`
@@ -555,80 +578,6 @@ pub struct GDLevelUnknowns {
     pub other: HashMap<String, Value>,
 }
 
-/// Type of epic rating that a level was awarded
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum EpicRating {
-    #[default]
-    None = 0,
-    Epic = 1,
-    Legendary = 2,
-    Mythic = 3,
-}
-
-impl TryFrom<i32> for EpicRating {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::None),
-            1 => Ok(Self::Epic),
-            2 => Ok(Self::Legendary),
-            3 => Ok(Self::Mythic),
-            _ => Err(()),
-        }
-    }
-}
-
-/// Type of level that a GDLevel is. Default is set to 2 (Local).
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum GDLevelType {
-    Official = 1,
-    #[default]
-    Local = 2,
-    Saved = 3,
-    Online = 4,
-}
-
-impl TryFrom<i32> for GDLevelType {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Self::Official),
-            2 => Ok(Self::Local),
-            3 => Ok(Self::Saved),
-            4 => Ok(Self::Online),
-            _ => Err(()),
-        }
-    }
-}
-
-/// Type of demon that a level is
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-#[repr(i32)]
-pub enum DemonType {
-    EasyDemon = 1,
-    MediumDemon = 2,
-    HardDemon = 3,
-    InsaneDemon = 4,
-    ExtremeDemon = 5,
-}
-
-impl TryFrom<i32> for DemonType {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Self::EasyDemon),
-            2 => Ok(Self::MediumDemon),
-            3 => Ok(Self::HardDemon),
-            4 => Ok(Self::InsaneDemon),
-            5 => Ok(Self::ExtremeDemon),
-            _ => Err(()),
-        }
-    }
-}
-
 impl GDLevel {
     /// Parses a .gmd file to a `Self` object
     pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
@@ -673,10 +622,8 @@ impl GDLevel {
             // - if the key (or its value) was not parsed successfully, try the next branch
 
             if k == "kCEK" {
-                if let Ok(k) = KCEKValue::try_from(v.as_signed_integer()? as i32) {
-                    level.meta.kcek = k;
-                    continue;
-                }
+                level.meta.kcek = KCEKValue::try_from(v.as_signed_integer()? as i32).unwrap();
+                continue;
             }
             if k.starts_with("kI")
                 && let Ok(key_id) = k[2..].parse::<i32>()
@@ -691,12 +638,21 @@ impl GDLevel {
                         level.editor_state.build_tab_pages = {
                             let mut pages = SmallVec::new();
                             for (tab, page) in v.as_dictionary()? {
-                                let tab_idx = tab.parse::<usize>().ok()?;
+                                let tab_idx = tab.parse::<usize>().ok().unwrap();
                                 // this is horrible but necessary due to rob's savefile format
-                                let page_idx = page.as_string()?.to_string().parse::<i32>().ok()?;
-                                if let Some(x) = pages.get_mut(tab_idx) {
-                                    *x = page_idx
+                                let page_idx = page
+                                    .as_string()
+                                    .unwrap()
+                                    .to_string()
+                                    .parse::<i32>()
+                                    .ok()
+                                    .unwrap();
+
+                                // resize array
+                                if tab_idx >= pages.len() {
+                                    pages.resize(tab_idx + 1, 0);
                                 }
+                                pages[tab_idx] = page_idx;
                             }
                             pages
                         }
@@ -723,13 +679,18 @@ impl GDLevel {
                         // special case: level data
                         let data = v.as_string()?.to_string();
                         level.content.data =
-                            Some(LevelState::Encrypted(EncryptedLevelData { data }))
+                            Some(GDLevelState::Encrypted(GDEncryptedLevelData { data }))
                     }
                     5 => level.identity.creator = v.as_string()?.to_string(),
                     6 => level.identity.user_id = v.as_signed_integer()? as i32,
                     7 => level.ratings.difficulty = v.as_signed_integer()? as i32,
-                    8 => level.content.official_song_id = Some(v.as_signed_integer()? as i32),
-                    9 => level.ratings.rating = v.as_signed_integer()? as i32,
+                    8 => {
+                        level.content.official_song_id =
+                            Some(OfficialSong::from(v.as_signed_integer()? as i32))
+                    }
+                    9 => {
+                        level.ratings.rating = DifficultyRating::from(v.as_signed_integer()? as i32)
+                    }
                     10 => level.ratings.rating_sum = v.as_signed_integer()? as i32,
                     11 => level.ratings.downloads = v.as_signed_integer()? as i32,
                     12 => level.player_stats.completions = v.as_signed_integer()? as i32,
@@ -744,10 +705,12 @@ impl GDLevel {
                     21 => {
                         // special case: GDLevelType enum
                         level.identity.level_type =
-                            GDLevelType::try_from(v.as_signed_integer()? as i32).ok()?
+                            GDLevelType::try_from(v.as_signed_integer()? as i32)
+                                .ok()
+                                .unwrap()
                     }
                     22 => level.ratings.like_rating = v.as_signed_integer()? as i32,
-                    23 => level.content.length = v.as_signed_integer()? as i32,
+                    23 => level.content.length = Length::from(v.as_signed_integer()? as i32),
                     24 => level.ratings.dislikes = v.as_signed_integer()? as i32,
                     25 => level.ratings.is_demon = v.as_boolean()?,
                     26 => level.ratings.stars = v.as_signed_integer()? as i32,
@@ -794,12 +757,17 @@ impl GDLevel {
                     75 => {
                         // special case: EpicRating
                         level.ratings.epic_rating =
-                            EpicRating::try_from(v.as_signed_integer()? as i32).ok()?
+                            EpicRating::try_from(v.as_signed_integer()? as i32)
+                                .ok()
+                                .unwrap()
                     }
                     76 => {
                         // special case: DemonType
-                        level.ratings.demon_type =
-                            Some(DemonType::try_from(v.as_signed_integer()? as i32).ok()?)
+                        level.ratings.demon_type = Some(
+                            DemonType::try_from(v.as_signed_integer()? as i32)
+                                .ok()
+                                .unwrap(),
+                        )
                     }
                     77 => level.flags.is_gauntlet = v.as_boolean()?,
                     78 => level.flags.is_alt_game = v.as_boolean()?,
@@ -814,11 +782,7 @@ impl GDLevel {
                     87 => level.integrity.level_seed = Some(v.as_signed_integer()? as i32),
                     88 => {
                         // special case: comma-separated list
-                        level.player_stats.progress_diffs = v
-                            .as_string()?
-                            .split(",")
-                            .map(|d| d.parse::<i32>().ok())
-                            .collect::<Option<Vec<i32>>>()?;
+                        level.player_stats.progress_diffs = parse_csv(v)?;
                     }
                     89 => level.integrity.vfd_chk = v.as_boolean()?,
                     90 => level.player_stats.leaderboard_percentage = v.as_signed_integer()? as i32,
@@ -834,39 +798,22 @@ impl GDLevel {
                     /* 102 - 103 */
                     104 => {
                         // special case: comma-separated list
-                        level.content.song_list = v
-                            .as_string()?
-                            .split(",")
-                            .map(|d| d.parse::<i32>().ok())
-                            .collect::<Option<Vec<i32>>>()?;
+                        level.content.song_list = parse_csv(v)?;
                     }
                     105 => {
                         // special case: comma-separated list
-                        level.content.sfx_list = Some(
-                            v.as_string()?
-                                .split(",")
-                                .map(|d| d.parse::<i32>().ok())
-                                .collect::<Option<Vec<i32>>>()?,
-                        );
+                        level.content.sfx_list = Some(parse_csv(v)?);
                     }
                     106 => level.unknowns.k106 = Some(v.as_signed_integer()? as i32),
                     107 => level.player_stats.best_time_ms = Some(v.as_signed_integer()? as i32),
                     108 => level.player_stats.best_points = Some(v.as_signed_integer()? as i32),
                     109 => {
                         // special case: comma-separated list
-                        level.player_stats.local_best_times = v
-                            .as_string()?
-                            .split(",")
-                            .map(|d| d.parse::<i32>().ok())
-                            .collect::<Option<Vec<i32>>>()?;
+                        level.player_stats.local_best_times = parse_csv(v)?;
                     }
                     110 => {
                         // special case: comma-separated list
-                        level.player_stats.local_best_points = v
-                            .as_string()?
-                            .split(",")
-                            .map(|d| d.parse::<i32>().ok())
-                            .collect::<Option<Vec<i32>>>()?;
+                        level.player_stats.local_best_points = parse_csv(v)?;
                     }
                     111 => level.integrity.platformer_seed = Some(v.as_signed_integer()? as i32),
                     112 => level.flags.no_shake = v.as_boolean()?,
@@ -918,7 +865,7 @@ impl GDLevel {
                 ("k1", self.identity.id),
                 ("k6", self.identity.user_id),
                 ("k7", self.ratings.difficulty),
-                ("k9", self.ratings.rating),
+                ("k9", self.ratings.rating.to_num()),
                 ("k10", self.ratings.rating_sum),
                 ("k11", self.ratings.downloads),
                 ("k12", self.player_stats.completions),
@@ -927,8 +874,9 @@ impl GDLevel {
                 ("k18", self.player_stats.attempts),
                 ("k19", self.player_stats.normal_percentage),
                 ("k20", self.player_stats.practice_percentage),
+                ("k21", self.identity.level_type.to_num()),
                 ("k22", self.ratings.like_rating),
-                ("k23", self.content.length),
+                ("k23", self.content.length.to_num()),
                 ("k24", self.ratings.dislikes),
                 ("k26", self.ratings.stars),
                 ("k36", self.player_stats.jumps),
@@ -944,6 +892,7 @@ impl GDLevel {
                 ("k64", self.coins.total_coins),
                 ("k71", self.player_stats.mana_orb_percentage),
                 ("k74", self.identity.timely_id),
+                ("k75", self.ratings.epic_rating.to_num()),
                 ("k80", self.meta.seconds_editing),
                 ("k81", self.meta.seconds_editing_copies),
                 ("k83", self.meta.level_order),
@@ -955,10 +904,12 @@ impl GDLevel {
                 ("kI5", self.editor_state.build_tab),
             ],
         );
+
+        // optional i32
         serialise_optional_fields(
             &mut d,
             &[
-                ("k8", self.content.official_song_id),
+                ("k8", self.content.official_song_id.map(|s| s.to_num())),
                 ("k27", self.ratings.feature_score),
                 ("k37", self.coins.required_coins),
                 ("k41", self.identity.password),
@@ -982,45 +933,12 @@ impl GDLevel {
                 ("k2", &self.identity.name[..]),
                 ("k5", &self.identity.creator[..]),
                 // lump in the comma separated lists in with this one because they are internally strings
-                (
-                    "k88",
-                    self.player_stats
-                        .progress_diffs
-                        .iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                        .as_str(),
-                ),
-                (
-                    "k104",
-                    self.content
-                        .song_list
-                        .iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                        .as_str(),
-                ),
-                (
-                    "k109",
-                    self.player_stats
-                        .local_best_times
-                        .iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                        .as_str(),
-                ),
+                ("k88", to_csv(&self.player_stats.progress_diffs).as_str()),
+                ("k104", to_csv(&self.content.song_list).as_str()),
+                ("k109", to_csv(&self.player_stats.local_best_times).as_str()),
                 (
                     "k110",
-                    self.player_stats
-                        .local_best_points
-                        .iter()
-                        .map(|i| i.to_string())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                        .as_str(),
+                    to_csv(&self.player_stats.local_best_points).as_str(),
                 ),
             ],
         );
@@ -1076,12 +994,10 @@ impl GDLevel {
             ],
         );
 
-        d.insert("k21".into(), Value::from(self.identity.level_type as i32));
-        d.insert("k75".into(), Value::from(self.ratings.epic_rating as i32));
-        d.insert("kCEK".into(), Value::from(self.meta.kcek as i32));
+        d.insert("kCEK".into(), Value::from(self.meta.kcek.to_num()));
 
         if let Some(dtype) = self.ratings.demon_type {
-            d.insert("k76".into(), Value::from(dtype as i32));
+            d.insert("k76".into(), Value::from(dtype.to_num()));
         }
 
         if let Some(ref desc) = self.identity.description {
@@ -1090,8 +1006,8 @@ impl GDLevel {
 
         if let Some(v) = self.content.data.clone() {
             let str = match v {
-                LevelState::Decrypted(data) => data.serialise_to_string(),
-                LevelState::Encrypted(data) => data.data,
+                GDLevelState::Decrypted(data) => data.serialise_to_string(),
+                GDLevelState::Encrypted(data) => data.data,
             };
             d.insert("k4".into(), Value::from(str));
         };
@@ -1119,7 +1035,7 @@ impl GDLevel {
                     .build_tab_pages
                     .iter()
                     .enumerate()
-                    .map(|(tab_idx, page)| (tab_idx.to_string(), page)),
+                    .map(|(tab_idx, page)| (tab_idx.to_string(), page.to_string())),
             )),
         );
 
@@ -1132,38 +1048,40 @@ impl GDLevel {
     /// Level data is left unencrypted when parsing the Level as it is slow.
     pub fn decrypt_level_data(&mut self) -> Result<(), GDError> {
         let raw_data = if let Some(data) = &self.content.data
-            && let LevelState::Encrypted(enc) = data
+            && let GDLevelState::Encrypted(enc) = data
         {
             enc.data.clone()
         } else {
             return Ok(());
         };
 
-        self.content.data = Some(LevelState::Decrypted(LevelData::parse(raw_data).ok_or(
-            GDError::CorruptedSavefile("Unable to parse level header".into()),
-        )?));
+        self.content.data = Some(GDLevelState::Decrypted(
+            leveldata::GDLevelData::parse(raw_data).ok_or(GDError::CorruptedSavefile(
+                "Unable to parse level header".into(),
+            ))?,
+        ));
         Ok(())
     }
 
-    /// Returns the decrypted level data as a `LevelData` object if there is data.
-    pub fn get_decrypted_data(&self) -> Option<LevelData> {
+    /// Returns the decrypted level data as a `GDLevelContents` object if there is data.
+    pub fn get_decrypted_data(&self) -> Option<GDLevelData> {
         let raw_data = match self.content.data.clone() {
             Some(data) => match data {
-                LevelState::Encrypted(encrypted) => encrypted.data.clone(),
-                LevelState::Decrypted(d) => return Some(d), // already decrypted
+                GDLevelState::Encrypted(encrypted) => encrypted.data.clone(),
+                GDLevelState::Decrypted(d) => return Some(d), // already decrypted
             },
             None => return None, // no level data
         };
 
-        LevelData::parse(raw_data)
+        GDLevelData::parse(raw_data)
     }
 
-    /// Returns the decrypted level data as a `LevelData` object if there is data.
-    pub fn get_decrypted_data_ref(&mut self) -> Option<&mut LevelData> {
-        self.decrypt_level_data().ok()?;
+    /// Returns the decrypted level data as a `GDLevelContents` object if there is data.
+    pub fn get_decrypted_data_ref(&mut self) -> Option<&mut GDLevelData> {
+        self.decrypt_level_data().ok().unwrap();
         match &mut self.content.data {
             Some(d) => {
-                if let LevelState::Decrypted(data) = d {
+                if let GDLevelState::Decrypted(data) = d {
                     Some(data)
                 } else {
                     None
@@ -1177,10 +1095,10 @@ impl GDLevel {
     pub fn add_object(&mut self, object: GDObject) {
         if let Some(data) = &mut self.content.data {
             match data {
-                LevelState::Decrypted(state) => {
+                GDLevelState::Decrypted(state) => {
                     state.objects.push(object);
                 }
-                LevelState::Encrypted(_) => (),
+                GDLevelState::Encrypted(_) => (),
             };
         }
     }
@@ -1189,10 +1107,10 @@ impl GDLevel {
     pub fn add_objects<I: IntoIterator<Item = GDObject>>(&mut self, objects: I) {
         if let Some(data) = &mut self.content.data {
             match data {
-                LevelState::Decrypted(state) => {
+                GDLevelState::Decrypted(state) => {
                     state.objects.extend(objects.into_iter());
                 }
-                LevelState::Encrypted(_) => (),
+                GDLevelState::Encrypted(_) => (),
             };
         }
     }
@@ -1201,8 +1119,8 @@ impl GDLevel {
     pub fn get_objects_ref(&self) -> Option<&Vec<GDObject>> {
         if let Some(ref data) = self.content.data {
             match data {
-                LevelState::Decrypted(state) => Some(&state.objects),
-                LevelState::Encrypted(_) => None,
+                GDLevelState::Decrypted(state) => Some(&state.objects),
+                GDLevelState::Encrypted(_) => None,
             }
         } else {
             None
@@ -1213,8 +1131,8 @@ impl GDLevel {
     pub fn get_objects_mut(&mut self) -> Option<&mut Vec<GDObject>> {
         if let Some(data) = &mut self.content.data {
             match data {
-                LevelState::Decrypted(state) => Some(&mut state.objects),
-                LevelState::Encrypted(_) => None,
+                GDLevelState::Decrypted(state) => Some(&mut state.objects),
+                GDLevelState::Encrypted(_) => None,
             }
         } else {
             None
@@ -1225,8 +1143,8 @@ impl GDLevel {
     pub fn get_objects_clone(&self) -> Option<Vec<GDObject>> {
         if let Some(ref data) = self.content.data {
             match data {
-                LevelState::Decrypted(state) => Some(state.objects.clone()),
-                LevelState::Encrypted(_) => None,
+                GDLevelState::Decrypted(state) => Some(state.objects.clone()),
+                GDLevelState::Encrypted(_) => None,
             }
         } else {
             None
@@ -1239,8 +1157,8 @@ impl Display for GDLevel {
         let (num, suffix) = {
             match &self.content.data {
                 Some(d) => match d {
-                    LevelState::Encrypted(enc) => (enc.data.len().to_string(), " Bytes"),
-                    LevelState::Decrypted(dec) => (dec.objects.len().to_string(), " Objects"),
+                    GDLevelState::Encrypted(enc) => (enc.data.len().to_string(), " Bytes"),
+                    GDLevelState::Decrypted(dec) => (dec.objects.len().to_string(), " Objects"),
                 },
                 None => ("Empty".to_owned(), ""),
             }
@@ -1265,7 +1183,7 @@ impl Default for GDLevel {
             identity: GDLevelIdentity {
                 ..Default::default()
             },
-            content: GDLevelData {
+            content: GDLevelContents {
                 ..Default::default()
             },
             ratings: GDLevelRatings {
@@ -1301,8 +1219,10 @@ impl Default for GDLevel {
 }
 
 /// `fields`: &[id, field]
-fn serialise_fields<T: Default + Clone + PartialEq>(d: &mut Dictionary, fields: &[(&str, T)])
-where
+pub(crate) fn serialise_fields<T: Default + Clone + PartialEq>(
+    d: &mut Dictionary,
+    fields: &[(&str, T)],
+) where
     Value: From<T>,
 {
     let default = &T::default();
@@ -1314,7 +1234,7 @@ where
 }
 
 /// `fields`: &[id, field]
-fn serialise_optional_fields<T: Clone>(d: &mut Dictionary, fields: &[(&str, Option<T>)])
+pub(crate) fn serialise_optional_fields<T: Clone>(d: &mut Dictionary, fields: &[(&str, Option<T>)])
 where
     Value: From<T>,
 {
@@ -1328,7 +1248,7 @@ where
 /// `fields`: &[id, field]
 ///
 /// booleans are handled separately for speed (specialization case)
-fn serialise_bool_fields(d: &mut Dictionary, fields: &[(&str, bool)]) {
+pub(crate) fn serialise_bool_fields(d: &mut Dictionary, fields: &[(&str, bool)]) {
     for (id, value) in fields {
         if *value {
             d.insert(id.to_string(), Value::Boolean(true));
@@ -1344,4 +1264,19 @@ fn to_float(v: &Value) -> Option<f32> {
     } else {
         None
     }
+}
+
+pub(crate) fn parse_csv(v: &Value) -> Option<Vec<i32>> {
+    v.as_string()
+        .unwrap()
+        .split(",")
+        .map(|d| d.parse::<i32>().ok())
+        .collect::<Option<Vec<i32>>>()
+}
+
+pub(crate) fn to_csv<T: ToString>(v: &Vec<T>) -> String {
+    v.iter()
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
 }

@@ -5,6 +5,8 @@ use std::{fmt::Display, str::FromStr};
 use anyhow::anyhow;
 use smallvec::SmallVec;
 
+use crate::repr_t;
+
 const LIST_ALLOCSIZE: usize = 5;
 
 macro_rules! parse {
@@ -107,7 +109,7 @@ impl Item {
     #[inline(always)]
     /// Returns this item's type as an i32
     pub fn get_type_as_i32(&self) -> i32 {
-        self.get_type() as i32
+        self.get_type().to_num()
     }
     /// Returns this item's special mode if it has one
     pub fn as_special_mode(&self) -> Option<CounterMode> {
@@ -121,7 +123,7 @@ impl Item {
     #[inline(always)]
     /// Returns this item's special mode if it has one as an i32
     pub fn as_special_mode_i32(&self) -> i32 {
-        self.as_special_mode().unwrap() as i32
+        self.as_special_mode().unwrap().to_num()
     }
 
     /// Returns this item's ID
@@ -134,27 +136,25 @@ impl Item {
     }
 }
 
-/// Enum for counter types
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum ItemType {
-    Counter = 1,
-    Timer = 2,
-    Points = 3,
-    MainTime = 4,
-    Attempts = 5,
-}
+repr_t!(
+    /// Enum for counter types
+    ItemType: i32 {
+        Counter = 1,
+        Timer = 2,
+        Points = 3,
+        MainTime = 4,
+        Attempts = 5,
+    }
+);
 
-/// Enum for counter modes
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum CounterMode {
-    Attempts = -3,
-    Points = -2,
-    MainTime = -1,
-}
+repr_t!(
+    /// Enum for counter modes
+    CounterMode: i32 {
+        Attempts = -3,
+        Points = -2,
+        MainTime = -1,
+    }
+);
 
 /// Corresponding types for [`GDValue`]s.
 #[repr(u8)]
@@ -440,6 +440,19 @@ macro_rules! fmt_intlist {
         }
         items_str
     }};
+
+    // Vec<Into<int>>
+    // specialization case for repr_t! enums
+    ($vals:expr => $i_buf:expr) => {{
+        let mut items_str = String::with_capacity($vals.len() * 4);
+        for (idx, item) in $vals.iter().enumerate() {
+            if idx != 0 {
+                items_str.push('.');
+            }
+            items_str.push_str($i_buf.format(item.to_num()));
+        }
+        items_str
+    }};
 }
 
 macro_rules! fmt_inttuples {
@@ -485,184 +498,95 @@ impl Display for GDValue {
             GDValue::Short(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
             GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
-            GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts, i_buf)),
+            GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts => i_buf)),
         }
     }
 }
 
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-/// Enum for all events that the event trigger can listen for
-pub enum Event {
-    // zamn!! that's a lot of events
-    Unknown = 0,
-    TinyLanding = 1,
-    FeatherLanding = 2,
-    SoftLanding = 3,
-    NormalLanding = 4,
-    HardLanding = 5,
-    HitHead = 6,
-    OrbTouched = 7,
-    OrbActivated = 8,
-    PadActivated = 9,
-    GravityInverted = 10,
-    GravityRestored = 11,
-    NormalJump = 12,
-    RobotBoostStart = 13,
-    RobotBoostStop = 14,
-    UFOJump = 15,
-    ShipBoostStart = 16,
-    ShipBoostEnd = 17,
-    SpiderTeleport = 18,
-    BallSwitch = 19,
-    SwingSwitch = 20,
-    WavePush = 21,
-    WaveRelease = 22,
-    DashStart = 23,
-    DashStop = 24,
-    Teleported = 25,
-    PortalNormal = 26,
-    PortalShip = 27,
-    PortalBall = 28,
-    PortalUFO = 29,
-    PortalWave = 30,
-    PortalRobot = 31,
-    PortalSpider = 32,
-    PortalSwing = 33,
-    YellowOrb = 34,
-    PinkOrb = 35,
-    RedOrb = 36,
-    GravityOrb = 37,
-    GreenOrb = 38,
-    DropOrb = 39,
-    CustomOrb = 40,
-    DashOrb = 41,
-    GravityDashOrb = 42,
-    SpiderOrb = 43,
-    TeleportOrb = 44,
-    YellowPad = 45,
-    PinkPad = 46,
-    RedPad = 47,
-    GravityPad = 48,
-    SpiderPad = 49,
-    PortalGravityFlip = 50,
-    PortalGravityNormal = 51,
-    PortalGravityInvert = 52,
-    PoratlFlip = 53,
-    PortalUnflip = 54,
-    PortalNormalScale = 55,
-    PortalMiniScale = 56,
-    PortalDualOn = 57,
-    PortalDualOff = 58,
-    PortalTeleport = 59,
-    Checkpoint = 60,
-    DestroyBlock = 61,
-    UserCoin = 62,
-    PickupItem = 63,
-    FallLow = 65,
-    FallMed = 66,
-    FallHigh = 67,
-    FallVHigh = 68,
-    JumpPush = 69,
-    JumpRelease = 70,
-    LeftPush = 71,
-    LeftRelease = 72,
-    RightPush = 73,
-    RightRelease = 74,
-    PlayerReversed = 75,
-    CheckpointRespawn = 64, // <- intentionally placed here, the ordering follows that in gd.
-    FallSpeedLow = 76,
-    FallSpeedMed = 77,
-    FallSpeedHigh = 78,
-}
-
-impl From<i32> for Event {
-    /// Converts the event ID to the variant of the [`Event`] enum. Default to TinyLanding.
-    fn from(i: i32) -> Self {
-        match i {
-            1 => Self::TinyLanding,
-            2 => Self::FeatherLanding,
-            3 => Self::SoftLanding,
-            4 => Self::NormalLanding,
-            5 => Self::HardLanding,
-            6 => Self::HitHead,
-            7 => Self::OrbTouched,
-            8 => Self::OrbActivated,
-            9 => Self::PadActivated,
-            10 => Self::GravityInverted,
-            11 => Self::GravityRestored,
-            12 => Self::NormalJump,
-            13 => Self::RobotBoostStart,
-            14 => Self::RobotBoostStop,
-            15 => Self::UFOJump,
-            16 => Self::ShipBoostStart,
-            17 => Self::ShipBoostEnd,
-            18 => Self::SpiderTeleport,
-            19 => Self::BallSwitch,
-            20 => Self::SwingSwitch,
-            21 => Self::WavePush,
-            22 => Self::WaveRelease,
-            23 => Self::DashStart,
-            24 => Self::DashStop,
-            25 => Self::Teleported,
-            26 => Self::PortalNormal,
-            27 => Self::PortalShip,
-            28 => Self::PortalBall,
-            29 => Self::PortalUFO,
-            30 => Self::PortalWave,
-            31 => Self::PortalRobot,
-            32 => Self::PortalSpider,
-            33 => Self::PortalSwing,
-            34 => Self::YellowOrb,
-            35 => Self::PinkOrb,
-            36 => Self::RedOrb,
-            37 => Self::GravityOrb,
-            38 => Self::GreenOrb,
-            39 => Self::DropOrb,
-            40 => Self::CustomOrb,
-            41 => Self::DashOrb,
-            42 => Self::GravityDashOrb,
-            43 => Self::SpiderOrb,
-            44 => Self::TeleportOrb,
-            45 => Self::YellowPad,
-            46 => Self::PinkPad,
-            47 => Self::RedPad,
-            48 => Self::GravityPad,
-            49 => Self::SpiderPad,
-            50 => Self::PortalGravityFlip,
-            51 => Self::PortalGravityNormal,
-            52 => Self::PortalGravityInvert,
-            53 => Self::PoratlFlip,
-            54 => Self::PortalUnflip,
-            55 => Self::PortalNormalScale,
-            56 => Self::PortalMiniScale,
-            57 => Self::PortalDualOn,
-            58 => Self::PortalDualOff,
-            59 => Self::PortalTeleport,
-            60 => Self::Checkpoint,
-            61 => Self::DestroyBlock,
-            62 => Self::UserCoin,
-            63 => Self::PickupItem,
-            65 => Self::FallLow,
-            66 => Self::FallMed,
-            67 => Self::FallHigh,
-            68 => Self::FallVHigh,
-            69 => Self::JumpPush,
-            70 => Self::JumpRelease,
-            71 => Self::LeftPush,
-            72 => Self::LeftRelease,
-            73 => Self::RightPush,
-            74 => Self::RightRelease,
-            75 => Self::PlayerReversed,
-            64 => Self::CheckpointRespawn,
-            76 => Self::FallSpeedLow,
-            77 => Self::FallSpeedMed,
-            78 => Self::FallSpeedHigh,
-            _ => Self::Unknown,
-        }
+repr_t!(
+    #[allow(missing_docs)]
+    /// Enum for all events that the event trigger can listen for
+    Event: i32 {
+        TinyLanding = 1,
+        FeatherLanding = 2,
+        SoftLanding = 3,
+        NormalLanding = 4,
+        HardLanding = 5,
+        HitHead = 6,
+        OrbTouched = 7,
+        OrbActivated = 8,
+        PadActivated = 9,
+        GravityInverted = 10,
+        GravityRestored = 11,
+        NormalJump = 12,
+        RobotBoostStart = 13,
+        RobotBoostStop = 14,
+        UFOJump = 15,
+        ShipBoostStart = 16,
+        ShipBoostEnd = 17,
+        SpiderTeleport = 18,
+        BallSwitch = 19,
+        SwingSwitch = 20,
+        WavePush = 21,
+        WaveRelease = 22,
+        DashStart = 23,
+        DashStop = 24,
+        Teleported = 25,
+        PortalNormal = 26,
+        PortalShip = 27,
+        PortalBall = 28,
+        PortalUFO = 29,
+        PortalWave = 30,
+        PortalRobot = 31,
+        PortalSpider = 32,
+        PortalSwing = 33,
+        YellowOrb = 34,
+        PinkOrb = 35,
+        RedOrb = 36,
+        GravityOrb = 37,
+        GreenOrb = 38,
+        DropOrb = 39,
+        CustomOrb = 40,
+        DashOrb = 41,
+        GravityDashOrb = 42,
+        SpiderOrb = 43,
+        TeleportOrb = 44,
+        YellowPad = 45,
+        PinkPad = 46,
+        RedPad = 47,
+        GravityPad = 48,
+        SpiderPad = 49,
+        PortalGravityFlip = 50,
+        PortalGravityNormal = 51,
+        PortalGravityInvert = 52,
+        PoratlFlip = 53,
+        PortalUnflip = 54,
+        PortalNormalScale = 55,
+        PortalMiniScale = 56,
+        PortalDualOn = 57,
+        PortalDualOff = 58,
+        PortalTeleport = 59,
+        Checkpoint = 60,
+        DestroyBlock = 61,
+        UserCoin = 62,
+        PickupItem = 63,
+        FallLow = 65,
+        FallMed = 66,
+        FallHigh = 67,
+        FallVHigh = 68,
+        JumpPush = 69,
+        JumpRelease = 70,
+        LeftPush = 71,
+        LeftRelease = 72,
+        RightPush = 73,
+        RightRelease = 74,
+        PlayerReversed = 75,
+        CheckpointRespawn = 64, // <- intentionally placed here, the ordering follows that in gd.
+        FallSpeedLow = 76,
+        FallSpeedMed = 77,
+        FallSpeedHigh = 78,
     }
-}
+);
 
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -685,68 +609,48 @@ pub enum MoveTarget {
     Player2,
 }
 
-/// Enum for the GD gamemodes corresponding to their internal values
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[allow(missing_docs)]
-pub enum Gamemode {
-    #[default]
-    Cube = 0,
-    Ship = 1,
-    Ball = 2,
-    Ufo = 3,
-    Wave = 4,
-    Robot = 5,
-    Spider = 6,
-    Swing = 7,
-}
-
-impl TryFrom<i32> for Gamemode {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::Cube),
-            1 => Ok(Self::Ship),
-            2 => Ok(Self::Ball),
-            3 => Ok(Self::Ufo),
-            4 => Ok(Self::Wave),
-            5 => Ok(Self::Robot),
-            6 => Ok(Self::Spider),
-            7 => Ok(Self::Swing),
-            _ => Err(()),
-        }
+repr_t!(
+    /// Enum for the GD gamemodes corresponding to their internal values
+    #[allow(missing_docs)]
+    strict Gamemode: i32 {
+        Cube = 0,
+        Ship = 1,
+        Ball = 2,
+        Ufo = 3,
+        Wave = 4,
+        Robot = 5,
+        Spider = 6,
+        Swing = 7,
     }
-}
+    default Cube
+);
 
-/// Enum for stop trigger modes
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum StopMode {
-    Stop = 0,
-    Pause = 1,
-    Resume = 2,
-}
+repr_t!(
+    /// Enum for stop trigger modes
+    StopMode: i32 {
+        Stop = 0,
+        Pause = 1,
+        Resume = 2,
+    }
+);
 
-/// Enum for item alignments
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum ItemAlign {
-    Center = 0,
-    Left = 1,
-    Right = 2,
-}
+repr_t!(
+    /// Enum for item alignments
+    ItemAlign: i32 {
+        Center = 0,
+        Left = 1,
+        Right = 2,
+    }
+);
 
-/// Enum for transition object enter/exit config
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum TransitionMode {
-    Both = 0,
-    Enter = 1,
-    Exit = 2,
-}
+repr_t!(
+    /// Enum for transition object enter/exit config
+    TransitionMode: i32 {
+        Both = 0,
+        Enter = 1,
+        Exit = 2,
+    }
+);
 
 /// Enum for transition object type (from top, from bottom, etc.)
 #[repr(i32)]
@@ -769,30 +673,28 @@ pub enum TransitionType {
     None = 1915,
 }
 
-/// Enum for item operators
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum Op {
-    Set = 0,
-    Add = 1,
-    Sub = 2,
-    Mul = 3,
-    Div = 4,
-}
+repr_t!(
+    /// Enum for item operators
+    Op: i32 {
+        Set = 0,
+        Add = 1,
+        Sub = 2,
+        Mul = 3,
+        Div = 4,
+    }
+);
 
-/// Enum for item comparison operators
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum CompareOp {
-    Equals = 0,
-    Greater = 1,
-    GreaterOrEquals = 2,
-    Less = 3,
-    LessOrEquals = 4,
-    NotEquals = 5,
-}
+repr_t!(
+    /// Enum for item comparison operators
+    CompareOp: i32 {
+        Equals = 0,
+        Greater = 1,
+        GreaterOrEquals = 2,
+        Less = 3,
+        LessOrEquals = 4,
+        NotEquals = 5,
+    }
+);
 
 /// Compare operand configuration specifier for the item control trigger
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -835,28 +737,26 @@ impl From<Item> for CompareOperand {
     }
 }
 
-/// Enum for item round modes
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum RoundMode {
-    /// Leave as-is
-    None = 0,
-    Nearest = 1,
-    Floor = 2,
-    Ceiling = 3,
-}
+repr_t!(
+    /// Enum for item round modes
+    strict RoundMode: i32 {
+        /// Leave as-is
+        None = 0,
+        Nearest = 1,
+        Floor = 2,
+        Ceiling = 3,
+    }
+);
 
-/// Enum for item sign modes
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum SignMode {
-    /// Leave as-is
-    None = 0,
-    Absolute = 1,
-    Negative = 2,
-}
+repr_t!(
+    /// Enum for item sign modes
+    strict SignMode: i32 {
+        /// Leave as-is
+        None = 0,
+        Absolute = 1,
+        Negative = 2,
+    }
+);
 
 /// Enum for target player in gravity trigger
 #[repr(u16)]
@@ -889,16 +789,15 @@ pub enum MoveLock {
     Camera,
 }
 
-/// Enum for relative UI reference position
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum UIReferencePos {
-    Auto = 1,
-    Center = 2,
-    Left = 3,
-    Right = 4,
-}
+repr_t!(
+    /// Enum for relative UI reference position
+    strict UIReferencePos: i32 {
+        Auto = 1,
+        Center = 2,
+        Left = 3,
+        Right = 4,
+    }
+);
 
 /// Config struct for default movement
 #[derive(Debug, Clone, PartialEq)]
@@ -945,32 +844,18 @@ pub struct DirectionalMove {
     pub distance: i32,
 }
 
-/// Enum for starting speed in a startpos
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[allow(missing_docs)]
-pub enum Speed {
-    X0Point5 = 1,
-    #[default]
-    X1 = 0,
-    X2 = 2,
-    X3 = 3,
-    X4 = 4,
-}
-
-impl TryFrom<i32> for Speed {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Self::X0Point5),
-            0 => Ok(Self::X1),
-            2 => Ok(Self::X2),
-            3 => Ok(Self::X3),
-            4 => Ok(Self::X4),
-            _ => Err(()),
-        }
+repr_t!(
+    /// Enum for starting speed in a startpos
+    #[allow(missing_docs)]
+    strict Speed: i32 {
+        X0Point5 = 1,
+        X1 = 0,
+        X2 = 2,
+        X3 = 3,
+        X4 = 4,
     }
-}
+    default X1
+);
 
 /// Config struct for HSV colour settings
 #[derive(Debug, Clone, PartialEq)]
