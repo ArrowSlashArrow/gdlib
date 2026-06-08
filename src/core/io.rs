@@ -1,7 +1,12 @@
 //! This module contains all of the de/serialization code for GD savefiles.
-use std::{fmt::Write, fs, io::Read, io::Write as IoWrite};
+use std::{
+    fmt::Write,
+    fs,
+    io::{Read, Write as IoWrite},
+    path::PathBuf,
+};
 
-use crate::core::{GDError, b64_encode, get_local_levels_path};
+use crate::core::{GDError, b64_encode};
 use base64::{Engine, engine::general_purpose};
 use flate2::{Compression, read::DeflateDecoder, write::ZlibEncoder};
 use plist::{Dictionary, Value};
@@ -124,12 +129,13 @@ pub fn decrypt(mut data: Vec<u8>) -> Vec<u8> {
 }
 
 /// Returns CCLocalLevels.dat decrypted if it exists
-pub fn decode_levels_to_string() -> Result<String, GDError> {
-    let savefile = match fs::read(get_local_levels_path().unwrap()) {
+pub fn decrypt_file(file: PathBuf) -> Result<String, GDError> {
+    let savefile = match fs::read(file) {
         Ok(v) => v,
         Err(e) => return Err(GDError::Io(e)),
     };
-    let data = decrypt(savefile);
+    let mut data = decrypt(savefile);
+    data.retain(|c| *c < 128); // sometimes there are some weird chars in the ccgamemanager file
 
-    Ok(String::from_utf8(data.to_vec()).unwrap())
+    Ok(String::from_utf8(data).unwrap())
 }

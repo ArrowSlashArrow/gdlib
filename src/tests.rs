@@ -2,9 +2,9 @@
 use std::time::Instant;
 
 use crate::{
+    ccgamemanager::CCGameManager,
     cclocallevels::{
-        gdlevel::{CCLocalLevels, GDLevel, enums::GDListDifficulty, leveldata::HeaderValue},
-        gdlist::GDList,
+        gdlevel::{CCLocalLevels, GDLevel, leveldata::HeaderValue},
         gdobj::{
             self,
             constructors::{
@@ -197,12 +197,13 @@ fn advanced_random_predict() {
 #[test]
 fn print_list_info() {
     let mut cc = CCLocalLevels::from_local().unwrap();
+    println!("{:#?}", cc.lists);
+}
 
-    cc.lists
-        .iter_mut()
-        .for_each(|l| l.difficulty = GDListDifficulty::ExtremeDemon);
-
-    cc.export_to_savefile().unwrap();
+#[test]
+fn cc_game_manager_parse() {
+    let gm = CCGameManager::from_local().unwrap();
+    println!("{gm:#?}");
 }
 
 #[test]

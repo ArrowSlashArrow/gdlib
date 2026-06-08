@@ -22,8 +22,8 @@ use crate::{
         gdobj::GDObject,
     },
     core::{
-        GDError, b64_decode, b64_encode, get_local_levels_path,
-        io::{decode_levels_to_string, encrypt_savefile_str, stringify_xml},
+        GDError, b64_decode, b64_encode, get_cclocallevels_path,
+        io::{decrypt_file, encrypt_savefile_str, stringify_xml},
         proper_plist_tags,
         structs::KCEKValue,
         vec_as_str,
@@ -53,7 +53,9 @@ impl CCLocalLevels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
     #[inline(always)]
     pub fn from_local() -> Result<Self, GDError> {
-        CCLocalLevels::from_decrypted(decode_levels_to_string().unwrap())
+        CCLocalLevels::from_decrypted(decrypt_file(
+            get_cclocallevels_path().ok_or(GDError::MissingSavefile)?,
+        )?)
     }
 
     /// Parses raw savefile string into this struct
@@ -157,7 +159,7 @@ impl CCLocalLevels {
     /// Standard location on windows: %LOCALAPPDATA%\GeometryDash
     /// Standard location on linux: [`crate::core::LINUX_GD_FILES`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
-        let savefile = get_local_levels_path().ok_or(GDError::MissingSavefile)?;
+        let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
         let export_str = encrypt_savefile_str(self.export_to_string());
         write(savefile, export_str)?;
         Ok(())
@@ -172,7 +174,7 @@ impl CCLocalLevels {
 
     /// Exports this struct as encrypted XML to CCLocalLevels.dat and creates a backup, CCLocalLevels.dat.bak
     pub fn export_to_savefile_with_backup(&mut self) -> Result<(), GDError> {
-        let savefile = get_local_levels_path().ok_or(GDError::MissingSavefile)?;
+        let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
         let backup_path = format!("{}.bak", savefile.to_string_lossy());
         write(backup_path, read(&savefile)?)?;
 
@@ -316,7 +318,7 @@ pub struct GDLevelContents {
 pub struct GDLevelMeta {
     // PARSE: i32 -> kcekvalue
     // STORE: kcekvalue as i32
-    /// This value is always [`KCEKValue::GJGameLevel`].
+    /// This value is always [`KCEKValue::GJGameLevel`]. For the level to re-encode correctly and be recognized by GD as a level, this value **MUST** remain [`KCEKValue::GJGameLevel`].
     ///
     /// Internal key: `kCEK`
     pub kcek: KCEKValue,
@@ -365,7 +367,7 @@ impl Default for GDLevelMeta {
 #[derive(Debug, Clone, Default)]
 /// Rating data about a level (e.g. star rating, likes, downloads)
 pub struct GDLevelRatings {
-    /// Difficulty rating of this level. See [`DifficultyRating`].
+    /// Difficulty rating of this level. See [`DifficultyRating`]. Irrelevant if self.is_demon is true. In that case, self.demon_type determines the difficulty.
     ///
     /// Internal key: `k9`
     pub rating: DifficultyRating,

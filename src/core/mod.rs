@@ -8,6 +8,7 @@ use std::{
     path::PathBuf,
 };
 
+pub mod crypto;
 pub mod io;
 pub mod rand;
 pub mod structs;
@@ -70,8 +71,8 @@ impl Display for GDError {
     }
 }
 
-/// Checks if the standard path for GD savefiles exists
-pub fn get_local_levels_path() -> Option<PathBuf> {
+/// Returns path to CCLocalLevels.dat if it exists
+pub fn get_cclocallevels_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
         let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
         if path.exists() {
@@ -80,6 +81,23 @@ pub fn get_local_levels_path() -> Option<PathBuf> {
     }
 
     let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
+    if linux_path.exists() {
+        return Some(linux_path);
+    }
+
+    None
+}
+
+/// Returns path to CCGameManager.dat if it exists
+pub fn get_ccgamemanager_path() -> Option<PathBuf> {
+    if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
+        let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCGameManager.dat"));
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCGameManager.dat"));
     if linux_path.exists() {
         return Some(linux_path);
     }

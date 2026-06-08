@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs)]
 
+pub mod ccgamemanager;
 pub mod cclocallevels;
 pub mod core;
 

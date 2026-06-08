@@ -10,14 +10,12 @@
 - add all gd obj property types
     - then remove unknown property type
 - have full api coverage of both savefiles
+- big massive documentation update
+    - cover all enums and struct fields
+    - also cover all the known edgecases/anomalies
 
 ## cclocallevels
-- llm03 parser for lists
-    - list objects themselves
 - gdlevel
-    - optimize level struct
-        - better property storage
-        - its basically a hashmap so it shouldnt be slow\
     - implement sha-256 hashing (feature: "hashing")
 - objects
     - constructors for all of the following:
@@ -32,7 +30,9 @@
 - everything
 - tbh idk what's in there because i have not explored that file
 
-## server (feature: "api")
-- all known request formats
-- utils stuff todo with formatting request inputs (e.g. GJP)
-- [useful thing](https://wyliemaster.github.io/gddocs/#/)
+
+## api-payloads
+- only for formatting request payloads and for parsing them
+
+## api-client
+- uses api-payloads feature but also includes functions to help with sending and receiving requests
