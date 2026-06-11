@@ -6,10 +6,11 @@ use bitflags::bitflags;
 
 use crate::cclocallevels::gdobj::{
     ids::properties::*,
-    structs::{ColourChannel, Group, ZLayer},
+    structs::{ColourChannel, Group, GroupType, ZLayer},
 };
 /// Object config, used for defining general properties of an object
 #[derive(Clone, Debug, PartialEq)]
+#[must_use]
 pub struct GDObjConfig {
     /// Position of this object
     pub pos: (f64, f64),
@@ -65,12 +66,13 @@ impl Default for GDObjConfig {
 
 impl GDObjConfig {
     /// Alias for default
-    #[inline(always)]
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Serialises this config struct to a string
+    #[must_use]
     pub fn serialise_to_string(&self) -> String {
         let mut properties = String::with_capacity(64);
         let _ = write!(
@@ -124,69 +126,69 @@ impl GDObjConfig {
 
         if !self.groups.is_empty() {
             properties.push_str(",57,");
-            let group_str = &self
-                .groups
-                .iter()
-                .map(|g| g.id().to_string())
-                .collect::<Vec<String>>()
-                .join(".");
-            properties.push_str(group_str);
-        };
+            let mut i_buf = itoa::Buffer::new();
+            for (idx, group) in self.groups.iter().enumerate() {
+                if idx != 0 {
+                    properties.push('.');
+                }
+                properties.push_str(i_buf.format(group.id()));
+            }
+        }
 
         properties
     }
 
     fn dedup_groups(&mut self) {
-        // sort beforehand
         self.groups.sort();
         self.groups.dedup_by(|a, b| a.id() == b.id());
     }
 
     /// Sets groups of this object
-    #[inline(always)]
+    #[inline]
     pub fn groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) -> Self {
-        self.groups = groups.into_iter().map(|g| g.into()).collect();
+        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
         self.dedup_groups();
         self
     }
     /// Adds groups to this object's groups
-    #[inline(always)]
+    #[inline]
     pub fn add_groups<T: AsRef<[Group]>>(&mut self, groups: T) {
         self.groups.extend_from_slice(groups.as_ref());
         self.dedup_groups();
     }
     /// Adds group to this object's groups
-    #[inline(always)]
+    #[inline]
     pub fn add_group(&mut self, group: Group) {
         self.groups.push(group);
         self.dedup_groups();
     }
     /// Removes this group from this object's groups
-    #[inline(always)]
+    #[inline]
     pub fn remove_group(&mut self, group: Group) {
         if let Some(idx) = self.groups.iter().position(|&g| g == group) {
             self.groups.swap_remove(idx);
         }
     }
     /// Clears all groups from this object
-    #[inline(always)]
+    #[inline]
     pub fn clear_groups(&mut self) {
         self.groups.clear();
     }
     /// Sets x position of this object
-    #[inline(always)]
+    #[inline]
     pub fn x(mut self, x: f64) -> Self {
         self.pos.0 = x;
         self
     }
     /// Sets y position of this object
-    #[inline(always)]
+    #[inline]
     pub fn y(mut self, y: f64) -> Self {
         self.pos.1 = y;
         self
     }
 
     /// Applies a translation to this object's position
+    #[inline]
     pub fn translate(mut self, x: f64, y: f64) -> Self {
         self.pos.0 += x;
         self.pos.1 += y;
@@ -194,103 +196,103 @@ impl GDObjConfig {
     }
 
     /// Sets x and y position of this object
-    #[inline(always)]
+    #[inline]
     pub fn pos(mut self, x: f64, y: f64) -> Self {
         self.pos = (x, y);
         self
     }
     /// Sets x scale of this object
-    #[inline(always)]
+    #[inline]
     pub fn xscale(mut self, xscale: f64) -> Self {
         self.scale.0 = xscale;
         self
     }
     /// Sets y scale of this object
-    #[inline(always)]
+    #[inline]
     pub fn yscale(mut self, yscale: f64) -> Self {
         self.scale.1 = yscale;
         self
     }
     /// Sets x and y scale of this object
-    #[inline(always)]
+    #[inline]
     pub fn scale(mut self, x: f64, y: f64) -> Self {
         self.scale = (x, y);
         self
     }
     /// Sets rotation angle of this object
-    #[inline(always)]
+    #[inline]
     pub fn angle(mut self, angle: f64) -> Self {
         self.angle = angle;
         self
     }
     /// Makes this object touch triggerable
-    #[inline(always)]
+    #[inline]
     pub fn touchable(mut self, touchable: bool) -> Self {
         self.trigger_cfg.touchable = touchable;
         self
     }
     /// Makes this object spawn triggerable
-    #[inline(always)]
+    #[inline]
     pub fn spawnable(mut self, spawnable: bool) -> Self {
         self.trigger_cfg.spawnable = spawnable;
         self
     }
     /// Makes this object multi-triggerable
-    #[inline(always)]
+    #[inline]
     pub fn multitrigger(mut self, multi: bool) -> Self {
         self.trigger_cfg.multitriggerable = multi;
         self
     }
     /// Sets this object's base colour channel
-    #[inline(always)]
+    #[inline]
     pub fn set_base_colour(mut self, channel: ColourChannel) -> Self {
         self.colour_channels.0 = channel;
         self
     }
     /// Sets this object's detail colour channel
-    #[inline(always)]
+    #[inline]
     pub fn set_detail_colour(mut self, channel: ColourChannel) -> Self {
         self.colour_channels.1 = channel;
         self
     }
     /// Sets this object's Z-layer
-    #[inline(always)]
+    #[inline]
     pub fn set_z_layer(mut self, z: ZLayer) -> Self {
         self.z_layer = z;
         self
     }
     /// Sets this object's Z-order
-    #[inline(always)]
+    #[inline]
     pub fn set_z_order(mut self, z: i32) -> Self {
         self.z_order = z;
         self
     }
     /// Sets editor layer 1 of this object
-    #[inline(always)]
+    #[inline]
     pub fn editor_layer_1(mut self, l: i16) -> Self {
         self.editor_layers.0 = l;
         self
     }
     /// Sets editor layer 2 of this object
-    #[inline(always)]
+    #[inline]
     pub fn editor_layer_2(mut self, l: i16) -> Self {
         self.editor_layers.1 = l;
         self
     }
     /// Sets this object's material id
-    #[inline(always)]
+    #[inline]
     pub fn set_material_id(mut self, material_id: i16) -> Self {
         self.material_id = material_id;
         self
     }
     /// Sets this object's enter effect channel
-    #[inline(always)]
+    #[inline]
     pub fn set_enter_channel(mut self, channel: i16) -> Self {
         self.enter_effect_channel = channel;
         self
     }
     /// Sets this object's control ID
-    #[inline(always)]
+    #[inline]
     pub fn set_control_id(mut self, id: i16) -> Self {
         self.control_id = id;
         self
@@ -298,11 +300,14 @@ impl GDObjConfig {
 
     /// Gets the value of a set attribute flag.  
     /// The flag is only true if it has been set as such. Unset flags return false.
+    #[inline]
+    #[must_use]
     pub fn get_attribute_flag(&self, flag: GDObjAttributes) -> bool {
         self.attributes.contains(flag)
     }
 
     /// Sets the attribute of the specified flag. Function is useable in builder syntax.
+    #[inline]
     pub fn set_attribute_flag(mut self, flag: GDObjAttributes, toggle: bool) -> Self {
         self.attributes.set(flag, toggle);
         self
@@ -310,9 +315,9 @@ impl GDObjConfig {
 }
 
 bitflags! {
-    /// Common attributes container struct
-    #[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
-    // #[allow(missing_docs)] won't work here for some odd reason
+    #[allow(missing_docs)]
+    #[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
+    #[must_use]
     pub struct GDObjAttributes: u32 {
         /// @nodoc
         const dont_fade          = 1;
@@ -365,45 +370,50 @@ bitflags! {
     }
 }
 
+const GDOBJ_ATTR_FIELDS: &[(u16, GDObjAttributes)] = &[
+    (DONT_FADE, GDObjAttributes::dont_fade),
+    (DONT_ENTER, GDObjAttributes::dont_enter),
+    (NO_OBJECT_EFFECTS, GDObjAttributes::no_effects),
+    (IS_GROUP_PARENT, GDObjAttributes::is_group_parent),
+    (IS_AREA_PARENT, GDObjAttributes::is_area_parent),
+    (DONT_BOOST_X, GDObjAttributes::dont_boost_x),
+    (DONT_BOOST_Y, GDObjAttributes::dont_boost_y),
+    (IS_HIGH_DETAIL, GDObjAttributes::high_detail),
+    (NO_TOUCH, GDObjAttributes::no_touch),
+    (PASSABLE, GDObjAttributes::passable),
+    (HIDDEN, GDObjAttributes::hidden),
+    (NONSTICK_X, GDObjAttributes::non_stick_x),
+    (NONSTICK_Y, GDObjAttributes::non_stick_y),
+    (EXTRA_STICKY, GDObjAttributes::extra_sticky),
+    (HAS_EXTENDED_COLLISION, GDObjAttributes::extended_collision),
+    (IS_ICE_BLOCK, GDObjAttributes::is_ice_block),
+    (GRIP_SLOPE, GDObjAttributes::grip_slope),
+    (NO_GLOW, GDObjAttributes::no_glow),
+    (NO_PARTICLES, GDObjAttributes::no_particles),
+    (SCALE_STICK, GDObjAttributes::scale_stick),
+    (NO_AUDIO_SCALE, GDObjAttributes::no_audio_scale),
+    (SINGLE_PLAYER_TOUCH, GDObjAttributes::single_ptouch),
+    (CENTER_EFFECT, GDObjAttributes::center_effect),
+    (REVERSES_GAMEPLAY, GDObjAttributes::reverse),
+];
+
+const GDOBJ_ATTR_PROPSTR_ALLOCSIZE: usize = GDOBJ_ATTR_FIELDS.len() * 6;
+
 impl GDObjAttributes {
-    #[inline(always)]
+    #[inline]
     /// Makes a default instance of this object
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Serialises this object to a string
+    #[inline]
+    #[must_use]
     pub fn get_property_str(&self) -> String {
-        let fields = [
-            (DONT_FADE, Self::dont_fade),
-            (DONT_ENTER, Self::dont_enter),
-            (NO_OBJECT_EFFECTS, Self::no_effects),
-            (IS_GROUP_PARENT, Self::is_group_parent),
-            (IS_AREA_PARENT, Self::is_area_parent),
-            (DONT_BOOST_X, Self::dont_boost_x),
-            (DONT_BOOST_Y, Self::dont_boost_y),
-            (IS_HIGH_DETAIL, Self::high_detail),
-            (NO_TOUCH, Self::no_touch),
-            (PASSABLE, Self::passable),
-            (HIDDEN, Self::hidden),
-            (NONSTICK_X, Self::non_stick_x),
-            (NONSTICK_Y, Self::non_stick_y),
-            (EXTRA_STICKY, Self::extra_sticky),
-            (HAS_EXTENDED_COLLISION, Self::extended_collision),
-            (IS_ICE_BLOCK, Self::is_ice_block),
-            (GRIP_SLOPE, Self::grip_slope),
-            (NO_GLOW, Self::no_glow),
-            (NO_PARTICLES, Self::no_particles),
-            (SCALE_STICK, Self::scale_stick),
-            (NO_AUDIO_SCALE, Self::no_audio_scale),
-            (SINGLE_PLAYER_TOUCH, Self::single_ptouch),
-            (CENTER_EFFECT, Self::center_effect),
-            (REVERSES_GAMEPLAY, Self::reverse),
-        ];
-        let mut properties_str = String::with_capacity(6 * fields.len());
+        let mut properties_str = String::with_capacity(GDOBJ_ATTR_PROPSTR_ALLOCSIZE);
 
-        for (id, flag) in fields {
-            if self.contains(flag) {
+        for (id, flag) in GDOBJ_ATTR_FIELDS {
+            if self.contains(*flag) {
                 let _ = write!(properties_str, ",{id},1");
             }
         }
@@ -412,7 +422,7 @@ impl GDObjAttributes {
 }
 
 /// Trigger config, used for defining general properties of a trigger object
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct TriggerConfig {
     /// is touch triggerable?
     pub touchable: bool,
@@ -436,5 +446,42 @@ fn serialise_bools(fields: &[(&str, bool)], buf: &mut String) {
         if *field {
             let _ = write!(buf, ",{id},1");
         }
+    }
+}
+
+// for sorting a list of groups
+impl Ord for Group {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // check ids first
+        // check the types only if equal
+        match self.id().cmp(&other.id()) {
+            std::cmp::Ordering::Equal => self.get_type().cmp(&other.get_type()),
+            o => o,
+        }
+    }
+}
+
+impl PartialOrd for Group {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for GroupType {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other {
+            std::cmp::Ordering::Equal
+        } else if *self == Self::Regular {
+            // other is parent, so is less
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Less
+        }
+    }
+}
+
+impl PartialOrd for GroupType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }

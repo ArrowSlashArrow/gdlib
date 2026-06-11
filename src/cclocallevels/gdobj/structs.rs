@@ -97,6 +97,8 @@ pub enum Item {
 
 impl Item {
     /// Returns this item's type
+    #[inline]
+    #[must_use]
     pub fn get_type(&self) -> ItemType {
         match self {
             Self::Attempts => ItemType::Attempts,
@@ -106,12 +108,15 @@ impl Item {
             Self::Timer(_) => ItemType::Timer,
         }
     }
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     /// Returns this item's type as an i32
     pub fn get_type_as_i32(&self) -> i32 {
         self.get_type().to_num()
     }
     /// Returns this item's special mode if it has one
+    #[inline]
+    #[must_use]
     pub fn as_special_mode(&self) -> Option<CounterMode> {
         match self {
             Self::Attempts => Some(CounterMode::Attempts),
@@ -120,13 +125,16 @@ impl Item {
             _ => None,
         }
     }
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     /// Returns this item's special mode if it has one as an i32
-    pub fn as_special_mode_i32(&self) -> i32 {
-        self.as_special_mode().unwrap().to_num()
+    pub fn as_special_mode_i32(&self) -> Option<i32> {
+        self.as_special_mode().map(|m| m.to_num())
     }
 
     /// Returns this item's ID
+    #[inline]
+    #[must_use]
     pub fn id(&self) -> i16 {
         match self {
             Self::Counter(c) => *c,
@@ -160,6 +168,7 @@ repr_t!(
 #[repr(u8)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 #[allow(missing_docs)]
+#[non_exhaustive]
 pub enum GDObjPropType {
     Int,
     Float,
@@ -320,6 +329,8 @@ impl From<i32> for MoveEasing {
 /// Enum for all values represented by Geometry Dash.
 /// All values are parsed according to their specified [`GDObjPropType`].
 #[derive(Debug, Clone, PartialEq)]
+#[must_use]
+#[non_exhaustive]
 pub enum GDValue {
     /// Any 32-bit signed integer. Fallback for ints.
     Int(i32),
@@ -384,15 +395,15 @@ impl GDValue {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a vector of [`Group`]s to a [`GDValue`]
-    pub fn from_group_list(g: Vec<Group>) -> Self {
+    pub fn from_group_list(g: &[Group]) -> Self {
         Self::GroupList(SmallVec::from_vec(g.iter().map(|&g| g.id()).collect()))
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a vector of parent [`Group`]s to a [`GDValue`]
-    pub fn parents_group_list(g: Vec<Group>) -> Self {
+    pub fn parents_group_list(g: &[Group]) -> Self {
         Self::GroupList(SmallVec::from_vec(
             g.iter()
                 .filter_map(|g| match g {
@@ -403,25 +414,25 @@ impl GDValue {
         ))
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a probabilities list to a [`GDValue`].
     pub fn from_prob_list(g: Vec<(i16, i32)>) -> Self {
         Self::ProbabilitiesList(SmallVec::from_vec(g))
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a spawn remaps list to a [`GDValue`].
     pub fn from_spawn_remaps(g: Vec<(i16, i16)>) -> Self {
         Self::SpawnRemapsList(SmallVec::from_vec(g))
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a raw colour channel value to a [`GDValue`].
     pub fn colour_channel(s: &str) -> Self {
         Self::ColourChannel(ColourChannel::from(s.parse().unwrap_or(0)))
     }
 
-    #[inline(always)]
+    #[inline]
     /// Converts a raw zlayer value to a [`GDValue`].
     pub fn zlayer(s: &str) -> Self {
         Self::ZLayer(ZLayer::from(s.parse().unwrap_or(0)))
@@ -490,12 +501,13 @@ impl Display for GDValue {
             GDValue::ColourChannel(v) => write!(f, "{}", i_buf.format(Into::<i16>::into(*v))),
             GDValue::Easing(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Float(v) => write!(f, "{}", d_buf.format(*v)),
-            GDValue::Group(v) | GDValue::Item(v) => write!(f, "{}", i_buf.format(*v)),
+            GDValue::Group(v) | GDValue::Item(v) | GDValue::Short(v) => {
+                write!(f, "{}", i_buf.format(*v))
+            }
             GDValue::GroupList(v) => write!(f, "{}", fmt_intlist!(v, i_buf)),
             GDValue::ProbabilitiesList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::SpawnRemapsList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::Int(v) => write!(f, "{}", i_buf.format(*v)),
-            GDValue::Short(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
             GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts => i_buf)),
@@ -1252,22 +1264,13 @@ where
     T: Default + FromStr + Copy + Clone,
     S: Default + FromStr + Copy + Clone,
 {
-    let mut curr_group: T = T::default();
-    let mut idx = 0;
-    let mut tuples = vec![];
-    s.split('.').for_each(|c| {
-        match idx % 2 == 0 {
-            true => {
-                // at even idx, so this is a group
-                curr_group = parse!(c => T)
-            }
-            false => {
-                // at odd idx, so this is a chance
-                tuples.push((curr_group, parse!(c => S)));
-            }
-        };
-        idx += 1
-    });
+    let mut tuples = Vec::new();
+    let mut iter = s.split('.');
+    while let (Some(group), Some(chance)) = (iter.next(), iter.next()) {
+        let g = parse!(group => T);
+        let c = parse!(chance => S);
+        tuples.push((g, c));
+    }
     tuples
 }
 
@@ -1279,23 +1282,6 @@ pub enum Group {
     Parent(i16),
 }
 
-impl Ord for Group {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // check ids first
-        // check the types only if equal
-        match self.id().cmp(&other.id()) {
-            std::cmp::Ordering::Equal => self.get_type().cmp(&other.get_type()),
-            o => o,
-        }
-    }
-}
-
-impl PartialOrd for Group {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 /// Group type enum
@@ -1304,34 +1290,15 @@ pub enum GroupType {
     Parent,
 }
 
-impl Ord for GroupType {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self == other {
-            std::cmp::Ordering::Equal
-        } else if *self == Self::Regular {
-            // other is parent, so is less
-            std::cmp::Ordering::Greater
-        } else {
-            std::cmp::Ordering::Less
-        }
-    }
-}
-
-impl PartialOrd for GroupType {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl Group {
     /// Returns this group's ID
     pub fn id(&self) -> i16 {
         match self {
-            Self::Regular(id) => *id,
-            Self::Parent(id) => *id,
+            Self::Regular(id) | Self::Parent(id) => *id,
         }
     }
     /// Returns this group's type
+    #[must_use]
     pub fn get_type(&self) -> GroupType {
         match self {
             Group::Parent(_) => GroupType::Parent,

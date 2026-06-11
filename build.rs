@@ -6,7 +6,7 @@ use syn::{Expr, ExprArray, ExprLit, ExprTuple, Item, Lit};
 // all of the currently implemented ids for objects and properties as consts.
 // currently broken due to `kAXX` properties
 
-fn to_const_name(s: String) -> String {
+fn to_const_name(s: &str) -> String {
     let mut seen_underscore = false;
     s.chars()
         .map(|c| {
@@ -37,7 +37,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
             }
         }
     }
-    let const_name = to_const_name(name);
+    let const_name = to_const_name(&name);
     writeln!(buffer, "    pub const {const_name}: i32 = {id};").unwrap();
 }
 
@@ -45,7 +45,7 @@ fn handle_tuple(buffer: &mut String, tuple: ExprTuple) {
 //     println!("cargo:warning={}", s.into());
 // }
 
-fn get_map_from_line(file: &str, start_str: &str) -> String {
+fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> String {
     let mut out_str = String::new();
     let mut seen_map = false;
     for line in file.split('\n') {
@@ -59,13 +59,18 @@ fn get_map_from_line(file: &str, start_str: &str) -> String {
 
             let mut split = line.trim().split(" => (");
             let id = split.next().unwrap();
-            println!("{id}");
+
             let mut tuple_split = split.next().unwrap().split(", ");
-            println!("{tuple_split:?}");
+
             let desc = tuple_split.next().unwrap();
-            let const_name = to_const_name(desc.to_string());
+            let const_name = to_const_name(desc);
+            let prop_type = tuple_split.next().unwrap_or_default();
 
             writeln!(out_str, "    pub const {const_name}: u16 = {id};").unwrap();
+
+            if prop_type.contains("GDObjPropType::Group") {
+                gpi.push(id.to_string());
+            }
         } else if line.starts_with(start_str) {
             seen_map = true;
         }
@@ -75,6 +80,7 @@ fn get_map_from_line(file: &str, start_str: &str) -> String {
 
 fn main() {
     let mut objects_out_str = String::new();
+    let mut group_property_ids = Vec::new();
     let file = fs::read_to_string("src/cclocallevels/properties.rs").unwrap();
     let ast: syn::File = syn::parse_str(&file).unwrap();
     for item in ast.items {
@@ -95,11 +101,16 @@ fn main() {
     let properties_out_str = get_map_from_line(
         &file,
         "pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map!",
+        &mut group_property_ids,
     );
     let level_header_props = get_map_from_line(
         &file,
         "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = phf_map!",
+        &mut group_property_ids,
     );
+
+    let gids_len = group_property_ids.len();
+    let group_ids_literal = group_property_ids.join(", ");
 
     let out_str = format!(
         "\
@@ -113,7 +124,13 @@ pub mod properties {{
 
 /// Level header properties
 pub mod level_header {{
-{level_header_props}}}"
+{level_header_props}}}
+
+/// Property metadata submodule
+pub mod metadata {{
+    pub static GROUP_PROPERTY_IDS: &[u16; {gids_len}] = &[{group_ids_literal}];
+}}
+    "
     );
 
     let out_dir = env::var_os("OUT_DIR").unwrap();

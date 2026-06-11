@@ -23,12 +23,14 @@ use crate::{
     },
     core::{
         GDError, b64_decode, b64_encode, get_cclocallevels_path,
-        io::{decrypt_file, encrypt_savefile_str, stringify_xml},
+        io::{decrypt_file, encrypt_savefile_str, stringify_xml, vec_as_str},
         proper_plist_tags,
         structs::KCEKValue,
-        vec_as_str,
     },
 };
+
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 pub mod enums;
 pub mod leveldata;
@@ -51,7 +53,7 @@ pub struct CCLocalLevels {
 
 impl CCLocalLevels {
     /// Returns the levels in CCLocalLevels.dat if retrievable
-    #[inline(always)]
+    #[inline]
     pub fn from_local() -> Result<Self, GDError> {
         CCLocalLevels::from_decrypted(decrypt_file(
             get_cclocallevels_path().ok_or(GDError::MissingSavefile)?,
@@ -64,17 +66,19 @@ impl CCLocalLevels {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
         };
 
-        let mut xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes()))
-        {
-            Ok(v) => v.into_dictionary().unwrap(),
-            Err(e) => return Err(GDError::BadPlist(e)),
-        };
+        let mut xmltree = Value::from_reader_xml(Cursor::new(s.as_bytes()))?
+            .into_dictionary()
+            .ok_or(GDError::CorruptedSavefile(
+                "CCLocalLevels.dat is not a dict".into(),
+            ))?;
 
         let levels_dict = xmltree
             .remove("LLM_01")
+            .to_owned()
             .ok_or(GDError::CorruptedSavefile("No LLM_01 (levels)".into()))?
             .into_dictionary()
             .ok_or(GDError::CorruptedSavefile("LLM_01 is not a dict".into()))?;
+
         let llm_02 = xmltree.remove("LLM_02").ok_or(GDError::CorruptedSavefile(
             "No LLM_02 (binary version)".into(),
         ))?;
@@ -84,13 +88,27 @@ impl CCLocalLevels {
 
         // these are stored as "k_0": <level>, "k_1": <level>, etc. in the savefile,
         // the vec prserves that order.
-        let levels_parsed = levels_dict
-            .iter()
+        let collected_dicts = levels_dict
+            .into_iter()
             .filter_map(|(k, v)| match k.as_str() {
                 "_isArr" => None,
-                _ => Some(GDLevel::from_dict(v.as_dictionary().unwrap())?),
+                _ => v.into_dictionary(),
             })
-            .collect::<Vec<GDLevel>>();
+            .collect::<Vec<Dictionary>>();
+
+        #[cfg(feature = "parallel")]
+        let levels_parsed: Vec<GDLevel> = collected_dicts
+            .par_iter()
+            .map(GDLevel::from_dict)
+            .collect::<Option<_>>()
+            .ok_or(GDError::CorruptedSavefile("Unable to parse levels".into()))?;
+
+        #[cfg(not(feature = "parallel"))]
+        let levels_parsed: Vec<GDLevel> = collected_dicts
+            .iter()
+            .map(GDLevel::from_dict)
+            .collect::<Option<_>>()
+            .ok_or(GDError::CorruptedSavefile("Unable to parse levels".into()))?;
 
         let lists = CCLocalLevels::parse_from_value(&llm_03)?;
 
@@ -134,17 +152,51 @@ impl CCLocalLevels {
     pub fn export_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
 
+        /* levels */
+
         let mut levels_dict = Dictionary::new();
         levels_dict.insert("_isArr".to_string(), Value::from(true));
-        for (idx, level) in self.levels.iter().enumerate() {
-            levels_dict.insert(format!("k_{idx}"), Value::from(level.to_dict()));
-        }
+
+        #[cfg(feature = "parallel")]
+        let level_dict_entries = self
+            .levels
+            .par_iter()
+            .enumerate()
+            .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
+            .collect::<Vec<(String, Value)>>();
+
+        #[cfg(not(feature = "parallel"))]
+        let level_dict_entries = self
+            .levels
+            .iter()
+            .enumerate()
+            .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
+            .collect::<Vec<(String, Value)>>();
+
+        levels_dict.extend(level_dict_entries.into_iter());
+
+        /* lists */
 
         let mut lists_dict = Dictionary::new();
         lists_dict.insert("_isArr".to_string(), Value::from(true));
-        for (idx, level) in self.lists.iter().enumerate() {
-            lists_dict.insert(format!("k_{idx}"), Value::from(level.to_dict()));
-        }
+
+        #[cfg(feature = "parallel")]
+        let list_dict_entries = self
+            .lists
+            .par_iter()
+            .enumerate()
+            .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
+            .collect::<Vec<(String, Value)>>();
+
+        #[cfg(not(feature = "parallel"))]
+        let list_dict_entries = self
+            .lists
+            .iter()
+            .enumerate()
+            .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
+            .collect::<Vec<(String, Value)>>();
+
+        lists_dict.extend(list_dict_entries.into_iter());
 
         dict.insert("LLM_01".to_string(), Value::Dictionary(levels_dict));
         dict.insert("LLM_02".to_string(), self.binary_version.clone());
@@ -160,14 +212,14 @@ impl CCLocalLevels {
     /// Standard location on linux: [`crate::core::LINUX_GD_FILES`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
-        let export_str = encrypt_savefile_str(self.export_to_string());
+        let export_str = encrypt_savefile_str(&self.export_to_string());
         write(savefile, export_str)?;
         Ok(())
     }
 
     /// Exports this struct as encrypted XML to a given file
     pub fn export_to_file(&mut self, file: PathBuf) -> Result<(), GDError> {
-        let export_str = encrypt_savefile_str(self.export_to_string());
+        let export_str = encrypt_savefile_str(self.export_to_string().as_str());
         write(file, export_str)?;
         Ok(())
     }
@@ -178,7 +230,7 @@ impl CCLocalLevels {
         let backup_path = format!("{}.bak", savefile.to_string_lossy());
         write(backup_path, read(&savefile)?)?;
 
-        let export_str = encrypt_savefile_str(self.export_to_string());
+        let export_str = encrypt_savefile_str(&self.export_to_string());
         write(savefile, export_str)?;
         Ok(())
     }
@@ -583,7 +635,7 @@ pub struct GDLevelUnknowns {
 impl GDLevel {
     /// Parses a .gmd file to a `Self` object
     pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
-        let file = proper_plist_tags(vec_as_str(&read(path.into())?));
+        let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
@@ -675,7 +727,7 @@ impl GDLevel {
                     3 => {
                         // special case: b64-encoded data
                         level.identity.description =
-                            Some(vec_as_str(&b64_decode(&v.as_string()?[..])[..]))
+                            Some(vec_as_str(&b64_decode(&v.as_string()?[..]).ok()?[..]))
                     }
                     4 => {
                         // special case: level data
@@ -1052,7 +1104,7 @@ impl GDLevel {
         let raw_data = if let Some(data) = &self.content.data
             && let GDLevelState::Encrypted(enc) = data
         {
-            enc.data.clone()
+            enc.data.as_str()
         } else {
             return Ok(());
         };
@@ -1067,15 +1119,13 @@ impl GDLevel {
 
     /// Returns the decrypted level data as a `GDLevelContents` object if there is data.
     pub fn get_decrypted_data(&self) -> Option<GDLevelData> {
-        let raw_data = match self.content.data.clone() {
+        match self.content.data.clone() {
             Some(data) => match data {
-                GDLevelState::Encrypted(encrypted) => encrypted.data.clone(),
-                GDLevelState::Decrypted(d) => return Some(d), // already decrypted
+                GDLevelState::Encrypted(encrypted) => GDLevelData::parse(&encrypted.data),
+                GDLevelState::Decrypted(d) => Some(d), // already decrypted
             },
-            None => return None, // no level data
-        };
-
-        GDLevelData::parse(raw_data)
+            None => None, // no level data
+        }
     }
 
     /// Returns the decrypted level data as a `GDLevelContents` object if there is data.
@@ -1093,15 +1143,15 @@ impl GDLevel {
         }
     }
 
-    /// Adds a GDObject to `self.objects`
+    /// Adds a `GDObject` to `self.objects`
     pub fn add_object(&mut self, object: GDObject) {
         if let Some(data) = &mut self.content.data {
             match data {
                 GDLevelState::Decrypted(state) => {
                     state.objects.push(object);
                 }
-                GDLevelState::Encrypted(_) => (),
-            };
+                GDLevelState::Encrypted(_) => {}
+            }
         }
     }
 

@@ -241,7 +241,7 @@ pub fn pulse_trigger(
     pulse_hold_time: f64,
     pulse_fade_out_time: f64,
     exclusive_pulse: bool,
-    pulse_target: PulseTarget,
+    pulse_target: &PulseTarget,
     pulse_mode: PulseMode,
 ) -> GDObject {
     let mut properties = vec![
@@ -292,7 +292,7 @@ pub fn pulse_trigger(
 /// * `target_group`: Target group to stop/pause/resume
 /// * `stop_mode`: Stop mode (see [`StopMode`] struct)
 /// * `use_control_id`: Only stops certain triggers within a group if enabled.
-#[inline(always)]
+#[inline]
 pub fn stop_trigger(
     config: &GDObjConfig,
     target_group: i16,
@@ -317,7 +317,7 @@ pub fn stop_trigger(
 /// * `target_group`: Target group to stop/pause/resume
 /// * `opacity`: Opacity to set group at
 /// * `fade_time`: Time to fade to the opacity
-#[inline(always)]
+#[inline]
 pub fn alpha_trigger(
     config: &GDObjConfig,
     target_group: i16,
@@ -341,7 +341,7 @@ pub fn alpha_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Target group to stop/pause/resume
 /// * `activate_group`: Active group instead of deactivating?
-#[inline(always)]
+#[inline]
 pub fn toggle_trigger(config: &GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
     GDObject::new(
         TRIGGER_TOGGLE,
@@ -382,7 +382,7 @@ pub fn transition_object(
 /// Returns a reverse gameplay trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
     GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
 }
@@ -391,7 +391,7 @@ pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is linked visibly
-#[inline(always)]
+#[inline]
 pub fn link_visible(config: &GDObjConfig, target_group: i16) -> GDObject {
     GDObject::new(
         TRIGGER_LINK_VISIBLE,
@@ -404,7 +404,7 @@ pub fn link_visible(config: &GDObjConfig, target_group: i16) -> GDObject {
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `time_scale`: How much to speed up/slow down time by. 1.0 is the default
-#[inline(always)]
+#[inline]
 pub fn timewarp(config: &GDObjConfig, time_scale: f64) -> GDObject {
     GDObject::new(
         TRIGGER_TIME_WARP,
@@ -416,7 +416,7 @@ pub fn timewarp(config: &GDObjConfig, time_scale: f64) -> GDObject {
 /// Returns a trigger that shows the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn show_player(config: &GDObjConfig) -> GDObject {
     GDObject::new(1613, config, vec![])
 }
@@ -424,7 +424,7 @@ pub fn show_player(config: &GDObjConfig) -> GDObject {
 /// Returns a trigger that hides the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn hide_player(config: &GDObjConfig) -> GDObject {
     GDObject::new(1612, config, vec![])
 }
@@ -432,7 +432,7 @@ pub fn hide_player(config: &GDObjConfig) -> GDObject {
 /// Returns a trigger that shows the player trail
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
     GDObject::new(ENABLE_PLAYER_TRAIL, config, vec![])
 }
@@ -440,7 +440,7 @@ pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
 /// Returns a trigger that hides the player trail
 /// # Arguments
 /// * `config`: General object options, such as position and scale\
-#[inline(always)]
+#[inline]
 pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
     GDObject::new(DISABLE_PLAYER_TRAIL, config, vec![])
 }
@@ -448,7 +448,7 @@ pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
 /// Returns a trigger that enables the background effect
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
     GDObject::new(BG_EFFECT_ON, config, vec![])
 }
@@ -456,7 +456,7 @@ pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
 /// Returns a trigger that disables the background effect
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn bg_effect_off(config: &GDObjConfig) -> GDObject {
     GDObject::new(BG_EFFECT_OFF, config, vec![])
 }
@@ -465,7 +465,7 @@ pub fn bg_effect_off(config: &GDObjConfig) -> GDObject {
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: group that is to be reset
-#[inline(always)]
+#[inline]
 pub fn group_reset(config: &GDObjConfig, target_group: i16) -> GDObject {
     GDObject::new(
         TRIGGER_RESET_GROUP,
@@ -480,7 +480,7 @@ pub fn group_reset(config: &GDObjConfig, target_group: i16) -> GDObject {
 /// * `strength`: Strength of shake
 /// * `interval`: Interval in seconds between each shake
 /// * `duration`: Total duration of shaking
-#[inline(always)]
+#[inline]
 pub fn shake_trigger(
     config: &GDObjConfig,
     strength: i32,
@@ -503,7 +503,7 @@ pub fn shake_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `mod_x`: X-axis speed of BG in terms of player speed. Default is 0.3
 /// * `mod_y`: Y-axis speed of BG in terms of player speed. Default is 0.5
-#[inline(always)]
+#[inline]
 pub fn bg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
     GDObject::new(
         BG_SPEED_CONFIG,
@@ -520,7 +520,7 @@ pub fn bg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
 /// * `config`: General object options, such as position and scale
 /// * `mod_x`: X-axis speed of MG in terms of player speed. Default is 0.3
 /// * `mod_y`: Y-axis speed of MG in terms of player speed. Default is 0.5
-#[inline(always)]
+#[inline]
 pub fn mg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
     GDObject::new(
         MG_SPEED_CONFIG,
@@ -541,7 +541,7 @@ pub fn mg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
 /// * `stop_move`: Stops the player from moving
 /// * `stop_rotation`: Stops the player's rotation
 /// * `stop_slide`: Stops the player from sliding after a force
-#[inline(always)]
+#[inline]
 pub fn player_control(
     config: &GDObjConfig,
     p1: bool,
@@ -625,7 +625,7 @@ pub fn end_trigger(
 /// * `timer`: Is a timer?
 /// * `align`: Visual alignment of counter object. See [`ItemAlign`] struct.
 /// * `seconds_only`: Show only seconds if timer?
-/// * `special_mode`: Other special mode of timer. See CounterMode struct.
+/// * `special_mode`: Other special mode of timer. See [`CounterMode`] struct.
 pub fn counter_object(
     config: &GDObjConfig,
     item: Item,
@@ -641,7 +641,7 @@ pub fn counter_object(
         Item::Attempts | Item::MainTime | Item::Points => {
             properties.push((
                 SPECIAL_COUNTER_MODE,
-                GDValue::Int(item.as_special_mode_i32()),
+                GDValue::Int(item.as_special_mode_i32().unwrap()),
             ));
         }
         Item::Counter(c) => {
@@ -880,7 +880,7 @@ pub fn spawn_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Spawns this group
 /// * `activate_group`: Activate this group (instead of toggling off)?
-#[inline(always)]
+#[inline]
 pub fn on_death(config: &GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
     GDObject::new(
         TRIGGER_ON_DEATH,
@@ -943,7 +943,7 @@ pub fn spawn_particle(
 /// * `config`: General object options, such as position and scale
 /// * `id`: Collision block ID
 /// * `dynamic`: Does this block register collisions with other collision blocks?
-#[inline(always)]
+#[inline]
 pub fn collision_block(config: &GDObjConfig, id: i16, dynamic: bool) -> GDObject {
     GDObject::new(
         COLLISION_BLOCK,
@@ -963,7 +963,7 @@ pub fn collision_block(config: &GDObjConfig, id: i16, dynamic: bool) -> GDObject
 /// * `claim_touch`: Disable buffer clicking?
 /// * `multi_activate`: Allow multiple activations?
 /// * `spawn_only`: Spawn only without toggling?
-#[inline(always)]
+#[inline]
 pub fn toggle_block(
     config: &GDObjConfig,
     target_group: i16,
@@ -990,7 +990,7 @@ pub fn toggle_block(
 /// * `config`: General object options, such as position and scale
 /// * `state_on`: Group that is activated when the player enters this block's hitbox
 /// * `state_off`: Group that is activated when the player exits this block's hitbox
-#[inline(always)]
+#[inline]
 pub fn state_block(config: &GDObjConfig, state_on: i16, state_off: i16) -> GDObject {
     GDObject::new(
         COLLISION_STATE_BLOCK,
@@ -1012,7 +1012,7 @@ pub fn state_block(config: &GDObjConfig, state_on: i16, state_off: i16) -> GDObj
 ///   instead of when they start colliding.
 ///
 /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
-#[inline(always)]
+#[inline]
 pub fn collision_trigger(
     config: &GDObjConfig,
     collider_cfg: ColliderConfig,
@@ -1054,7 +1054,7 @@ pub fn collision_trigger(
 /// * `collider_cfg`: Settings for colliders for this collision detection. See [`ColliderConfig`]
 /// * `true_id`: ID of group that is activated if the two colliders collide
 /// * `false_id`: ID of group that is activated if the two colliders do not collide
-#[inline(always)]
+#[inline]
 pub fn instant_coll_trigger(
     config: &GDObjConfig,
     collider_cfg: ColliderConfig,
@@ -1122,7 +1122,7 @@ pub fn time_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `id`: Timer ID
 /// * `stop`: If enabled, stops the timer; otherwise, starts the timer.
-#[inline(always)]
+#[inline]
 pub fn time_control(config: &GDObjConfig, id: i16, stop: bool) -> GDObject {
     GDObject::new(
         TRIGGER_TIME_CONTROL,
@@ -1141,7 +1141,7 @@ pub fn time_control(config: &GDObjConfig, id: i16, stop: bool) -> GDObject {
 /// * `target_group`: If enabled, stops the timer; otherwise, starts the timer.
 /// * `target_time`: At what time the timer should be to activate objects in `target_group`.
 /// * `multi_activate`: Should this event be triggerable multiple times?
-#[inline(always)]
+#[inline]
 pub fn time_event(
     config: &GDObjConfig,
     id: i16,
@@ -1194,7 +1194,7 @@ pub fn camera_zoom(
 /// * `offset_x`: Center offset from this object in x axis
 /// * `offset_y`: Center offset from this object in y axis
 /// * `opacity`: Opacity of guidelines
-#[inline(always)]
+#[inline]
 pub fn camera_guide(
     config: &GDObjConfig,
     zoom: f64,
@@ -1224,7 +1224,7 @@ pub fn camera_guide(
 /// * `follow_time`: Time that the follow group is followed for. -1.0 = infinite.
 /// * `target_group`: Group that is following
 /// * `follow_group`: Group that is being followed
-#[inline(always)]
+#[inline]
 pub fn follow_trigger(
     config: &GDObjConfig,
     x_mod: f64,
@@ -1251,7 +1251,7 @@ pub fn follow_trigger(
 /// * `config`: General object options, such as position and scale
 /// * `target_group`: Objects to animate
 /// * `animation`: Animation ID, provided in [`Anim`] enum
-#[inline(always)]
+#[inline]
 pub fn animate_trigger(config: &GDObjConfig, target_group: i16, animation: Anim) -> GDObject {
     GDObject::new(
         TRIGGER_ANIMATE,
@@ -1271,7 +1271,7 @@ pub fn animate_trigger(config: &GDObjConfig, target_group: i16, animation: Anim)
 /// * `target_count`: Target count of item at `item_id`
 /// * `activate_group`: Whether or not to activate the target group
 /// * `multi_activate`: Whether or not this trigger is multi-activatable
-#[inline(always)]
+#[inline]
 pub fn count_trigger(
     config: &GDObjConfig,
     item_id: i16,
@@ -1301,7 +1301,7 @@ pub fn count_trigger(
 /// Chances are considered relative to each other, meaning that they are not
 /// precentage-based. Two groups with the same relative chance will have the same
 /// (50-50) chance to be triggered
-#[inline(always)]
+#[inline]
 pub fn advanced_random_trigger(config: &GDObjConfig, probabilities: Vec<(i16, i32)>) -> GDObject {
     GDObject::new(
         TRIGGER_ADVANCED_RANDOM,
@@ -1322,7 +1322,7 @@ pub fn advanced_random_trigger(config: &GDObjConfig, probabilities: Vec<(i16, i3
 /// * `y_reference`: Reference position for the element on the Y-axis
 /// * `x_ref_relative`: Whether or not the x-axis position scales with aspect ratio
 /// * `y_ref_relative`: Whether or not the y-axis position scales with aspect ratio
-#[inline(always)]
+#[inline]
 pub fn ui_config_trigger(
     config: &GDObjConfig,
     target_group: i16,
@@ -1472,7 +1472,7 @@ pub fn scale_trigger(
 /// * `max_speed`: Speed limit of the following group
 /// * `move_time`: How long the group will follow the player
 /// * `target_group`: The group that is following the player's y-pos
-#[inline(always)]
+#[inline]
 pub fn follow_player_y(
     config: &GDObjConfig,
     speed: f64,
@@ -1499,7 +1499,7 @@ pub fn follow_player_y(
 /// Returns a middleground config trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
-#[inline(always)]
+#[inline]
 pub fn mg_config(
     config: &GDObjConfig,
     offset_y: i32,
@@ -1516,7 +1516,7 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
         properties.extend_from_slice(&[
             (MOVE_EASING, GDValue::Easing(easing)),
             (EASING_RATE, GDValue::Float(rate)),
-        ])
+        ]);
     }
 }
 

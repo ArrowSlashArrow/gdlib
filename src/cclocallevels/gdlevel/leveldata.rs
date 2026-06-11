@@ -1,26 +1,26 @@
 //! This module conatins methods and structs for operations with individual levels
 
-use std::{
-    collections::{BTreeSet, HashSet},
-    fmt::{Display, Write},
-};
+use std::fmt::{Display, Write};
 
 use crate::{
     cclocallevels::{
         gdobj::{
             GDObject,
+            ids::metadata::GROUP_PROPERTY_IDS,
             structs::{Colour, Gamemode, HSVColour, Speed},
-            structs::{GDObjPropType, GDValue, Group},
+            structs::{GDValue, Group},
         },
-        properties::{PROPERTY_TABLE, get_level_header_property_type},
+        properties::get_level_header_property_type,
     },
-    core::{
-        io::{decompress, encrypt_level_str},
-        vec_as_str,
-    },
+    core::io::{decompress, encrypt_level_str, vec_as_str},
 };
 
-/// Default level header string
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
+/// Default level header string for GD levels.
+///
+/// This is the state of the level header immediately after initializing new level data.
 pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0";
 
 const KA_SIZE: usize = 64;
@@ -150,42 +150,94 @@ pub enum HeaderValueType {
 
 impl GDLevelData {
     /// Serialises this object to a string by serialising each subsequent component.
+    #[must_use]
     pub fn serialise_to_string(&self) -> String {
-        let objstr = self
+        #[cfg(feature = "parallel")]
+        let object_data = self
             .objects
-            .iter()
-            .map(|obj| obj.serialise_to_string())
+            .par_iter()
+            .map(GDObject::serialise_to_string)
             .collect::<Vec<String>>()
             .join("");
-        let unencrypted = format!("{};{objstr}", self.headers.clone());
-        vec_as_str(&&encrypt_level_str(unencrypted))
+
+        #[cfg(not(feature = "parallel"))]
+        let object_data = {
+            let mut data = String::with_capacity(self.objects.len() * 64);
+            for obj in &self.objects {
+                data.push_str(&obj.serialise_to_string());
+            }
+            data
+        };
+
+        let header_str = self.headers.to_string();
+
+        let mut unencrypted = String::with_capacity(header_str.len() + object_data.len() + 1);
+        unencrypted.push_str(&header_str);
+        unencrypted.push(';');
+        unencrypted.push_str(&object_data);
+
+        vec_as_str(&encrypt_level_str(&unencrypted))
     }
 
     /// Returns a list of all the groups that contain at least one object
+    #[must_use]
     pub fn get_used_groups(&self) -> Vec<Group> {
         if self.objects.is_empty() {
             return vec![];
         }
 
-        let mut groups = HashSet::new();
+        // let mut groups = HashSet::new();
+        #[cfg(feature = "parallel")]
+        let mut groups = self
+            .objects
+            .par_iter()
+            .flat_map_iter(|obj| obj.config.groups.iter())
+            .copied()
+            .collect::<Vec<Group>>();
 
-        for object in self.objects.iter() {
-            groups.extend(object.config.groups.iter());
-        }
-        let mut arr: Vec<Group> = groups.into_iter().collect();
-        arr.sort();
-        arr
+        #[cfg(not(feature = "parallel"))]
+        let mut groups = self
+            .objects
+            .iter()
+            .flat_map(|obj| obj.config.groups.iter())
+            .copied()
+            .collect::<Vec<Group>>();
+
+        groups.sort();
+        groups.dedup();
+        groups
     }
 
     /// Returns a list of all the groups that do not contain any objects
+    #[must_use]
     pub fn get_unused_groups(&self) -> Vec<Group> {
-        let all: BTreeSet<Group> = (1..10000).map(Group::Regular).collect();
-        let used: BTreeSet<Group> = self.get_used_groups().into_iter().collect();
+        // let all: BTreeSet<Group> = (1..10000).map(Group::Regular).collect();
+        // let used: BTreeSet<Group> = self.get_used_groups().into_iter().collect();
 
-        all.difference(&used).cloned().collect::<Vec<Group>>()
+        // all.difference(&used).cloned().collect::<Vec<Group>>()
+        let mut used: [bool; 10_000] = [false; 10_000];
+        for object in &self.objects {
+            for group in &object.config.groups {
+                if let Group::Regular(g) = group
+                    && (1..10_000).contains(g)
+                {
+                    used[*g as usize] = true;
+                }
+            }
+        }
+
+        let mut unused: Vec<Group> = Vec::with_capacity(9_999);
+        for id in 1..10_000 {
+            if !used[id as usize] {
+                unused.push(Group::Regular(id));
+            }
+        }
+
+        unused
     }
 
     /// Returns a list of all groups used as arguments in triggers
+    #[must_use]
     pub fn get_argument_groups(&self) -> Vec<i16> {
         if self.objects.is_empty() {
             return vec![];
@@ -193,25 +245,35 @@ impl GDLevelData {
 
         // this should really be a const map, but that is impossible in the current version of rust.
         // however, the performance cost is negligible since we only generate this list once per search.
-        let group_properties = PROPERTY_TABLE
-            .entries()
-            .filter_map(|(id, info)| {
-                if info.1 == GDObjPropType::Group {
-                    Some(*id)
-                } else {
-                    None
+        #[cfg(feature = "parallel")]
+        let mut groups = self
+            .objects
+            .par_iter()
+            .flat_map_iter(|object| {
+                let mut groups = Vec::new();
+                for p in GROUP_PROPERTY_IDS {
+                    if let Some(val) = object.get_property(*p) {
+                        match val {
+                            GDValue::Group(g) => groups.push(g),
+                            GDValue::GroupList(gs) => groups.extend(gs.iter().copied()),
+                            _ => {}
+                        }
+                    }
                 }
+                groups
             })
-            .collect::<Vec<u16>>();
+            .collect::<Vec<i16>>();
 
+        #[cfg(not(feature = "parallel"))]
         let mut groups = Vec::with_capacity(self.objects.len());
 
-        for object in self.objects.iter() {
-            for p in group_properties.iter() {
+        #[cfg(not(feature = "parallel"))]
+        for object in &self.objects {
+            for p in GROUP_PROPERTY_IDS {
                 if let Some(val) = object.get_property(*p) {
                     match val {
                         GDValue::Group(g) => groups.push(g),
-                        GDValue::GroupList(gs) => groups.extend(gs.to_vec()),
+                        GDValue::GroupList(gs) => groups.extend(gs.iter()),
                         _ => {}
                     }
                 }
@@ -224,24 +286,35 @@ impl GDLevelData {
     }
 
     /// Parse raw level data to this struct
-    pub fn parse(raw_data: String) -> Option<Self> {
+    #[must_use]
+    pub fn parse<T: AsRef<str>>(raw_data: T) -> Option<Self> {
+        let raw_data = raw_data.as_ref();
         // parse level data
         let raw_data = decompress(raw_data.as_bytes().to_vec()).ok()?;
         let decrypted = std::str::from_utf8(&raw_data[..]).ok()?;
-        let split = decrypted.split(";").collect::<Vec<&str>>();
+        let split: Vec<&str> = decrypted.split(';').collect();
 
         // level start string
-        let headers = split[0].to_string();
+        let headers = split.first().unwrap_or(&"").to_string();
         let level_headers = GDLevelHeader::parse(&headers)?;
-        let mut objects = Vec::with_capacity(split.len() - 1);
 
-        for object in &split[1..] {
-            if object.len() > 1 {
-                objects.push(GDObject::parse_str(object));
-            }
-        }
+        let object_slice = split.get(1..).unwrap_or(&[]);
 
-        Some(GDLevelData {
+        #[cfg(feature = "parallel")]
+        let objects = object_slice
+            .par_iter()
+            .filter(|obj| obj.len() > 1)
+            .map(GDObject::parse_str)
+            .collect();
+
+        #[cfg(not(feature = "parallel"))]
+        let objects = object_slice
+            .iter()
+            .filter(|obj| obj.len() > 1)
+            .map(GDObject::parse_str)
+            .collect();
+
+        Some(Self {
             headers: level_headers,
             objects,
         })
@@ -488,6 +561,7 @@ impl Display for HeaderValue {
     }
 }
 
+// serialiser for `GDLevelHeader`
 impl Display for GDLevelHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kas = self

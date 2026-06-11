@@ -49,6 +49,7 @@ macro_rules! parse {
 
 /// Container for GD Object properties.
 #[derive(Clone, PartialEq)]
+#[must_use]
 pub struct GDObject {
     /// The object's ID.
     pub id: i32,
@@ -60,28 +61,26 @@ pub struct GDObject {
 
 impl Display for GDObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let group_str = match !self.config.groups.is_empty() {
-            true => &format!(
-                " with groups: {}",
-                self.config
-                    .groups
-                    .iter()
-                    .map(|g| format!("{}", g.id()))
-                    .collect::<Vec<String>>()
-                    .join(", ")
-            ),
-            false => "",
-        };
+        let mut group_str = String::new();
+        if !self.config.groups.is_empty() {
+            group_str += " with groups: ";
+            for (idx, g) in self.config.groups.iter().enumerate() {
+                if idx != 0 {
+                    group_str.push_str(", ");
+                }
+                let _ = write!(group_str, "{}", g.id());
+            }
+        }
 
         let mut trigger_conf_str = String::new();
         if self.config.trigger_cfg.spawnable || self.config.trigger_cfg.touchable {
             if self.config.trigger_cfg.multitriggerable {
-                trigger_conf_str += "Multi"
+                trigger_conf_str += "Multi";
             }
             if self.config.trigger_cfg.touchable {
-                trigger_conf_str += "touchable "
+                trigger_conf_str += "touchable ";
             } else if self.config.trigger_cfg.spawnable {
-                trigger_conf_str += "spawnable "
+                trigger_conf_str += "spawnable ";
             }
         }
 
@@ -103,7 +102,7 @@ impl Debug for GDObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut property_str = String::with_capacity(self.properties.len() * 32);
 
-        for (property, value) in self.properties.iter() {
+        for (property, value) in &self.properties {
             let desc = properties::PROPERTY_TABLE.get(property).map(|p| p.0);
             if let Some(d) = desc {
                 write!(property_str, "\n    - {d}: {value:?}")
@@ -122,15 +121,16 @@ impl Debug for GDObject {
 }
 
 impl GDObject {
-    /// Parses raw object string to GDObject
-    pub fn parse_str(s: &str) -> GDObject {
+    /// Parses raw object string to `GDObject`
+    pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
+        let s = s.as_ref();
         let mut obj = GDObject {
             id: 1,
             config: GDObjConfig::default(),
             properties: vec![],
         };
 
-        let mut iter = s.trim_end_matches(';').split(",");
+        let mut iter = s.trim_end_matches(';').split(',');
         while let (Some(idx), Some(val)) = (iter.next(), iter.next()) {
             let idx_u16 = match idx.parse::<u16>() {
                 Ok(n) => n,
@@ -151,7 +151,7 @@ impl GDObject {
                 GROUPS => {
                     obj.config.add_groups(
                         val.trim_matches('"')
-                            .split(".")
+                            .split('.')
                             .filter_map(|g| g.parse::<i16>().ok())
                             .map(Group::Regular)
                             .collect::<Vec<Group>>(),
@@ -162,10 +162,10 @@ impl GDObject {
                 EDITOR_LAYER_1 => obj.config.editor_layers.0 = parse!(val => i16),
                 EDITOR_LAYER_2 => obj.config.editor_layers.1 = parse!(val => i16),
                 OBJECT_COLOUR => {
-                    obj.config.colour_channels.0 = ColourChannel::from(parse!(val => i16))
+                    obj.config.colour_channels.0 = ColourChannel::from(parse!(val => i16));
                 }
                 SECONDARY_COLOUR => {
-                    obj.config.colour_channels.1 = ColourChannel::from(parse!(val => i16))
+                    obj.config.colour_channels.1 = ColourChannel::from(parse!(val => i16));
                 }
                 Z_LAYER => obj.config.z_layer = ZLayer::from(parse!(val => i32)),
                 Z_ORDER => obj.config.z_order = parse!(val => i32),
@@ -272,7 +272,7 @@ impl GDObject {
                     // add groups method handles deduping
                     obj.config.add_groups(
                         val.trim_matches('"')
-                            .split(".")
+                            .split('.')
                             .filter_map(|g| g.parse::<i16>().ok())
                             .map(Group::Parent)
                             .collect::<Vec<Group>>(),
@@ -297,25 +297,24 @@ impl GDObject {
 
     /// Sets the prpoerty ID to the value, and craetes it if it doesn't exist
     pub fn set_property(&mut self, p: u16, val: GDValue) {
-        if let Some(v) = self.properties.iter_mut().find(|(k, _)| *k == p) {
-            v.1 = val;
-        } else {
-            let new_idx = self.properties.partition_point(|(k, _)| k < &p);
-            self.properties.insert(new_idx, (p, val));
+        match self.properties.binary_search_by_key(&p, |t| t.0) {
+            Ok(idx) => self.properties[idx].1 = val,
+            Err(idx) => self.properties.insert(idx, (p, val)),
         }
     }
 
     /// Removes the property from this object's property map by its ID.
     pub fn del_property(&mut self, p: u16) {
         if let Ok(idx) = self.properties.binary_search_by_key(&p, |t| t.0) {
-            self.properties.remove(idx);
+            let _ = self.properties.remove(idx);
         }
     }
 
     /// Returns this object as a property string
+    #[must_use]
     pub fn serialise_to_string(&self) -> String {
         let mut properties_string = String::with_capacity(self.properties.len() * 8);
-        for (idx, val) in self.properties.iter() {
+        for (idx, val) in &self.properties {
             let (pref, id) = if *idx < 10_000 {
                 ("", *idx)
             } else {
@@ -326,11 +325,15 @@ impl GDObject {
         }
         let config_str = self.config.serialise_to_string();
 
-        let raw_str = format!("1,{}{config_str}{properties_string}", self.id);
-        raw_str.replace("\"", "") + ";"
+        let mut raw_str = format!("1,{}{config_str}{properties_string}", self.id);
+        raw_str.retain(|c| c != '"');
+        raw_str.push(';');
+        raw_str
     }
 
     /// Returns this object's name
+    #[inline]
+    #[must_use]
     pub fn get_name(&self) -> String {
         OBJECT_NAMES
             .iter()
@@ -341,7 +344,7 @@ impl GDObject {
     }
 
     /// Creates a new GDObject from ID, config, and extra proerties
-    #[inline(always)]
+    #[inline]
     pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
         GDObject {
             id,
@@ -356,7 +359,7 @@ impl GDObject {
         defaults::default_object(id)
     }
 
-    #[inline(always)]
+    #[inline]
     fn get_attr_as_gdvalue(&self, attr: GDObjAttributes) -> GDValue {
         GDValue::Bool(self.config.get_attribute_flag(attr))
     }
@@ -370,7 +373,7 @@ impl GDObject {
             3 => Some(GDValue::Float(self.config.pos.1)),
             6 => Some(GDValue::Float(self.config.angle)),
             11 => Some(GDValue::Bool(self.config.trigger_cfg.touchable)),
-            57 => Some(GDValue::from_group_list(self.config.groups.clone())),
+            57 => Some(GDValue::from_group_list(&self.config.groups)),
             62 => Some(GDValue::Bool(self.config.trigger_cfg.spawnable)),
             87 => Some(GDValue::Bool(self.config.trigger_cfg.multitriggerable)),
             128 => Some(GDValue::Float(self.config.scale.0)),
@@ -411,9 +414,9 @@ impl GDObject {
 
             _ => self
                 .properties
-                .iter()
-                .find(|pair| pair.0 == p)
-                .map(|p| p.1.clone()),
+                .binary_search_by_key(&p, |(key, _)| *key)
+                .ok()
+                .map(|idx| self.properties[idx].1.clone()),
         }
     }
 

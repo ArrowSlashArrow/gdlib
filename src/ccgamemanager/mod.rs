@@ -48,7 +48,7 @@ impl CCGameManager {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
         };
 
-        let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s).as_bytes())) {
+        let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s)?.as_bytes())) {
             Ok(v) => v.into_dictionary().unwrap(),
             Err(e) => return Err(GDError::BadPlist(e)),
         };

@@ -1,7 +1,4 @@
-use gdlib::{
-    cclocallevels::{gdlevel::GDLevel, gdobj::structs::Group},
-    core::GDError,
-};
+use gdlib::{GDError, gdlevel::Level, gdobj::Group};
 
 fn main() -> Result<(), GDError> {
     // Load level from .gmd file

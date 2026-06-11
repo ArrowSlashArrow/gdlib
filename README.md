@@ -18,6 +18,7 @@ Features
 * Easy modification of objects through built-in methods and objects
 * Full support for read from and writing to .dat and .gmd files
 * Optimized to be fast and lightweight
+* Optional `parallel` feature to use Rayon-backed parallel object parse/serialise and savefile xor passes (use `cargo add gdlib --features parallel`)
 
 This crate is intended to have provide full coverage of both GD savefiles and full support for editing each individual component within.  
 As of v0.3.3, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 

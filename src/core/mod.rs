@@ -5,7 +5,7 @@ use std::{
     env,
     error::Error,
     fmt::{Debug, Display},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 pub mod crypto;
@@ -16,10 +16,41 @@ pub mod structs;
 /// Standard file path of GD savefiles on linux.
 pub const LINUX_GD_FILES: &str = "~/.local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash";
 
-/// Error enum
+macro_rules! count_exprs {
+    () => { 0 };
+    ($e:expr) => { 1 };
+    ($e:expr, $($es:expr),+) => { 1 + count_exprs!($($es),*) };
+}
+macro_rules! build_plist_tags {
+    ($($find:expr => $replace:expr),* $(,)?) => {
+        const PLIST_TAGS_FIND: [&str; count_exprs!($($find),*)] = [$($find),*];
+        const PLIST_TAGS_REPLACE: [&str; count_exprs!($($replace),*)] = [$($replace),*];
+    };
+}
+
+build_plist_tags! {
+    "<k>" => "<key>",
+    "</k>" => "</key>",
+    "<i>" => "<integer>",
+    "</i>" => "</integer>",
+    "<d>" => "<dict>",
+    "</d>" => "</dict>",
+    "<d />" => "<dict />",
+    "<t/>" => "<true/>",
+    "<f/>" => "<false/>",
+    "<t />" => "<true />",
+    "<f />" => "<false />",
+    "<s>" => "<string>",
+    "</s>" => "</string>",
+    "<r>" => "<real>",
+    "</r>" => "</real>",
+}
+
+/// `GDLib`'s primary error type.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum GDError {
-    /// Standard IO failure
+    /// Standard `std::io::Error`
     Io(std::io::Error),
     /// Data could not be parsed from its raw form
     DecodeError(DecodeError),
@@ -29,6 +60,10 @@ pub enum GDError {
     CorruptedSavefile(String),
     /// Unable to find the savefile
     MissingSavefile,
+    /// `AhoCorasick` error (UTF-8 parsing issues)
+    AhoCorasick(aho_corasick::BuildError),
+    /// `FromUtf8Error` when converting decrypted bytes to string
+    FromUtf8Error(std::string::FromUtf8Error),
 }
 
 impl Error for GDError {
@@ -37,8 +72,9 @@ impl Error for GDError {
             Self::Io(e) => Some(e),
             Self::DecodeError(e) => e.source(),
             Self::BadPlist(e) => e.source(),
-            Self::CorruptedSavefile(_) => None,
-            Self::MissingSavefile => None,
+            Self::AhoCorasick(e) => Some(e),
+            Self::FromUtf8Error(e) => Some(e),
+            Self::CorruptedSavefile(_) | Self::MissingSavefile => None,
         }
     }
 }
@@ -58,34 +94,56 @@ impl From<plist::Error> for GDError {
         Self::BadPlist(value)
     }
 }
+impl From<aho_corasick::BuildError> for GDError {
+    fn from(value: aho_corasick::BuildError) -> Self {
+        Self::AhoCorasick(value)
+    }
+}
+impl From<std::string::FromUtf8Error> for GDError {
+    fn from(value: std::string::FromUtf8Error) -> Self {
+        Self::FromUtf8Error(value)
+    }
+}
+// TODO: make this more verbose, probably better?
+impl From<GDError> for std::fmt::Error {
+    fn from(_: GDError) -> Self {
+        std::fmt::Error
+    }
+}
 
 impl Display for GDError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::DecodeError(d) => write!(f, "File decode failed: {d}"),
             Self::BadPlist(p) => write!(f, "Bad plist: {p}"),
-            Self::Io(io) => write!(f, "{io}"),
-            Self::CorruptedSavefile(reason) => write!(f, "Corrupted savefile: {reason}"),
-            Self::MissingSavefile => write!(f, "Unable to find savefile."),
+            Self::Io(io) => write!(f, "IO failed: {io}"),
+            Self::AhoCorasick(a) => write!(f, "AhoCorasick UTF-8 build error: {a}"),
+            Self::FromUtf8Error(e) => write!(f, "UTF-8 conversion error: {e}"),
+            Self::CorruptedSavefile(e) => write!(f, "Corrupted savefile: {e}"),
+            Self::MissingSavefile => write!(f, "No available save file found!"),
         }
     }
 }
 
-/// Returns path to CCLocalLevels.dat if it exists
+/// Returns path of CCLocalLevels.dat if it exists
+#[must_use]
+// -- TODO --: The fn only supports Windows, need to implement other OSes
 pub fn get_cclocallevels_path() -> Option<PathBuf> {
-    if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
-        let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
-        if path.exists() {
-            return Some(path);
+    // TODO: need better way to validate/ensure Windows platforms
+    // TODO: need better way to check all Windows locations for gd?
+    // TODO: make into const
+    if let Ok(local_appdata) = env::var("LOCALAPPDATA")
+        && Path::new(&local_appdata).exists()
+    {
+        Some(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
+    } else {
+        let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
+        if linux_path.exists() {
+            return Some(linux_path);
         }
-    }
 
-    let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
-    if linux_path.exists() {
-        return Some(linux_path);
+        None
     }
-
-    None
 }
 
 /// Returns path to CCGameManager.dat if it exists
@@ -106,50 +164,21 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
-pub(crate) fn proper_plist_tags(s: String) -> String {
-    // replace gd plist with proper plist
-    // using aho-corasick for single-pass instead of many .replace()s
-    let find = &[
-        "<k>", "</k>", "<i>", "</i>", "<d>", "</d>", "<d />", "<t/>", "<f/>", "<t />", "<f />",
-        "<s>", "</s>", "<r>", "</r>",
-    ];
-    let replace = &[
-        "<key>",
-        "</key>",
-        "<integer>",
-        "</integer>",
-        "<dict>",
-        "</dict>",
-        "<dict />",
-        "<true/>",
-        "<false/>",
-        "<true />",
-        "<false />",
-        "<string>",
-        "</string>",
-        "<real>",
-        "</real>",
-    ];
-    let ac = AhoCorasick::new(find).unwrap();
-    ac.replace_all(&s, replace)
+pub fn proper_plist_tags(s: String) -> Result<String, GDError> {
+    // replace gd plist with proper plist; use aho-corasick for single-pass instead of many .replace()s
+    let ac = AhoCorasick::new(PLIST_TAGS_FIND)?;
+    Ok(ac.replace_all(&s, &PLIST_TAGS_REPLACE))
 }
 
 /// Quick function for decoding base64 bytes
-#[inline(always)]
-pub(crate) fn b64_decode<T: AsRef<[u8]> + Debug>(encoded: T) -> Vec<u8> {
-    base64::engine::general_purpose::URL_SAFE
-        .decode(encoded)
-        .unwrap()
+#[inline]
+pub fn b64_decode<T: AsRef<[u8]>>(encoded: T) -> Result<Vec<u8>, GDError> {
+    Ok(base64::engine::general_purpose::URL_SAFE.decode(encoded)?)
 }
 
 /// Quick function for encoding base64 bytes
-#[inline(always)]
-pub(crate) fn b64_encode<T: AsRef<[u8]> + Debug>(payload: T) -> String {
-    base64::engine::general_purpose::URL_SAFE.encode(payload)
-}
-
-#[inline(always)]
-/// Quick function for converting a slice of u8 to an owned String
-pub(crate) fn vec_as_str(data: &[u8]) -> String {
-    String::from_utf8(data.to_vec()).unwrap()
+#[inline]
+#[must_use]
+pub fn b64_encode<T: AsRef<[u8]>>(encoded: T) -> String {
+    base64::engine::general_purpose::URL_SAFE.encode(encoded)
 }

@@ -17,8 +17,10 @@ use crate::{
         parse_csv, serialise_bool_fields, serialise_fields, serialise_optional_fields, to_csv,
     },
     core::{
-        GDError, b64_decode, b64_encode, io::stringify_xml, proper_plist_tags, structs::KCEKValue,
-        vec_as_str,
+        GDError, b64_decode, b64_encode,
+        io::{stringify_xml, vec_as_str},
+        proper_plist_tags,
+        structs::KCEKValue,
     },
 };
 
@@ -199,7 +201,7 @@ impl GDList {
                 2 => list.name = v.as_string()?.to_owned(),
                 3 => {
                     // special case: b64 encoded string
-                    list.description = vec_as_str(&b64_decode(v.as_string()?)[..])
+                    list.description = vec_as_str(&b64_decode(v.as_string()?).ok()?[..])
                 }
                 5 => list.creator = v.as_string()?.to_owned(),
                 7 => {
@@ -340,7 +342,7 @@ impl GDList {
 
     /// Parses a .gmd file to a `Self` object
     pub fn from_gmdl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
-        let file = proper_plist_tags(vec_as_str(&read(path.into())?));
+        let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
