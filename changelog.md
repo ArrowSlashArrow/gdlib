@@ -1,5 +1,13 @@
 # Changelog
 
+## Update v0.3.3
+* Added remaps to spawn triggers
+* Optimized default object string constructor
+* Added triggers:
+  * Touch trigger
+  * Stop trigger
+  * Middleground change trigger
+
 ## Update 0.3.2
 * Internal cleanup
 
