@@ -195,12 +195,14 @@ fn advanced_random_predict() {
 }
 
 #[test]
+#[ignore]
 fn print_list_info() {
     let mut cc = CCLocalLevels::from_local().unwrap();
     println!("{:#?}", cc.lists);
 }
 
 #[test]
+#[ignore]
 fn cc_game_manager_parse() {
     let gm = CCGameManager::from_local().unwrap();
     fs::write("ccgamemanager dump 2", format!("{gm:#?}")).unwrap();
