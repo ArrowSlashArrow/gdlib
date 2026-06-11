@@ -1,5 +1,13 @@
 # Changelog
 
+## Update v0.4.0
+* Fixed item compare triggers not being given correct property values
+* Reorganized the crate for the future and expandability
+* Added handlers for level headers, lists, and all lists in the LLM_03 key in CCLocalLevels
+* Added initial CCGameManager.dat handler struct
+* Redid GDLevel and optimized serialization/deserialization
+* Added `parallel` feature which includes optimizations for serialization/deserialization in parallel using `rayon`.
+
 ## Update v0.3.3
 * Added remaps to spawn triggers
 * Optimized default object string constructor
