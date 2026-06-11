@@ -1,7 +1,8 @@
 //! This module covers everything in the CCGameManager.dat file.
 
-use std::{collections::HashMap, io::Cursor};
+use std::{array, collections::HashMap, hash::BuildHasherDefault, io::Cursor};
 
+use nohash_hasher::NoHashHasher;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -9,6 +10,8 @@ use crate::{
     core::{GDError, get_ccgamemanager_path, io::decrypt_file, proper_plist_tags},
     repr_t,
 };
+
+type IntMap<V> = HashMap<i32, V, BuildHasherDefault<NoHashHasher<i32>>>;
 
 /// Container struct for the CCGameManager.dat file
 #[derive(Debug, Default, Clone)]
@@ -26,7 +29,7 @@ pub struct CCGameManager {
     /// Internal keys: `KBM_001`, `KBM_002` respectively
     pub keybinds: (Dictionary, Dictionary),
     /// Temporary state variables
-    pub temp_state: GDTempState,
+    pub temp_state: GDCurrentValues,
 
     /// Unaccounted-for properties
     pub other_properties: HashMap<String, Value>,
@@ -70,8 +73,8 @@ impl CCGameManager {
                 ("playerName", &mut self.player_info.username),
                 ("GJA_001", &mut self.account.username),
             ],
-            |v| v.as_string().unwrap().to_string(),
-        );
+            |v| v.as_string().map(|v| v.to_string()),
+        )?;
 
         // opt. string
         parse_values(
@@ -81,8 +84,8 @@ impl CCGameManager {
                 ("GJA_004", &mut self.account.session_id),
                 ("GJA_005", &mut self.account.hashed_password),
             ],
-            |v| Some(v.as_string().unwrap().to_string()),
-        );
+            |v| v.as_string().map(|v| Some(v.to_string())),
+        )?;
 
         // i32
         parse_values(
@@ -111,9 +114,10 @@ impl CCGameManager {
                 ("GJA_003", &mut self.account.account_id),
                 ("GS_20", &mut self.stats.demon_keys),
                 ("GLM_11", &mut self.temp_state.current_daily_level),
+                ("GLM_17", &mut self.temp_state.current_weekly_level),
             ],
-            |v| v.as_signed_integer().unwrap() as i32,
-        );
+            |v| v.as_signed_integer().map(|v| v as i32),
+        )?;
 
         // bool
         parse_values(
@@ -134,8 +138,8 @@ impl CCGameManager {
                 ),
                 ("hasRatedGame", &mut self.config.has_rated_game),
             ],
-            |v| v.as_boolean().unwrap(),
-        );
+            |v| v.as_boolean(),
+        )?;
 
         // f32
         parse_values(
@@ -148,14 +152,14 @@ impl CCGameManager {
                 ("practiceOpacity", &mut self.config.practice_ui_opacity),
                 ("customFPSTarget", &mut self.config.fps_target),
             ],
-            |v| v.as_real().unwrap() as f32,
-        );
+            |v| v.as_real().map(|v| v as f32),
+        )?;
 
         for i in 0..5 {
             parse_val(&mut d, &format!("dpad0{}", i + 1), |v| {
                 self.config.dpads[i] = GDPlatformerUI::from_str(v.as_string().unwrap());
                 Some(())
-            });
+            })?;
         }
 
         self.config.dpad_layout = d
@@ -165,31 +169,35 @@ impl CCGameManager {
         parse_val(&mut d, "resolution", |v| {
             self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32).ok()?;
             Some(())
-        });
+        })?;
         parse_val(&mut d, "texQuality", |v| {
             self.config.text_quality =
                 TextureQuality::try_from(v.as_signed_integer()? as i32).ok()?;
             Some(())
-        });
+        })?;
 
         parse_val(&mut d, "KBM_001", |v| {
             self.keybinds.0 = v.as_dictionary()?.clone();
             Some(())
-        });
+        })?;
 
         parse_val(&mut d, "KBM_002", |v| {
             self.keybinds.1 = v.as_dictionary()?.clone();
             Some(())
-        });
+        })?;
 
+        // {level_id: GDlevel}
+        // common format for storing lists of levels
+        // though, some level lists follow a slightly different schema for keys
         parse_values(
             &mut d,
             &mut [
                 ("GLM_01", &mut self.stats.official_level_progresses),
                 ("GLM_03", &mut self.stats.online_levels_played),
+                ("GLM_16", &mut self.stats.gauntlet_levels_played),
             ],
-            |v| parse_level_dict(&v).unwrap(),
-        );
+            |v| parse_level_dict(&v),
+        )?;
 
         // {i32: "1"}
         // robtop seems to use this format for lists of things
@@ -199,20 +207,67 @@ impl CCGameManager {
                 ("GLM_06", &mut self.account.following_creators),
                 ("GLM_07", &mut self.temp_state.last_played_levels),
                 ("GLM_13", &mut self.stats.submitted_ratings),
+                ("GLM_14", &mut self.account.reported_levels),
+                ("GLM_15", &mut self.stats.submitted_ratings_demons),
             ],
             |v| {
-                v.as_dictionary()
-                    .unwrap()
-                    .iter()
-                    .map(|(k, _)| k.parse::<i32>().unwrap())
-                    .collect()
+                Some(
+                    v.as_dictionary()?
+                        .iter()
+                        .map(|(k, _)| k.parse::<i32>().unwrap())
+                        .collect::<Vec<_>>(),
+                )
             },
-        );
+        )?;
+
+        parse_values(
+            &mut d,
+            &mut [
+                ("GLM_18", &mut self.config.saved_levels_foldernames),
+                ("GLM_19", &mut self.config.local_levels_foldernames),
+            ],
+            parse_foldernames,
+        )?;
+
+        parse_val(
+            &mut d,
+            "GLM_12",
+            // keys always of the form `likes_a_b_c_d` where a, b, c, d are i32
+            |v| {
+                self.config.glm12_unknown = v
+                    .as_dictionary()?
+                    .iter()
+                    .map(|(k, _)| {
+                        let mut split = k.split("_").into_iter();
+                        let _ = split.next(); // skip `like`
+                        let keys =
+                            array::from_fn(|_| split.next().unwrap().parse::<i32>().unwrap());
+                        keys
+                    })
+                    .collect::<Vec<_>>();
+                Some(())
+            },
+        )?;
+
+        parse_val(&mut d, "GLM_10", |v| {
+            self.stats.completed_dailies = v
+                .as_dictionary()?
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.parse::<i32>().unwrap(),
+                        GDLevel::from_dict(v.as_dictionary().unwrap()).unwrap(),
+                    )
+                })
+                .collect();
+
+            Some(())
+        })?;
 
         /* Values not parsed */
         // GLM_02, GLM_04, GS_8: These keys are unused and modern (2.2) GD savefiles.
 
-        // self.other_properties = d.into_iter().collect();
+        self.other_properties = d.into_iter().collect();
 
         Some(())
     }
@@ -220,18 +275,21 @@ impl CCGameManager {
 
 // removes all valid values specified in `fields`
 // this function ensures that `d` is left with only the unaccounted keys
-fn parse_values<F: Fn(Value) -> R, R>(
+#[must_use]
+fn parse_values<F: Fn(Value) -> Option<R>, R>(
     d: &mut Dictionary,
     fields: &mut [(&str, &mut R)],
     parser: F,
-) {
+) -> Option<()> {
     for (k, f) in fields {
         if let Some(v) = d.remove(k) {
-            **f = parser(v);
+            **f = parser(v)?;
         }
     }
+    Some(())
 }
 
+#[must_use]
 fn parse_val<F: FnMut(Value) -> Option<()>>(
     d: &mut Dictionary,
     key: &str,
@@ -249,6 +307,28 @@ fn parse_level_dict(v: &Value) -> Option<Vec<GDLevel>> {
         .iter()
         .map(|(_id, level_dict)| GDLevel::from_dict(level_dict.as_dictionary().unwrap()))
         .collect::<Option<Vec<GDLevel>>>()
+}
+
+fn parse_foldernames(v: Value) -> Option<Vec<(i32, String)>> {
+    if v.as_dictionary()?.is_empty() {
+        return Some(vec![]);
+    }
+
+    let mut raw_folders = v
+        .as_dictionary()?
+        .iter()
+        .map(|(idx, name)| {
+            (
+                idx.parse::<i32>().unwrap(),
+                name.as_string().unwrap().to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    // this ensures that the folders are ordered by index
+    raw_folders.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+    Some(raw_folders)
 }
 
 /// Player info: username, UDID, user id, all icon info
@@ -296,6 +376,12 @@ pub struct GDStatistics {
     pub demon_keys: i32,
     /// All levels the player has submitted ratings on
     pub submitted_ratings: Vec<i32>,
+    /// All demon levels the player has submitted ratings on
+    pub submitted_ratings_demons: Vec<i32>,
+    /// All gauntlet levels that the player has progress on
+    pub gauntlet_levels_played: Vec<GDLevel>,
+    /// All completed dailies in the form: {timely id: level}
+    pub completed_dailies: IntMap<GDLevel>,
 }
 
 /// User's configuration of the game.
@@ -324,6 +410,14 @@ pub struct GDConfig {
     /// `dpadn` for n in 1..=5
     pub dpads: [GDPlatformerUI; 5],
     pub dpad_layout: Option<GDPlatformerUI>,
+    /// List of folder names for saved online levels. Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    pub saved_levels_foldernames: Vec<(i32, String)>,
+    /// List of folder names for locally created levels (found in the editor tab). Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    pub local_levels_foldernames: Vec<(i32, String)>,
+    /// Raw GLM_12 key encoding optimized for size. This key has a purpose that is assumed to be related to likes, though it is unknown.
+    ///
+    /// Internal key: `GLM_12`
+    pub glm12_unknown: Vec<[i32; 4]>,
 }
 
 repr_t!(
@@ -457,16 +551,22 @@ pub struct GDAccount {
     pub hashed_password: Option<String>,
     /// List of creators' account IDs that this player follows
     pub following_creators: Vec<i32>,
+    /// List of levels that the player has reported.
+    ///
+    /// Internal key: `GLM_14`
+    pub reported_levels: Vec<i32>,
 }
 
 /// Temporary variables stored in the savefile that are expected to be overwritten in the future
 #[allow(missing_docs)]
 #[derive(Debug, Default, Clone)]
-pub struct GDTempState {
+pub struct GDCurrentValues {
     /// Levels that were played in the last session
     pub last_played_levels: Vec<i32>,
     /// The current daily level's TimelyID
     pub current_daily_level: i32,
+    /// The current weekly level's TimelyID
+    pub current_weekly_level: i32,
 }
 
 /* TODO: for GLM_08, make a GDSearchFilter struct. all fields are boolean, so use bitflags */

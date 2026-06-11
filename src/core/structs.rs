@@ -10,7 +10,7 @@ repr_t!(
     #[allow(missing_docs)]
     KCEKValue: i32 {
         GJGameLevel = 4,
-        SongIngoObject = 6,
+        SongInfoObject = 6,
         GJChallengeItem = 7,
         GJRewardItem = 8,
         GJRewardObject = 9,

@@ -1,5 +1,5 @@
 //! Unit tests for the crate
-use std::time::Instant;
+use std::{fs, time::Instant};
 
 use crate::{
     ccgamemanager::CCGameManager,
@@ -203,7 +203,7 @@ fn print_list_info() {
 #[test]
 fn cc_game_manager_parse() {
     let gm = CCGameManager::from_local().unwrap();
-    println!("{gm:#?}");
+    fs::write("ccgamemanager dump 2", format!("{gm:#?}")).unwrap();
 }
 
 #[test]

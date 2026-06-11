@@ -23,6 +23,7 @@ dtoa = "1.0.10"
 flate2 = { version = "1.1.2", features = ["zlib"] }
 hex = "0.4.3"
 itoa = "1.0.15"
+nohash-hasher = "0.2.0"
 phf = { version = "0.13.1", features = ["macros"] }
 plist = "1.7.4"
 sha1 = "0.11.0"
