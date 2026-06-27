@@ -310,9 +310,10 @@ impl GDObjConfig {
 }
 
 bitflags! {
-    /// Common attributes container struct
-    #[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
-    // #[allow(missing_docs)] won't work here for some odd reason
+    #[allow(missing_docs)]
+    #[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
+    #[must_use]
+    /// Common boolean attributes of a GDObject.
     pub struct GDObjAttributes: u32 {
         /// @nodoc
         const dont_fade          = 1;

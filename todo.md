@@ -1,4 +1,3 @@
-- improve tests
 - fix doc examples
 - make a level header string parser
 - add features: 
@@ -13,6 +12,11 @@
 - big massive documentation update
     - cover all enums and struct fields
     - also cover all the known edgecases/anomalies
+- big massive test overhaul
+    - tests for parsing all gdvalues
+    - tests for creating all gd structs
+    - tests for this, that, and the other thing
+    - everything in core thoroughly
 
 ## cclocallevels
 - gdlevel

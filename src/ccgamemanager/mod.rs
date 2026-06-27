@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, io::Cursor};
 
+use bitflags::bitflags;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -210,7 +211,7 @@ impl CCGameManager {
         );
 
         /* Values not parsed */
-        // GLM_02, GLM_04, GS_8: These keys are unused and modern (2.2) GD savefiles.
+        // GLM_02, GLM_04, GS_8: These keys are unused in modern (2.2) GD savefiles.
 
         // self.other_properties = d.into_iter().collect();
 
@@ -471,3 +472,94 @@ pub struct GDTempState {
 
 /* TODO: for GLM_08, make a GDSearchFilter struct. all fields are boolean, so use bitflags */
 /* TODO 2: add a "Internal key: `...`" footer for every (sub)struct field docstring in CCGameManager */
+
+bitflags! {
+    #[allow(missing_docs)]
+    #[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
+    #[must_use]
+    /// Filters for searching online levels
+    pub struct GDSearchFilters: u32 {
+        /// Internal key: `Diff0`
+        const Diff0              = 1;
+        /// Internal key: `Diff1`
+        const Diff1              = 1 << 1;
+        /// Internal key: `Diff2`
+        const Diff2              = 1 << 2;
+        /// Internal key: `Diff3`
+        const Diff3              = 1 << 3;
+        /// Internal key: `Diff4`
+        const Diff4              = 1 << 4;
+        /// Internal key: `Diff5`
+        const Diff5              = 1 << 5;
+        /// Internal key: `Diff6`
+        const Diff6              = 1 << 6;
+        /// Internal key: `Diff7`
+        const Diff7              = 1 << 7;
+        /// Tiny levels
+        ///
+        /// Internal key: `Len0`
+        const LengthTiny         = 1 << 8;
+        /// Small levels
+        ///
+        /// Internal key: `Len1`
+        const LengthSmall        = 1 << 9;
+        /// Medium levels
+        ///
+        /// Internal key: `Len2`
+        const LengthMedium       = 1 << 10;
+        /// Long levels
+        ///
+        /// Internal key: `Len3`
+        const LengthLong         = 1 << 11;
+        /// XL levels
+        ///
+        /// Internal key: `Len4`
+        const LengthXL           = 1 << 12;
+        /// Internal key: `demon_filter`
+        const demon_filter       = 1 << 13;
+        /// Platformer levels
+        ///
+        /// Internal key: `Len5`
+        const Platformer         = 1 << 14;
+        /// Star-rated levels
+        const star_filter        = 1 << 15;
+        /// Filtering for a song
+        /// Internal key: `song_filter`
+        const song_filter        = 1 << 16;
+        /// Internal key: `customsong_filter`
+        const customsong_filter  = 1 << 17;
+        /// Internal key: `mythic_filter`
+        const mythic_filter      = 1 << 18;
+        /// Internal key: `enable_songFilter`
+        const enable_songFilter  = 1 << 19;
+        /// Internal key: `uncompleted_filter`
+        const uncompleted_filter = 1 << 20;
+        /// Internal key: `completed_filter`
+        const completed_filter   = 1 << 21;
+        /// Internal key: `featured_filter`
+        const featured_filter    = 1 << 22;
+        /// Internal key: `original_filter`
+        const original_filter    = 1 << 23;
+        /// Internal key: `twoP_filter`
+        const twoP_filter        = 1 << 24;
+        /// Internal key: `nostar_filter`
+        const nostar_filter      = 1 << 25;
+        /// Internal key: `coin_filter`
+        const coin_filter        = 1 << 26;
+        /// Internal key: `follow_filter`
+        const follow_filter      = 1 << 27;
+        /// Internal key: `friend_filter`
+        const friend_filter      = 1 << 28;
+        /// Internal key: `epic_filter`
+        const epic_filter        = 1 << 29;
+        /// Internal key: `legendary_filter`
+        const legendary_filter   = 1 << 30;
+    }
+}
+
+impl GDSearchFilters {
+    /// Parses a dictionary from CCGameManager to search filters
+    pub fn from_dict(d: &Dictionary) -> Option<Self> {
+        None
+    }
+}
