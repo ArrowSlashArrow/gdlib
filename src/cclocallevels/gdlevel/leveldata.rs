@@ -321,6 +321,30 @@ impl GDLevelData {
     }
 }
 
+/// Parses a string of raw object strings separated by semicolons to a vector of [`GDObject`]s.
+pub fn parse_objects(s: &str) -> Vec<GDObject> {
+    #[cfg(feature = "parallel")]
+    let objects = {
+        let split = s.split(";").collect::<Vec<_>>();
+
+        split
+            .par_iter()
+            .filter(|obj| obj.len() > 1)
+            .map(GDObject::parse_str)
+            .collect()
+    };
+
+    #[cfg(not(feature = "parallel"))]
+    let objects = s
+        .split(";")
+        .into_iter()
+        .filter(|obj| obj.len() > 1)
+        .map(GDObject::parse_str)
+        .collect();
+
+    objects
+}
+
 impl HeaderValue {
     /// Parses an input string with a given type to this object
     pub fn parse(val: &str, ptype: HeaderValueType) -> Option<Self> {

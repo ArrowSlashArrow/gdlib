@@ -1,5 +1,38 @@
 GLM_08	filters	Search Filters States
-GLM_09	filters	Search Filters for Online Levels
 GLM_20	Templates	Your Smart Templates
-GLM_22  ?   ?
-GLM_23  ?   ?   
+
+customObjectDict: String("{ length: 24 }")
+reportedAchievements: String("{ length: 508 }")
+unlockValueKeeper: String("{ length: 35 }")
+valueKeeper: String("{ length: 525 }")
+
+GS_23: String("{ length: 123 }")
+GS_29: Boolean(true)
+GS_18: String("{ length: 123 }")
+GS_27: String("{ length: 51 }")
+GS_28: String("{ length: 1 }")
+GS_10: String("{ length: 27 }")
+GS_12: String("{ length: 3 }")
+GS_6: String("{ length: 181 }")
+GS_11: String("{ length: 1066 }")
+GS_7: String("{ length: 3394 }")
+GS_3: String("{ length: 733 }")
+GS_32: String("{ length: 0 }")
+GS_value: String("{ length: 123 }")
+GS_completed: String("{ length: 6633 }")
+GS_21: String("{ length: 68 }")
+GS_9: String("{ length: 3465 }")
+GS_5: String("{ length: 65 }")
+GS_24: String("{ length: 315 }")
+GS_14: String("{ length: 602 }")
+GS_31: String("{ length: 21 }")
+GS_19: String("{ length: 483 }")
+GS_17: String("{ length: 350 }")
+GS_22: String("{ length: 0 }")
+GS_15: String("{ length: 1 }")
+GS_8: String("{ length: 0 }")
+GS_30: String("{ length: 35 }")
+GS_16: String("{ length: 350 }")
+GS_25: String("{ length: 23 }")
+GS_26: Integer(34)
+GS_4: String("{ length: 513 }")

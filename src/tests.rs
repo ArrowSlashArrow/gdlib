@@ -1,6 +1,8 @@
 //! Unit tests for the crate
 use std::{fs, time::Instant};
 
+use plist::Value::{Array, Dictionary, String};
+
 use crate::{
     ccgamemanager::CCGameManager,
     cclocallevels::{
@@ -206,6 +208,16 @@ fn print_list_info() {
 fn cc_game_manager_parse() {
     let gm = CCGameManager::from_local().unwrap();
     fs::write("ccgamemanager dump 2", format!("{gm:#?}")).unwrap();
+    for (k, v) in gm.other_properties {
+        println!(
+            "{k}: {:?}",
+            match v {
+                Dictionary(d) => String(format!("{{ length: {} }}", d.len())),
+                Array(a) => String(format!("[ length: {} ]", a.len())),
+                v => v,
+            }
+        );
+    }
 }
 
 #[test]

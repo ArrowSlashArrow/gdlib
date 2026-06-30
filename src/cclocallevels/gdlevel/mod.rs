@@ -110,7 +110,7 @@ impl CCLocalLevels {
             .collect::<Option<_>>()
             .ok_or(GDError::CorruptedSavefile("Unable to parse levels".into()))?;
 
-        let lists = CCLocalLevels::parse_from_value(&llm_03)?;
+        let lists = CCLocalLevels::parse_lists_from_value(&llm_03)?;
 
         let levels = CCLocalLevels {
             levels: levels_parsed,
@@ -122,7 +122,7 @@ impl CCLocalLevels {
     }
 
     /// Parses the given plist dictionary to this struct
-    pub(crate) fn parse_from_value(v: &Value) -> Result<Vec<GDList>, GDError> {
+    pub(crate) fn parse_lists_from_value(v: &Value) -> Result<Vec<GDList>, GDError> {
         /* Input dict structure
          * "_isArr": always Boolean(true)
          * k_X: list at index X
@@ -1128,7 +1128,8 @@ impl GDLevel {
         }
     }
 
-    /// Returns the decrypted level data as a `GDLevelContents` object if there is data.
+    /// Returns a mutable reference to the decrypted level data as a `GDLevelContents` object if there is data.
+    /// This method calls [`Self::decrypt_level_data`] before attempt to return the decrypted level data.
     pub fn get_decrypted_data_ref(&mut self) -> Option<&mut GDLevelData> {
         self.decrypt_level_data().ok().unwrap();
         match &mut self.content.data {
@@ -1143,7 +1144,8 @@ impl GDLevel {
         }
     }
 
-    /// Adds a `GDObject` to `self.objects`
+    /// Adds a `GDObject` to `self.objects` only if self.content.data is already decrypted, otherwise nothing happens.
+    /// To decrypt the level data, see [`Self::decrypt_level_data`] or [`Self::get_decrypted_data_ref`]
     pub fn add_object(&mut self, object: GDObject) {
         if let Some(data) = &mut self.content.data {
             match data {
