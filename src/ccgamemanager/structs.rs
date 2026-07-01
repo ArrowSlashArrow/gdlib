@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use bitflags::bitflags;
-use plist::Dictionary;
+use plist::{Dictionary, Value};
 
 use crate::{
     ccgamemanager::{
@@ -201,6 +201,10 @@ pub struct GDConfig {
     ///
     /// Internal key: `customObjectDict`
     pub custom_objects: Vec<(i32, Vec<GDObject>)>,
+    /// Search filters for online levels
+    ///
+    /// Internal key: `GLM_08`
+    pub search_filters: GDSearchFilters,
 }
 
 /// Configuration to do with the player's account and social settings
@@ -411,15 +415,15 @@ impl GDPlatformerUI {
     }
 }
 
-/* TODO: for GLM_08, make a GDSearchFilter struct. all fields are boolean, so use bitflags */
-/* TODO 2: add a "Internal key: `...`" footer for every (sub)struct field docstring in CCGameManager */
-#[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default)]
 /// Search filter state for online levels
 pub struct GDSearchFilters {
     /// The majority of search filters. Contains all search boolean flags by which online levels may be searched.
     pub boolean_flags: GDSearchFilterFlags,
     /// Optionally enabled song ID filter. Filters out all levels that do not have this song ID if given.
     pub song: Option<i32>,
+    /// Values that are unaccounted for. This dictionary should be empty when parsing a vanilla savefile.
+    pub other: HashMap<String, Value>,
 }
 
 bitflags! {
@@ -472,25 +476,29 @@ bitflags! {
         /// Star-rated levels
         ///
         /// Internal key: `star_filter`
-        const StarFilter        = 1 << 15;
+        const HasStars           = 1 << 15;
+        /// Internal key: `customsong_filter`
+        const CustomSongFilter   = 1 << 16;
         /// Internal key: `mythic_filter`
-        const mythic_filter      = 1 << 18;
+        const IsMythic           = 1 << 18;
         /// Internal key: `enable_songFilter`
-        const enable_songFilter  = 1 << 19;
+        const SongFilterEnabled  = 1 << 19;
+        /// Works only for rated levels.
+        ///
         /// Internal key: `uncompleted_filter`
-        const uncompleted_filter = 1 << 20;
+        const IsUncompleted      = 1 << 20;
         /// Internal key: `completed_filter`
-        const completed_filter   = 1 << 21;
+        const IsCompleted        = 1 << 21;
         /// Internal key: `featured_filter`
-        const featured_filter    = 1 << 22;
+        const IsFeatured         = 1 << 22;
         /// Internal key: `original_filter`
-        const original_filter    = 1 << 23;
+        const IsOriginal         = 1 << 23;
         /// Internal key: `twoP_filter`
-        const TwoPlayer        = 1 << 24;
+        const TwoPlayer          = 1 << 24;
         /// Internal key: `nostar_filter`
-        const NoStars      = 1 << 25;
+        const NoStars            = 1 << 25;
         /// Internal key: `coin_filter`
-        const Coins        = 1 << 26;
+        const HasCoins           = 1 << 26;
         /// Levels from creators that the player follows.
         ///
         /// Internal key: `follow_filter`
@@ -509,10 +517,115 @@ bitflags! {
 }
 
 impl GDSearchFilters {
-    /// Parses a dictionary from CCGameManager to search filters
-    // TODO
+    /// Parses a dictionary from CCGameManager to search filters. This function will return `None` if the filter
+    /// dictionary is malformed, which can be due to of the following:
+    /// * Any value is not stored as a string
+    /// * The value for the `song_filter` key is not a numerical string
+    ///
+    /// Values not accounted for are still parsed, however they are left as-is and stored in `self.other`.
     pub fn from_dict(d: &Dictionary) -> Option<Self> {
-        None
+        let mut this = Self::default();
+        for (k, v) in d.iter() {
+            let bool_value = v.as_string()? == "1";
+            match k.as_str() {
+                "Diff0" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyNA, bool_value),
+                "Diff1" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyAuto, bool_value),
+                "Diff2" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyEasy, bool_value),
+                "Diff3" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyNormal, bool_value),
+                "Diff4" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyHard, bool_value),
+                "Diff5" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyHarder, bool_value),
+                "Diff6" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyInsane, bool_value),
+                "Diff7" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DifficultyDemon, bool_value),
+                "Len0" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::LengthTiny, bool_value),
+                "Len1" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::LengthSmall, bool_value),
+                "Len2" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::LengthMedium, bool_value),
+                "Len3" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::LengthLong, bool_value),
+                "Len4" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::LengthXL, bool_value),
+                "demon_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::DemonFilter, bool_value),
+                "Len5" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::Platformer, bool_value),
+                "star_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::HasStars, bool_value),
+                "customsong_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::CustomSongFilter, bool_value),
+                "mythic_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::IsMythic, bool_value),
+                "enable_songFilter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::SongFilterEnabled, bool_value),
+                "uncompleted_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::IsUncompleted, bool_value),
+                "completed_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::IsCompleted, bool_value),
+                "featured_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::IsFeatured, bool_value),
+                "original_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::IsOriginal, bool_value),
+                "twoP_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::TwoPlayer, bool_value),
+                "nostar_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::NoStars, bool_value),
+                "coin_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::HasCoins, bool_value),
+                "follow_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::FollowedCreator, bool_value),
+                "friend_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::Friends, bool_value),
+                "epic_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::RatingEpic, bool_value),
+                "legendary_filter" => this
+                    .boolean_flags
+                    .set(GDSearchFilterFlags::RatingLegendary, bool_value),
+                "song_filter" => this.song = Some(v.as_string()?.parse::<i32>().ok()?),
+                _ => {
+                    this.other.insert(k.clone(), v.clone());
+                }
+            }
+        }
+
+        Some(this)
     }
 }
 

@@ -1,4 +1,3 @@
-GLM_08	filters	Search Filters States
 GLM_20	Templates	Your Smart Templates
 
 unlockValueKeeper: String("{ length: 35 }")

@@ -7,8 +7,8 @@ use plist::{Dictionary, Value};
 
 use crate::{
     ccgamemanager::structs::{
-        GDAccount, GDConfig, GDCurrentValues, GDPlatformerUI, GDPlayerInfo, GDSongConfig,
-        GDStatistics, Resolution, TextureQuality,
+        GDAccount, GDConfig, GDCurrentValues, GDPlatformerUI, GDPlayerInfo, GDSearchFilters,
+        GDSongConfig, GDStatistics, Resolution, TextureQuality,
     },
     cclocallevels::gdlevel::{CCLocalLevels, GDLevel, PLIST_HEADER, leveldata::parse_objects},
     core::{GDError, get_ccgamemanager_path, io::decrypt_file, proper_plist_tags},
@@ -306,6 +306,11 @@ impl CCGameManager {
             Some(())
         })?;
 
+        parse_val(&mut d, "GLM_08", |v| {
+            self.config.search_filters = GDSearchFilters::from_dict(v.as_dictionary()?)?;
+            Some(())
+        })?;
+
         // todo: parse GLM_20
         // currently too lazy to do that because it's a complex key
 
@@ -338,6 +343,7 @@ fn parse_values<F: Fn(Value) -> Option<R>, R>(
 }
 
 #[must_use]
+#[inline]
 fn parse_val<F: FnMut(Value) -> Option<()>>(
     d: &mut Dictionary,
     key: &str,
