@@ -1,13 +1,29 @@
 //! All sub-component structs of ccgamemanager::CCGameManager.
 
+use std::collections::HashMap;
+
 use bitflags::bitflags;
 use plist::Dictionary;
 
 use crate::{
-    ccgamemanager::IntMap,
+    ccgamemanager::{
+        IntMap,
+        achievements::{GDAchievement, MAX_ACHIEVEMENT_INDEX},
+    },
     cclocallevels::{gdlevel::GDLevel, gdlist::GDList, gdobj::GDObject},
     repr_t,
 };
+
+/// Type of a valid achievement progress value: unsigned integer that supports a maximum value of at least 10,000.
+///
+/// For achievements that are not completed, the game uses one of two formats to represent completion progress:
+/// - A value on the interval \[0, 100] which is an integer percentage
+/// - A value on that interval\[0, 10'000] which is a percentage with double decimal point precision; e.g. 1962 is 19.62%
+///
+/// A value of 100 represents a completed achievement regardless of format.
+/// It is unknown what format is used by the game for specific achievements, however it is known that for values
+/// greater than 100 that the second format is used.
+pub type AchievementProgress = u16;
 
 // ---- Substructs ----
 
@@ -59,7 +75,7 @@ pub struct GDPlayerInfo {
 }
 
 /// Player-specific statistics.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct GDStatistics {
     /// Number of times this player has launched GD
     ///
@@ -89,6 +105,33 @@ pub struct GDStatistics {
     ///
     /// Internal keys: `GLM_10`
     pub completed_dailies: IntMap<GDLevel>,
+    /// All vanilla achievements. Each element is the achievement's progress is an integer from 0 - 100 inclusive.
+    /// Use [`GDStatistics::get_vanilla_achievement`] to get an achievement's progress when using the [`GDAchievement`] enum.
+    ///
+    /// The split between vanilla achievements and custom achievements is to optimize indexing of achievements.
+    pub achievements: [AchievementProgress; MAX_ACHIEVEMENT_INDEX],
+    /// Achievements that are unaccounted for in `self.achievements`. This includes any undocumented or custom-made achievements,
+    /// including those added by mods.
+    pub custom_achievements: HashMap<String, AchievementProgress>,
+}
+
+// manual impl exists because `Default` isn't implemented for `[T; N]` such that N > 32
+// and there are a lot more than 32 achievements in GD
+impl Default for GDStatistics {
+    fn default() -> Self {
+        Self {
+            bootups: 0,
+            official_level_progresses: Vec::new(),
+            online_levels_played: Vec::new(),
+            demon_keys: 0,
+            submitted_ratings: Vec::new(),
+            submitted_ratings_demons: Vec::new(),
+            gauntlet_levels_played: Vec::new(),
+            completed_dailies: HashMap::default(),
+            achievements: [0; MAX_ACHIEVEMENT_INDEX],
+            custom_achievements: HashMap::default(),
+        }
+    }
 }
 
 /// User's configuration of the game.
@@ -212,7 +255,7 @@ pub struct GDSongConfig {
     /// Presumably the songs that the user has stored or downloaded, but is unknown.
     ///
     /// Internal key: `MDLM_001`
-    pub stored_songs: (), // Vec<SongInfoObject>
+    pub stored_songs: (), // Vec<SongInfoObject>: TODO
     /// Has something to do with song priority, but is unknown.
     ///
     /// Internal key: `MDLM_002`    
@@ -467,7 +510,53 @@ bitflags! {
 
 impl GDSearchFilters {
     /// Parses a dictionary from CCGameManager to search filters
+    // TODO
     pub fn from_dict(d: &Dictionary) -> Option<Self> {
         None
+    }
+}
+
+impl GDStatistics {
+    /// Returns the reported progress value on this specific vanilla achievement. See [`AchievementProgress`].
+    #[inline]
+    pub fn get_vanilla_achievement(&self, a: GDAchievement) -> AchievementProgress {
+        // subtract one from index because of the way that achievement repr was created
+        self.achievements[a as i32 as usize - 1]
+    }
+
+    /// Returns the reported progress value on this specific achievement. The given identifier is first parsed
+    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::get_vanilla_achievement`]
+    /// is used to retrieve its value. Otherwise, it is looked up in `self.custom_achievements`.
+    /// See [`AchievementProgress`].
+    #[inline]
+    pub fn get_achievement_by_ident(&self, ident: &str) -> Option<AchievementProgress> {
+        match GDAchievement::parse_str(ident) {
+            Some(a) => Some(self.get_vanilla_achievement(a)),
+            None => {
+                // this is not a vanilla achievement; lookup in custom achievements
+                self.custom_achievements.get(ident).copied()
+            }
+        }
+    }
+
+    /// Set an achievement's progress value. See [`AchievementProgress`].
+    #[inline]
+    pub fn set_vanilla_achievement(&mut self, a: GDAchievement, value: AchievementProgress) {
+        self.achievements[a as i32 as usize - 1] = value;
+    }
+
+    /// Set an achievement's progress value. The given identifier is first parsed
+    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::get_vanilla_achievement`]
+    /// is used to set its value. Otherwise, it is looked up in `self.custom_achievements`.
+    /// See [`AchievementProgress`].
+    #[inline]
+    pub fn set_achievement_by_ident(&mut self, ident: &str, value: AchievementProgress) {
+        match GDAchievement::parse_str(ident) {
+            Some(a) => self.set_vanilla_achievement(a, value),
+            None => {
+                // this is not a vanilla achievement; lookup in custom achievements
+                let _ = self.custom_achievements.insert(ident.to_string(), value);
+            }
+        }
     }
 }

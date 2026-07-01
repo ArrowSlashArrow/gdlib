@@ -199,7 +199,7 @@ fn advanced_random_predict() {
 #[test]
 #[ignore]
 fn print_list_info() {
-    let mut cc = CCLocalLevels::from_local().unwrap();
+    let cc = CCLocalLevels::from_local().unwrap();
     println!("{:#?}", cc.lists);
 }
 

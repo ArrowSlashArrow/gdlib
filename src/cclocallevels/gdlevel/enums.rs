@@ -83,7 +83,7 @@ repr_t!(
 );
 
 repr_t!(
-    /// All possible official songs a level can use
+    /// All official songs used in GD, including in spin-off games.
     OfficialSong: i32 {
         StayInsideMe = -1,
         StereoMadness = 0,

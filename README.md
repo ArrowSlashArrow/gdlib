@@ -21,7 +21,8 @@ Features
 * Optional `parallel` feature to use Rayon-backed parallel object parse/serialise and savefile xor passes (use `cargo add gdlib --features parallel`)
 
 This crate is intended to have provide full coverage of both GD savefiles and full support for editing each individual component within.  
-As of v0.3.3, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 
+As of v0.4.0, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 
+**Note: Gamesaves from spinoff games are NOT tested. GDLib is not guaranteed to be able to parse savefiles from any of those games which include: GD Meltdown, GD Subzero, GD World, GD Lite**.
 
 ## Usage instructions
 This crate can be added to a project by running `cargo add gdlib`.

@@ -14,6 +14,7 @@ use crate::{
     core::{GDError, get_ccgamemanager_path, io::decrypt_file, proper_plist_tags},
 };
 
+pub mod achievements;
 pub mod structs;
 
 type IntMap<V> = HashMap<i32, V, BuildHasherDefault<NoHashHasher<i32>>>;
@@ -49,7 +50,9 @@ impl CCGameManager {
         Self::from_raw_string(decrypt_file(path).unwrap())
     }
 
-    /// Parses a raw plist to this object
+    /// Parses a raw savefile plist to this object. The parser accounts for unknown keys, however it will panic in the case of a mistyped value.
+    /// For example, an achievement's progress value not being a numeric utf-8 string will cause the parser to panic.  
+    /// Please consider this when parsing possibly malformed savefiles.
     pub fn from_raw_string(s: String) -> Result<Self, GDError> {
         if !s.starts_with(PLIST_HEADER) {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
@@ -289,6 +292,17 @@ impl CCGameManager {
                     )
                 })
                 .collect();
+            Some(())
+        })?;
+
+        parse_val(&mut d, "reportedAchievements", |v| {
+            // input dict: {ident: progress}
+            v.as_dictionary()?.iter().for_each(|(ident, progress)| {
+                self.stats.set_achievement_by_ident(
+                    ident,
+                    progress.as_string().unwrap().parse::<u16>().unwrap() as u16,
+                );
+            });
             Some(())
         })?;
 
