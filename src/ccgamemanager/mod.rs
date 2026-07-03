@@ -127,6 +127,7 @@ impl CCGameManager {
                 ("GLM_17", &mut self.temp_state.current_weekly_level),
                 ("GLM_23", &mut self.config.glm23_unknown),
                 ("MDLM_002", &mut self.song_config.song_priority),
+                ("secretNumber", &mut self.config.secret_number),
             ],
             |v| v.as_signed_integer().map(|v| v as i32),
         )?;

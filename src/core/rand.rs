@@ -19,7 +19,7 @@ pub fn next_seed_mut(seed: &mut u64) {
     *seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(LCG_CONSTANT);
 }
 
-/// Function used by GD to generate a new seed. Internally known as `fast_rand_0_1`.
+/// Function used by GD to generate a new seed. Internally known as `fast_rand`.
 /// Unlike the actual PRNG used in GD, this function *DOES NOT* automatically update the seed.
 #[inline(always)]
 #[must_use]
@@ -28,6 +28,7 @@ pub fn fast_rand_bits(seed: u64) -> u64 {
 }
 
 /// Utility function which normalises result from [`fast_rand_bits`] to the range \[0.0, 1.0].
+/// Internally known as `fast_rand_0_1`
 #[inline(always)]
 #[must_use]
 pub fn fast_rand_bits_norm(seed: u64) -> f64 {
@@ -50,53 +51,44 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 
 /// Determines the group that an advanced random trigger will activate based on an input seed
 /// and a list of the trigger's activation probabilities per group as a [`GDValue::ProbabilitiesList`].
+/// Note that this is the same type as the advanced trigger's `RANDOM_PROBABILITIES_LIST` property.
+/// If the given list of probabilities is empty, this method will return `None`.
 ///
-/// For maximal accuracy, please do not sort or prune the list in any way.
-/// Doing so may affect the results of the check.
+/// For accuracy, please do not sort or prune the list in any way.
+/// Doing so may and likely will affect the results of the check.
 ///
-/// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`].
-/// This is a key difference between this function and GD's version,
-/// since the official one automatically updates the seed when called.
+/// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`] or [`next_seed_mut`].
 ///
-/// **WARNING**: This function may rarely, for an unknown reason, erroneously determine that
-/// a seed will activate a group when in reality, it won't. Please be mindful of this when checking seeds.
+/// This algorithm was sourced from the Andriod APK for GD and is verified to work as of GD 2.2801.
 #[must_use]
 pub fn check_seed_advanced_random(seed: u64, probabilities: &GDValue) -> Option<Group> {
-    let prob_list;
-    if let GDValue::ProbabilitiesList(probs) = probabilities {
-        prob_list = probs;
-    } else {
-        // Skip evaluation of an irrelevant value.
-        return None;
-    }
+    // tuples of (group, chance)
+    let prob_list = match probabilities {
+        GDValue::ProbabilitiesList(probs) => probs,
+        _ => return None,
+    };
 
-    // There are no probabilities to choose from.
-    if prob_list.is_empty() {
-        return None;
-    }
-
-    // If only one group can be triggered, then only that group may be activated.
-    if prob_list.len() == 1 {
-        return Some(Group::Regular(prob_list[0].0));
-    }
-
-    // Get total chance and threshold
     let total_chance: i32 = prob_list.iter().map(|(_, chance)| chance).sum();
-    // threshold is in the range \[0, total_chance]
-    let threshold = fast_rand_bits_norm(seed) * total_chance as f64;
+    let rand_seed = fast_rand_bits_norm(seed) as f32;
+    let mut buf_ptr = 0;
 
-    let mut cumulative_chance = 0;
-    let mut chosen_group = prob_list.last().unwrap().0;
+    if !prob_list.is_empty() {
+        let mut accumulated_chance = prob_list[buf_ptr].1; // chance
 
-    // Iterate through all groups until the threshold is reached.
-    // If the threshold is never reached, the last group is activated.
-    for (group, chance) in prob_list {
-        cumulative_chance += chance;
-        if cumulative_chance as f64 >= threshold {
-            chosen_group = *group;
-            break;
+        loop {
+            if (rand_seed * total_chance as f32) as i32 <= accumulated_chance {
+                return Some(Group::Regular(prob_list[buf_ptr].0)); // return the group id 
+            }
+
+            if buf_ptr == prob_list.len() - 1 {
+                // since we have reached the end of the list but still need to pick a group
+                // we choose the last one of the list.
+                return Some(Group::Regular(prob_list[buf_ptr].0));
+            }
+
+            buf_ptr += 1;
+            accumulated_chance = accumulated_chance + prob_list[buf_ptr].1;
         }
     }
-
-    Some(Group::Regular(chosen_group))
+    return None; // fallback
 }

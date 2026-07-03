@@ -205,6 +205,10 @@ pub struct GDConfig {
     ///
     /// Internal key: `GLM_08`
     pub search_filters: GDSearchFilters,
+    /// Answer to `cod3breaker` in the vault of secrets
+    ///
+    /// Internal key: `secretNumber`
+    pub secret_number: i32,
 }
 
 /// Configuration to do with the player's account and social settings

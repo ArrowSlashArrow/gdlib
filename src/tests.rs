@@ -8,7 +8,7 @@ use crate::{
     cclocallevels::{
         gdlevel::{CCLocalLevels, GDLevel, leveldata::HeaderValue},
         gdobj::{
-            self,
+            self, GDObject,
             constructors::{
                 misc::default_block,
                 triggers::{advanced_random_trigger, event_trigger, move_trigger},
@@ -175,25 +175,35 @@ fn event_trigger_test() {
 
 #[test]
 fn advanced_random_predict() {
-    let level = GDLevel::from_gmd("test_gmds/advrand test.gmd").unwrap();
-    // find adv random trigger
-    let data = level.get_decrypted_data().unwrap();
-    let adv_rand = data
-        .objects
-        .iter()
-        .find(|o| o.id == TRIGGER_ADVANCED_RANDOM)
-        .unwrap();
+    // tuple: (object, seed, expected group)
+    let tests: &[(&str, u64, i16)] = &[
+        (
+            "1,2068,2,75,3,75,155,2,11,1,87,1,36,1,152,2.50.3.50;",
+            5006,
+            2,
+        ),
+        ("1,2068,2,75,3,75,155,2,11,1,87,1,36,1,152,2.50.3.50;", 1, 2),
+        (
+            "1,2068,2,75,3,75,155,2,11,1,87,1,36,1,152,1.10.2.10.3.10.4.10.5.10;",
+            32321,
+            2,
+        ),
+        (
+            "1,2068,2,75,3,75,155,1,11,1,87,1,36,1,152,1.10.2.20.3.15.4.5.5.25.6.50;",
+            58392,
+            6,
+        ),
+    ];
 
-    // get probabilities table
-    let probabilities = adv_rand.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
-
-    // set input params
-    let seed = 123;
-    // predict outcome
-    assert_eq!(
-        check_seed_advanced_random(seed, &probabilities).unwrap(),
-        Group::Regular(1)
-    );
+    for &(obj_str, seed, expected) in tests {
+        let adv_rand = GDObject::parse_str(obj_str);
+        // get probabilities table
+        let probabilities = adv_rand.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
+        assert_eq!(
+            check_seed_advanced_random(seed, &probabilities).unwrap(),
+            Group::Regular(expected)
+        );
+    }
 }
 
 #[test]
