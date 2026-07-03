@@ -20,7 +20,7 @@ use crate::{
             },
         },
     },
-    core::rand::check_seed_advanced_random,
+    core::rand::{check_seed_advanced_random, next_seed_mut},
 };
 
 fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
@@ -193,6 +193,7 @@ fn advanced_random_predict() {
             58392,
             6,
         ),
+        ("1,2068,2,285,3,285,155,1,36,1,152,2.10.3.10;", 190824, 2),
     ];
 
     for &(obj_str, seed, expected) in tests {
@@ -255,6 +256,40 @@ fn _temp_level_header() -> anyhow::Result<()> {
         for c in cs {
             println!("{:?}", c);
         }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn get_seed_from_criteria() -> anyhow::Result<()> {
+    let level = GDLevel::from_gmd("test_gmds/Chompstep.gmd")?;
+    let mut objects = level.get_decrypted_data().unwrap().objects;
+
+    // advanced random objects do not change the group for some reason
+    objects.retain(|o| o.id == TRIGGER_ADVANCED_RANDOM && o.config.pos.0 > 0.0);
+    objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
+
+    let expected = vec![3, 2, 2, 2, 2, 2, 2, 2];
+
+    let mut seed = 0;
+
+    'outer: for obj in objects {
+        // get probabilities table
+        let probabilities = obj.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
+
+        let mut seed_clone = seed;
+        for g in &expected {
+            let got = check_seed_advanced_random(seed, &probabilities).unwrap();
+            next_seed_mut(&mut seed_clone);
+            if let Group::Regular(g1) = got
+                && g1 != *g
+            {
+                seed += 1;
+                continue 'outer;
+            }
+        }
+        println!("found seed: {}", seed_clone);
     }
 
     Ok(())

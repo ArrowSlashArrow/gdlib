@@ -14,7 +14,6 @@ pub fn next_seed(seed: u64) -> u64 {
 
 /// Mutating version of [`next_seed`]
 #[inline(always)]
-#[must_use]
 pub fn next_seed_mut(seed: &mut u64) {
     *seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(LCG_CONSTANT);
 }
@@ -69,26 +68,19 @@ pub fn check_seed_advanced_random(seed: u64, probabilities: &GDValue) -> Option<
     };
 
     let total_chance: i32 = prob_list.iter().map(|(_, chance)| chance).sum();
-    let rand_seed = fast_rand_bits_norm(seed) as f32;
+    let accumulated_chance_threshold =
+        (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;
     let mut buf_ptr = 0;
 
     if !prob_list.is_empty() {
         let mut accumulated_chance = prob_list[buf_ptr].1; // chance
 
-        loop {
-            if (rand_seed * total_chance as f32) as i32 <= accumulated_chance {
-                return Some(Group::Regular(prob_list[buf_ptr].0)); // return the group id 
-            }
-
-            if buf_ptr == prob_list.len() - 1 {
-                // since we have reached the end of the list but still need to pick a group
-                // we choose the last one of the list.
-                return Some(Group::Regular(prob_list[buf_ptr].0));
-            }
-
+        while !(accumulated_chance_threshold <= accumulated_chance) {
             buf_ptr += 1;
             accumulated_chance = accumulated_chance + prob_list[buf_ptr].1;
         }
+        Some(Group::Regular(prob_list[buf_ptr].0))
+    } else {
+        None
     }
-    return None; // fallback
 }
