@@ -6,10 +6,16 @@ use nohash_hasher::NoHashHasher;
 use plist::{Dictionary, Value};
 
 use crate::{
-    cclocallevels::gdlevel::{GDLevel, PLIST_HEADER},
+    ccgamemanager::structs::{
+        GDAccount, GDConfig, GDCurrentValues, GDPlatformerUI, GDPlayerInfo, GDSearchFilters,
+        GDSongConfig, GDStatistics, Resolution, TextureQuality,
+    },
+    cclocallevels::gdlevel::{CCLocalLevels, GDLevel, PLIST_HEADER, leveldata::parse_objects},
     core::{GDError, get_ccgamemanager_path, io::decrypt_file, proper_plist_tags},
-    repr_t,
 };
+
+pub mod achievements;
+pub mod structs;
 
 type IntMap<V> = HashMap<i32, V, BuildHasherDefault<NoHashHasher<i32>>>;
 
@@ -18,9 +24,9 @@ type IntMap<V> = HashMap<i32, V, BuildHasherDefault<NoHashHasher<i32>>>;
 pub struct CCGameManager {
     /// Info about the player. Namely, selected icons
     pub player_info: GDPlayerInfo,
-    /// User statistics stored in the file
+    /// Player statistics stored in the file
     pub stats: GDStatistics,
-    /// User's configuration of the game (e.g. volume, resolution, texture quality, etc.)
+    /// Player's configuration of the game (e.g. volume, resolution, texture quality, etc.)
     pub config: GDConfig,
     /// Account info
     pub account: GDAccount,
@@ -30,6 +36,8 @@ pub struct CCGameManager {
     pub keybinds: (Dictionary, Dictionary),
     /// Temporary state variables
     pub temp_state: GDCurrentValues,
+    /// MDLM_001 and MDLM_002
+    pub song_config: GDSongConfig,
 
     /// Unaccounted-for properties
     pub other_properties: HashMap<String, Value>,
@@ -42,7 +50,9 @@ impl CCGameManager {
         Self::from_raw_string(decrypt_file(path).unwrap())
     }
 
-    /// Parses a raw plist to this object
+    /// Parses a raw savefile plist to this object. The parser accounts for unknown keys, however it will panic in the case of a mistyped value.
+    /// For example, an achievement's progress value not being a numeric utf-8 string will cause the parser to panic.  
+    /// Please consider this when parsing possibly malformed savefiles.
     pub fn from_raw_string(s: String) -> Result<Self, GDError> {
         if !s.starts_with(PLIST_HEADER) {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
@@ -115,6 +125,9 @@ impl CCGameManager {
                 ("GS_20", &mut self.stats.demon_keys),
                 ("GLM_11", &mut self.temp_state.current_daily_level),
                 ("GLM_17", &mut self.temp_state.current_weekly_level),
+                ("GLM_23", &mut self.config.glm23_unknown),
+                ("MDLM_002", &mut self.song_config.song_priority),
+                ("secretNumber", &mut self.config.secret_number),
             ],
             |v| v.as_signed_integer().map(|v| v as i32),
         )?;
@@ -171,7 +184,7 @@ impl CCGameManager {
             Some(())
         })?;
         parse_val(&mut d, "texQuality", |v| {
-            self.config.text_quality =
+            self.config.texture_quality =
                 TextureQuality::try_from(v.as_signed_integer()? as i32).ok()?;
             Some(())
         })?;
@@ -264,8 +277,49 @@ impl CCGameManager {
             Some(())
         })?;
 
+        parse_val(&mut d, "GLM_22", |v| {
+            self.config.favourite_lists = CCLocalLevels::parse_lists_from_value(&v).ok()?;
+            Some(())
+        })?;
+
+        parse_val(&mut d, "customObjectDict", |v| {
+            self.config.custom_objects = v
+                .as_dictionary()?
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        k.parse::<i32>().unwrap(),
+                        parse_objects(v.as_string().unwrap()),
+                    )
+                })
+                .collect();
+            Some(())
+        })?;
+
+        parse_val(&mut d, "reportedAchievements", |v| {
+            // input dict: {ident: progress}
+            v.as_dictionary()?.iter().for_each(|(ident, progress)| {
+                self.stats.set_achievement_by_ident(
+                    ident,
+                    progress.as_string().unwrap().parse::<u16>().unwrap() as u16,
+                );
+            });
+            Some(())
+        })?;
+
+        parse_val(&mut d, "GLM_08", |v| {
+            self.config.search_filters = GDSearchFilters::from_dict(v.as_dictionary()?)?;
+            Some(())
+        })?;
+
+        // todo: parse GLM_20
+        // currently too lazy to do that because it's a complex key
+
         /* Values not parsed */
-        // GLM_02, GLM_04, GS_8: These keys are unused and modern (2.2) GD savefiles.
+        // GLM_02, GLM_04, GS_8: These keys are unused in modern (2.2+) GD savefiles.
+        /* values unknown */
+        // MDLM_003: Unknown dictionary
+        // GLM_09: Has something to do with filters for online levels, but it appears unused
 
         self.other_properties = d.into_iter().collect();
 
@@ -290,6 +344,7 @@ fn parse_values<F: Fn(Value) -> Option<R>, R>(
 }
 
 #[must_use]
+#[inline]
 fn parse_val<F: FnMut(Value) -> Option<()>>(
     d: &mut Dictionary,
     key: &str,
@@ -330,244 +385,3 @@ fn parse_foldernames(v: Value) -> Option<Vec<(i32, String)>> {
 
     Some(raw_folders)
 }
-
-/// Player info: username, UDID, user id, all icon info
-#[derive(Debug, Default, Clone)]
-#[allow(missing_docs)]
-pub struct GDPlayerInfo {
-    pub username: String,
-    pub udid: String,
-    pub user_id: i32,
-    /// Internally, `playerFrame`
-    pub icon_cube: i32,
-    pub icon_ship: i32,
-    pub icon_ball: i32,
-    /// Internally, `playerBird`
-    pub icon_ufo: i32,
-    /// Internally, `playerDart`
-    pub icon_wave: i32,
-    pub icon_robot: i32,
-    pub icon_spider: i32,
-    pub icon_swing: i32,
-    pub player_col1: i32,
-    pub player_col2: i32,
-    pub player_col_glow: i32,
-    pub icon_streak: i32,
-    pub ship_streak: i32,
-    pub death_effect: i32,
-    pub icon_jetpack: i32,
-    pub icon_type: i32,
-    pub using_glow: bool,
-    pub is_moderator: bool,
-}
-
-/// Player-specific statistics.
-#[derive(Debug, Default, Clone)]
-#[allow(missing_docs)]
-pub struct GDStatistics {
-    /// Number of times this player has launched GD
-    pub bootups: i32,
-    // todo: achievements, GLM_XX, GS_XX
-    /// All official levels that the player has progress on.
-    ///
-    /// Internal key: `GLM_01`
-    pub official_level_progresses: Vec<GDLevel>,
-    pub online_levels_played: Vec<GDLevel>,
-    pub demon_keys: i32,
-    /// All levels the player has submitted ratings on
-    pub submitted_ratings: Vec<i32>,
-    /// All demon levels the player has submitted ratings on
-    pub submitted_ratings_demons: Vec<i32>,
-    /// All gauntlet levels that the player has progress on
-    pub gauntlet_levels_played: Vec<GDLevel>,
-    /// All completed dailies in the form: {timely id: level}
-    pub completed_dailies: IntMap<GDLevel>,
-}
-
-/// User's configuration of the game.
-#[derive(Debug, Default, Clone)]
-#[allow(missing_docs)]
-pub struct GDConfig {
-    pub bgm_volume: f32,
-    pub sfx_volume: f32,
-    pub text_quality: TextureQuality,
-    pub resolution: Resolution,
-    pub show_song_markers: bool,
-    pub show_progress_bar: bool,
-    pub has_clicked_garage: bool,
-    pub has_clicked_editor: bool,
-    pub has_clicked_practice: bool,
-    pub seen_editor_guide: bool,
-    pub seen_ldm_dialog: bool,
-    pub seen_rate_star_dialog: bool,
-    pub has_rated_game: bool,
-    pub binary_version: i32,
-    pub practice_ui_pos: (f32, f32),
-    pub practice_ui_opacity: f32,
-    pub fps_target: f32,
-    /// Music offset in milliseconds
-    pub music_offset: i32,
-    /// `dpadn` for n in 1..=5
-    pub dpads: [GDPlatformerUI; 5],
-    pub dpad_layout: Option<GDPlatformerUI>,
-    /// List of folder names for saved online levels. Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
-    pub saved_levels_foldernames: Vec<(i32, String)>,
-    /// List of folder names for locally created levels (found in the editor tab). Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
-    pub local_levels_foldernames: Vec<(i32, String)>,
-    /// Raw GLM_12 key encoding optimized for size. This key has a purpose that is assumed to be related to likes, though it is unknown.
-    ///
-    /// Internal key: `GLM_12`
-    pub glm12_unknown: Vec<[i32; 4]>,
-}
-
-repr_t!(
-    strict TextureQuality: i32 {
-        Auto = 0,
-        Low = 1,
-        Medium = 2,
-        High = 3,
-    } default Auto
-);
-
-repr_t!(
-    strict Resolution: i32 {
-        R640x480 = 1,     // 4:3
-        R720x480 = 2,     // 3:2
-        R720x576 = 3,     // 5:4
-        R800x600 = 4,     // 4:3
-        R1024x768 = 5,    // 4:3
-        R1152x864 = 6,    // 4:3
-        R1176x664 = 7,    // 147:83
-        R1280x720 = 8,    // 16:9
-        R1280x768 = 9,    // 5:3
-        R1280x800 = 10,   // 16:10
-        R1280x960 = 11,   // 4:3
-        R1280x1024 = 12,  // 5:4
-        R1360x768 = 13,   // 85:48
-        R1366x768 = 14,   // 683:384
-        R1440x900 = 15,   // 16:10
-        R1600x900 = 16,   // 16:9
-        R1600x1024 = 17,  // 25:16
-        R1600x1200 = 18,  // 4:3
-        R1680x1050 = 19,  // 16:10
-        R1768x992 = 20,   // 221:124
-        R1920x1080 = 21,  // 16:9
-        R1920x1200 = 22,  // 16:10
-        R1920x1440 = 23,  // 4:3
-        R2048x1536 = 24,  // 4:3
-        R2560x1440 = 25,  // 16:9
-        R2560x1600 = 26,  // 16:10
-        R3840x2160 = 27,  // 16:9
-    } default R1920x1080
-);
-
-#[derive(Debug, Default, Clone)]
-#[allow(missing_docs)]
-/// Platformer controls UI config
-pub struct GDPlatformerUI {
-    pub width: i32,      // The width of the button hitboxl
-    pub height: i32,     // The height of the button hitbox
-    pub scale: f32,      // The scale of the buttons
-    pub opacity: i32,    // The button opacity (from 0 to 255)
-    pub pos: (f32, f32), // The position of the buttons
-    pub mode_b: bool,    // The ModeB checkbox
-    pub deadzone: f32,   // The deadzone between the buttons
-    pub radius: f32,     // The distance between the buttons
-    pub snap: bool,      // The Snap checkbox
-    pub split: bool,     // The Split checkbox
-}
-
-impl GDPlatformerUI {
-    /// Parses a comma-separated list of values to this object
-    pub fn from_str(s: &str) -> Self {
-        let mut this = Self::default();
-        let fns = &[
-            Self::parse_width,
-            Self::parse_height,
-            Self::parse_scale,
-            Self::parse_opacity,
-            Self::parse_pos_x,
-            Self::parse_pos_y,
-            Self::parse_mode_b,
-            Self::parse_deadzone,
-            Self::parse_radius,
-            Self::parse_snap,
-            Self::parse_split,
-        ];
-        s.split(",")
-            .into_iter()
-            .enumerate()
-            .for_each(|(idx, s)| (fns[idx])(&mut this, s));
-
-        this
-    }
-
-    fn parse_width(&mut self, s: &str) {
-        self.width = s.parse::<i32>().unwrap();
-    }
-    fn parse_height(&mut self, s: &str) {
-        self.height = s.parse::<i32>().unwrap();
-    }
-    fn parse_scale(&mut self, s: &str) {
-        self.scale = s.parse::<f32>().unwrap();
-    }
-    fn parse_opacity(&mut self, s: &str) {
-        self.opacity = s.parse::<i32>().unwrap();
-    }
-    fn parse_pos_x(&mut self, s: &str) {
-        self.pos.0 = s.parse::<f32>().unwrap();
-    }
-    fn parse_pos_y(&mut self, s: &str) {
-        self.pos.1 = s.parse::<f32>().unwrap();
-    }
-    fn parse_mode_b(&mut self, s: &str) {
-        self.mode_b = s.parse::<i32>().unwrap() == 1;
-    }
-    fn parse_deadzone(&mut self, s: &str) {
-        self.deadzone = s.parse::<f32>().unwrap();
-    }
-    fn parse_radius(&mut self, s: &str) {
-        self.radius = s.parse::<f32>().unwrap();
-    }
-    fn parse_snap(&mut self, s: &str) {
-        self.snap = s.parse::<i32>().unwrap() == 1;
-    }
-    fn parse_split(&mut self, s: &str) {
-        self.split = s.parse::<i32>().unwrap() == 1;
-    }
-}
-
-/// Configuration to do with the player's account and social settings
-#[derive(Debug, Default, Clone)]
-#[allow(missing_docs)]
-pub struct GDAccount {
-    pub username: String,
-    /// Password in plaintext (used in 2.1 and below)
-    pub plaintext_password: Option<String>,
-    pub account_id: i32,
-    /// Appears to be unused
-    pub session_id: Option<String>,
-    /// Password encrypted with GJP2 encryption. This can be generated with [`crate::core::crypto::generate_gjp2_hexdigest`]
-    pub hashed_password: Option<String>,
-    /// List of creators' account IDs that this player follows
-    pub following_creators: Vec<i32>,
-    /// List of levels that the player has reported.
-    ///
-    /// Internal key: `GLM_14`
-    pub reported_levels: Vec<i32>,
-}
-
-/// Temporary variables stored in the savefile that are expected to be overwritten in the future
-#[allow(missing_docs)]
-#[derive(Debug, Default, Clone)]
-pub struct GDCurrentValues {
-    /// Levels that were played in the last session
-    pub last_played_levels: Vec<i32>,
-    /// The current daily level's TimelyID
-    pub current_daily_level: i32,
-    /// The current weekly level's TimelyID
-    pub current_weekly_level: i32,
-}
-
-/* TODO: for GLM_08, make a GDSearchFilter struct. all fields are boolean, so use bitflags */
-/* TODO 2: add a "Internal key: `...`" footer for every (sub)struct field docstring in CCGameManager */

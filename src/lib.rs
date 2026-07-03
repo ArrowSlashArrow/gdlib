@@ -96,7 +96,7 @@ macro_rules! repr_t {
         pub enum $name {
             $(
                 $(#[$vmeta])*
-                $variant,
+                $variant = $val,
             )*
         }
 
@@ -119,7 +119,7 @@ macro_rules! repr_t {
         pub enum $name {
             $(
                 $(#[$vmeta])*
-                $variant,
+                $variant = $val,
             )*
         }
 

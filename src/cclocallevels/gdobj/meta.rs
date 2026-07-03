@@ -318,6 +318,7 @@ bitflags! {
     #[allow(missing_docs)]
     #[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
     #[must_use]
+    /// Common boolean attributes of a GDObject.
     pub struct GDObjAttributes: u32 {
         /// @nodoc
         const dont_fade          = 1;
