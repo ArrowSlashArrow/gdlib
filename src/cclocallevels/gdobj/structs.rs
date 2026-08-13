@@ -652,11 +652,11 @@ repr_t!(
 
 repr_t!(
     /// Enum for item alignments
-    ItemAlign: i32 {
+    strict ItemAlign: i32 {
         Center = 0,
         Left = 1,
         Right = 2,
-    }
+    } default Center
 );
 
 repr_t!(
@@ -692,6 +692,7 @@ pub enum TransitionType {
 repr_t!(
     /// Enum for item operators
     Op: i32 {
+        /// Assignment
         Set = 0,
         Add = 1,
         Sub = 2,
@@ -1122,22 +1123,6 @@ pub struct RotationAim {
     pub player_target: Option<RotationPlayerTarget>,
 }
 
-/// Configuration descriptor for spawning particles in particle spawn trigger
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
-pub struct ParticleSpawnConfig {
-    /// (x, y) tuple for offsets from their original spawn location.
-    ///   Note: all particle objects spawn in the same position, regardless of their offsets within their group.
-    pub position_offsets: Option<(i32, i32)>,
-    /// (x, y) tuple for range of possible random positional variation.
-    pub position_variation: Option<(i32, i32)>,
-    /// (rotation, variation) tuple that describes the rotation of the particles + random offset range
-    pub rotation_config: Option<(i32, i32)>,
-    /// (scale, variation) tuple that describes the scale of the particles + random offset range
-    pub scale_config: Option<(f64, f64)>,
-    /// Makes all of the particles in the group be rotated in the same direction.
-    pub match_rotation: bool,
-}
-
 /// Gameplay starting settings specification struct for the startpos trigger
 #[derive(Debug, Default, Clone, Copy)]
 pub struct StartposConfig {
@@ -1207,6 +1192,8 @@ pub struct ColourTriggerConfig {
 }
 
 repr_t!(
+    // idk where i got the names for these
+    // maybe i made them up? nobody will ever know...
     /// Enum for middle grounds
     MiddleGround: i32 {
         None = 0,

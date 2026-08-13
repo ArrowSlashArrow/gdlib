@@ -321,39 +321,32 @@ object_descriptor!(
     }
 );
 
-/// Returns a transition object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `transition`: Type of transition. See [`TransitionType`] struct
-/// * `mode`: Mode for transition (enter/exit only). See [`TransitionMode`] struct
-/// * `target_channel`: Optional target channel argument which specifies a channel for this transition.
-pub fn transition_object(
-    config: &GDObjConfig,
-    transition: TransitionType,
-    mode: TransitionMode,
-    target_channel: Option<i32>,
-) -> GDObject {
-    let mut properties = vec![];
+/// Sets a transition mode for objects on an edge of the screen.
+pub struct TransitionTrigger {
+    /// Type of transition
+    pub transition: TransitionType,
+    /// Which objects the transition applies to
+    pub mode: TransitionMode,
+    /// Transition only applies to objects on this channel. Channel 0 applies to all objects.
+    pub channel: i32,
+}
 
-    if mode != TransitionMode::Both {
-        properties.push((ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(mode.to_num())));
+impl ObjectProperties for TransitionTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        vec![
+            (
+                ENTEREXIT_TRANSITION_CONFIG,
+                GDValue::Int(self.mode.to_num()),
+            ),
+            (TARGET_TRANSITION_CHANNEL, GDValue::Int(self.channel)),
+        ]
     }
-    if let Some(channel) = target_channel {
-        properties.push((TARGET_TRANSITION_CHANNEL, GDValue::Int(channel)));
+    fn object_id(&self) -> i32 {
+        self.transition as i32
     }
-
-    GDObject::new(transition as i32, config, properties)
 }
 
 // misc stuff
-
-/// Returns a reverse gameplay trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-#[inline]
-pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
-}
 
 object_descriptor!(
     /// This object ensures that if any one of the objects in the group is visible, then all are loaded
@@ -372,6 +365,14 @@ object_descriptor!(
 );
 
 // these have no params so we don't need a struct for them
+
+/// Returns a reverse gameplay trigger
+/// # Arguments
+/// * `config`: General object options, such as position and scale
+#[inline]
+pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
+    GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
+}
 
 /// Returns a trigger that shows the player
 /// # Arguments
@@ -479,167 +480,204 @@ object_descriptor!(
     }
 );
 
-/// Returns a gravity trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `gravity`: how much gravity.
-/// * `target_player`: (Optional) Player target for this gravity trigger
-pub fn gravity_trigger(
-    config: &GDObjConfig,
-    gravity: f64,
-    target_player: Option<TargetPlayer>,
-) -> GDObject {
-    let mut properties = vec![(GRAVITY, GDValue::Float(gravity))];
-
-    if let Some(player) = target_player {
-        properties.push((player as u16, GDValue::Bool(true)));
-    }
-    GDObject::new(TRIGGER_GRAVITY, config, properties)
+/// Sets the gravity intensity.
+pub struct GravityTrigger {
+    /// Intensity of gravity. 0 = no gravity, <1 = decreased gravity, 1 = normal gravity >1 = boosted gravity
+    pub gravity: f64,
+    /// Optional player to assign gravity to. The two players can have different gravities.
+    pub target_player: Option<TargetPlayer>,
 }
 
-/// Returns an end trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `spawn_id`: Optional group to spawn once this trigger is activated
-/// * `target_pos`: Optional target end position group
-/// * `no_effects`: Disables visual end effects
-/// * `instant`: Teleoprts the player instead of doing the default end pull animation
-/// * `no_sfx`: Disables end sound effects
-pub fn end_trigger(
-    config: &GDObjConfig,
-    spawn_id: Option<i16>,
-    target_pos: Option<i16>,
-    no_effects: bool,
-    instant: bool,
-    no_sfx: bool,
-) -> GDObject {
-    let mut properties = vec![
-        (NO_END_EFFECTS, GDValue::Bool(no_effects)),
-        (INSTANT_END, GDValue::Bool(instant)),
-        (NO_END_SOUND_EFFECTS, GDValue::Bool(no_sfx)),
-    ];
+impl ObjectProperties for GravityTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![(GRAVITY, GDValue::Float(self.gravity))];
 
-    if let Some(id) = spawn_id {
-        properties.push((TARGET_ITEM, GDValue::Group(id)));
+        if let Some(player) = self.target_player {
+            properties.push((player as u16, GDValue::Bool(true)));
+        }
+        properties
     }
-
-    if let Some(pos) = target_pos {
-        properties.push((TARGET_ITEM_2, GDValue::Group(pos)));
+    fn object_id(&self) -> i32 {
+        TRIGGER_GRAVITY
     }
+}
 
-    GDObject::new(TRIGGER_END, config, properties)
+#[derive(Debug, Clone, PartialEq)]
+/// Initiates level ending
+pub struct EndTrigger {
+    /// Optional group to spawn once the end trigger is activated
+    pub spawn_id: Option<i16>,
+    /// Optional group for the player to grabitate to upon finishing
+    pub target_pos: Option<i16>,
+    /// Disables visual end effects
+    pub no_effects: bool,
+    /// Instantly finishes the level when triggered
+    pub instant: bool,
+    /// Disable end sound effects
+    pub no_sfx: bool,
+}
+
+impl ObjectProperties for EndTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (NO_END_EFFECTS, GDValue::Bool(self.no_effects)),
+            (INSTANT_END, GDValue::Bool(self.instant)),
+            (NO_END_SOUND_EFFECTS, GDValue::Bool(self.no_sfx)),
+        ];
+
+        if let Some(id) = self.spawn_id {
+            properties.push((TARGET_ITEM, GDValue::Group(id)));
+        }
+
+        if let Some(pos) = self.target_pos {
+            properties.push((TARGET_ITEM_2, GDValue::Group(pos)));
+        }
+
+        properties
+    }
+    fn object_id(&self) -> i32 {
+        TRIGGER_END
+    }
 }
 
 // items and counters
 
-/// Returns a counter object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `item_id`: ID of the counter
-/// * `timer`: Is a timer?
-/// * `align`: Visual alignment of counter object. See [`ItemAlign`] struct.
-/// * `seconds_only`: Show only seconds if timer?
-/// * `special_mode`: Other special mode of timer. See [`CounterMode`] struct.
-pub fn counter_object(
-    config: &GDObjConfig,
-    item: Item,
-    align: ItemAlign,
-    seconds_only: bool,
-) -> GDObject {
-    let mut properties = vec![
-        (SECONDS_ONLY, GDValue::Bool(seconds_only)),
-        (COUNTER_ALIGNMENT, GDValue::Int(align.to_num())),
-    ];
-
-    match item {
-        Item::Attempts | Item::MainTime | Item::Points => {
-            properties.push((
-                SPECIAL_COUNTER_MODE,
-                GDValue::Int(item.as_special_mode_i32().unwrap()),
-            ));
-        }
-        Item::Counter(c) => {
-            properties.push((INPUT_ITEM_1, GDValue::Item(c)));
-        }
-        Item::Timer(t) => {
-            properties.extend_from_slice(&[
-                (INPUT_ITEM_1, GDValue::Item(t)),
-                (IS_TIMER, GDValue::Bool(true)),
-            ]);
-        }
-    }
-
-    GDObject::new(COUNTER, config, properties)
+/// Visual item display. Helpful when trying to see what value an item has.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CounterLabel {
+    /// Item to display
+    pub item: Item,
+    /// Visual alignment of label. See [`ItemAlign`].
+    pub align: ItemAlign,
+    /// Only show whole seconds if the item is a timer
+    pub seconds_only: bool,
 }
 
-/// Returns an item edit trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `operand1`: Optional first operand, tuple of (ID, item type)
-/// * `operand2`: Optional second operand, tuple of (ID, item type)
-/// * `target_id`: Target item id
-/// * `target_type`: Target item type
-/// * `modifier`: f64 modifier; default is 1.0
-/// * `assign_op`: operator for modifying target; see [`Op`] enum. An `Op::Add` is equivalent to `+=`.
-/// * `multiply_mod`: whether the result between operands should be multiplied or divided by the mod.
-/// * `id_op`: operator between operands 1 and 2; see [`Op`] enum.
-/// * `id_rounding`: rounding mode of the result after both operands are evaluated; see [`RoundMode`] enum.
-/// * `result_rounding`: rounding mode of the final result; see [`RoundMode`] enum.
-/// * `id_sign`: sign mode of the result after both operands are evaluated; see [`SignMode`] enum.
-/// * `result_sign`: sign mode of the final result; see [`SignMode`] enum.
-#[allow(clippy::too_many_arguments)]
-pub fn item_edit(
-    config: &GDObjConfig,
-    operand1: Option<Item>,
-    operand2: Option<Item>,
-    target: Item,
-    modifier: f64,
-    assign_op: Op,
-    multiply_mod: bool,
-    id_op: Option<Op>,
-    id_rounding: RoundMode,
-    result_rounding: RoundMode,
-    id_sign: SignMode,
-    result_sign: SignMode,
-) -> GDObject {
-    // set default values
-    let mod_op = match multiply_mod {
-        true => Op::Mul,
-        false => Op::Div,
-    };
-    let id_op = match id_op {
-        Some(op) => op,
-        None => Op::Add,
-    };
+impl ObjectProperties for CounterLabel {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (SECONDS_ONLY, GDValue::Bool(self.seconds_only)),
+            (COUNTER_ALIGNMENT, GDValue::Int(self.align as i32)),
+        ];
 
-    let mut properties = vec![
-        (TARGET_ITEM, GDValue::Item(target.id())),
-        (TARGET_ITEM_TYPE, GDValue::Int(target.get_type_as_i32())),
-        (MODIFIER, GDValue::Float(modifier)),
-        (LEFT_OPERATOR, GDValue::Int(assign_op.to_num())),
-        (RIGHT_OPERATOR, GDValue::Int(id_op.to_num())),
-        (COMPARE_OPERATOR, GDValue::Int(mod_op.to_num())),
-        (LEFT_ROUND_MODE, GDValue::Int(id_rounding as i32)),
-        (RIGHT_ROUND_MODE, GDValue::Int(result_rounding as i32)),
-        (LEFT_SIGN_MODE, GDValue::Int(id_sign as i32)),
-        (RIGHT_SIGN_MODE, GDValue::Int(result_sign as i32)),
-    ];
-
-    if let Some(item) = operand1 {
-        properties.extend_from_slice(&[
-            (INPUT_ITEM_1, GDValue::Item(item.id())),
-            (FIRST_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
-        ]);
+        match self.item {
+            Item::Attempts | Item::MainTime | Item::Points => {
+                properties.push((
+                    SPECIAL_COUNTER_MODE,
+                    GDValue::Int(self.item.as_special_mode_i32().unwrap()),
+                ));
+            }
+            Item::Counter(c) => {
+                properties.push((INPUT_ITEM_1, GDValue::Item(c)));
+            }
+            Item::Timer(t) => {
+                properties.extend_from_slice(&[
+                    (INPUT_ITEM_1, GDValue::Item(t)),
+                    (IS_TIMER, GDValue::Bool(true)),
+                ]);
+            }
+        }
+        properties
     }
 
-    if let Some(item) = operand2 {
-        properties.extend_from_slice(&[
-            (INPUT_ITEM_2, GDValue::Item(item.id())),
-            (SECOND_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
-        ]);
+    fn object_id(&self) -> i32 {
+        COUNTER
     }
+}
 
-    GDObject::new(TRIGGER_ITEM_EDIT, config, properties)
+#[derive(Debug, Clone, PartialEq)]
+// TODO: verify this from the source code. I got this from looking at the tooltip in the ItemEdit trigger's window.
+/// Performs an atomic operation to mutates an item's value.
+///
+/// The value that is set to the target item is evaluated like so:
+/// 1. The value of each specified operand is fetched and an intermediate result (referred to as the operand result in the struct's remaining documentation) is computed.
+///     - In the case that no operands are specified, this result is not computed.
+///     - In the case that one operand is specified, this result is the value of that operand.
+///     - In the case that two operands are specified, this result = `first <op> second`, where `op` is the `id_op`.
+/// 2. The operand result is then modified according to the value of the modifier and `multiply_mod`. If the operand result was not computed, the operand result is now set to the value of the modifier.
+/// Otherwise, the operand result becomes `operand result <op> modifier` where `op` is multiplication if `multiply_mod` is enabled and division if not.
+/// 3. The operand result is rounded according to `id_rounding` and then its sign is modified according to `id_sign`.
+/// 4. If `assign_op` is set to something other than `Op::Set`, the operand result becomes `current target item value <op> operand result` where `op` is `assign_op`.
+/// 5. The operand result is rounded again according to `result_rounding` and then its sign is modified according to `result_sign`.
+/// 6. Finally, the value of the target item is set to the operand result.
+pub struct ItemEditTrigger {
+    /// First operand
+    pub operand1: Option<Item>,
+    /// Second operand
+    pub operand2: Option<Item>,
+    /// Item that will be assigned to when the trigger finishes executing
+    pub target: Item,
+    /// An immediate value that can be used to modify the value directly. For example, using `=` as the assignment operator with both operands set to None will simply set the value of the target to the modifier.
+    /// This value can also be used to multiply the result after adding the two operands together as well as a number of other things.
+    pub modifier: f64,
+    /// Operator for modifying target; see [`Op`] enum. This operator determines how the computed result from the operands is assigned to the target item.
+    /// When set to `Op::Set` (assignment, `=` in-game), the result will simply be assigned to the target item.
+    /// When set to an arithmetic operator, the target item will be set according to the equation `previous value <operator> computed value`.
+    /// For example, when set to `Op::Add`, the target's existing value will be updated by adding the computed value between the operands to itself.
+    pub assign_op: Op,
+    /// Determines whether the modifier should multiply to the operand result or divide it. If `true`, the operand result is multiplied by the modifier; otherwise the operand result is divided by the modifier.
+    ///
+    /// Note: This value is also an operator, however it only works properly with `Op::Mul` and `Op::Div`. For this reason, the parameter was collapsed to a boolean.
+    /// Nobody knows why RobTop didn't also support adding and subtracting the modifier from the operand result as those are also perfectly valid operations and would allow for more flexibility within this trigger.
+    /// Maybe one day RobTop will regain his senses and finally add support for this.
+    pub multiply_mod: bool,
+    /// Operator that determines the result of the first step. Accepts all values of [`Op`] except for `Op::Set`.
+    pub id_op: Option<Op>,
+    /// How the result from the second step is rounded. See [`RoundMode`].
+    pub id_rounding: RoundMode,
+    /// How the result from the fourth step is rounded. See [`RoundMode`].
+    pub result_rounding: RoundMode,
+    /// How the sign of the result from the second step is set. This happens after rounding. See [`SignMode`].
+    pub id_sign: SignMode,
+    /// How the sign of the result from the fourth step is set. This happens after rounding. See [`SignMode`].
+    pub result_sign: SignMode,
+}
+
+impl ObjectProperties for ItemEditTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mod_op = match self.multiply_mod {
+            true => Op::Mul,
+            false => Op::Div,
+        };
+        let id_op = match self.id_op {
+            Some(op) => op,
+            None => Op::Add,
+        };
+
+        let mut properties = vec![
+            (TARGET_ITEM, GDValue::Item(self.target.id())),
+            (
+                TARGET_ITEM_TYPE,
+                GDValue::Int(self.target.get_type_as_i32()),
+            ),
+            (MODIFIER, GDValue::Float(self.modifier)),
+            (LEFT_OPERATOR, GDValue::Int(self.assign_op.to_num())),
+            (RIGHT_OPERATOR, GDValue::Int(id_op.to_num())),
+            (COMPARE_OPERATOR, GDValue::Int(mod_op.to_num())),
+            (LEFT_ROUND_MODE, GDValue::Int(self.id_rounding as i32)),
+            (RIGHT_ROUND_MODE, GDValue::Int(self.result_rounding as i32)),
+            (LEFT_SIGN_MODE, GDValue::Int(self.id_sign as i32)),
+            (RIGHT_SIGN_MODE, GDValue::Int(self.result_sign as i32)),
+        ];
+
+        if let Some(item) = self.operand1 {
+            properties.extend_from_slice(&[
+                (INPUT_ITEM_1, GDValue::Item(item.id())),
+                (FIRST_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+            ]);
+        }
+
+        if let Some(item) = self.operand2 {
+            properties.extend_from_slice(&[
+                (INPUT_ITEM_2, GDValue::Item(item.id())),
+                (SECOND_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+            ]);
+        }
+        properties
+    }
+    fn object_id(&self) -> i32 {
+        TRIGGER_ITEM_EDIT
+    }
 }
 
 /// Spawns groups based on a comparsion between two items.
@@ -651,17 +689,17 @@ pub fn item_edit(
 /// 4. The result's sign is modified based on the [`SignMode`]
 pub struct ItemCompareTrigger {
     /// Group that is activated when the comparison is true. Set to 0 to not spawn a group.
-    true_id: i16,
+    pub true_id: i16,
     /// Group that is activated when the comparison is false. Set to 0 to not spawn a group.
-    false_id: i16,
+    pub false_id: i16,
     /// Left-hand operand of comparison. See [`CompareOperand`].
-    lhs: CompareOperand,
+    pub lhs: CompareOperand,
     /// Right-hand operand of comparison. See [`CompareOperand`].
-    rhs: CompareOperand,
+    pub rhs: CompareOperand,
     /// Operator used to compare the two sides. See [`CompareOp`] enum.
-    compare_op: CompareOp,
+    pub compare_op: CompareOp,
     /// Tolerant range of comparsion. Comparsion will be true if the resulting value is off by at most this value.
-    tolerance: f64,
+    pub tolerance: f64,
 }
 
 impl ObjectProperties for ItemCompareTrigger {
@@ -769,48 +807,61 @@ object_descriptor!(
     }
 );
 
-/// Returns a particle spawner trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `particle_group`: Group that contains the particle objects
-/// * `position_group`: Group at which the particles will be spawned
-/// * `spawn_cfg`: Spawning configure for the particles themselves. See [`ParticleSpawnConfig`]
-pub fn spawn_particle(
-    config: &GDObjConfig,
-    particle_group: i16,
-    position_group: i16,
-    spawn_cfg: ParticleSpawnConfig,
-) -> GDObject {
-    let mut properties = vec![
-        (TARGET_ITEM, GDValue::Group(particle_group)),
-        (TARGET_ITEM_2, GDValue::Group(position_group)),
-        (
-            MATCH_ROTATION_OF_SPAWNED_PARTICLES,
-            GDValue::Bool(spawn_cfg.match_rotation),
-        ),
-    ];
+/// Spawns a group of particles at another group's location. I rate this trigger 7/10
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub struct ParticleSpawnTrigger {
+    /// (x, y) tuple for offsets from their original spawn location.
+    ///   Note: all particle objects spawn in the same position, regardless of their offsets within their group.
+    pub position_offsets: Option<(i32, i32)>,
+    /// (x, y) tuple for range of possible random positional variation.
+    pub position_variation: Option<(i32, i32)>,
+    /// (rotation, variation) tuple that describes the rotation of the particles + random offset range
+    pub rotation_config: Option<(i32, i32)>,
+    /// (scale, variation) tuple that describes the scale of the particles + random offset range
+    pub scale_config: Option<(f64, f64)>,
+    /// Makes all of the particles in the group be rotated in the same direction.
+    pub match_rotation: bool,
+    /// Group that contains the particle objects
+    pub particle_group: i16,
+    /// Group at which the particles will be spawned
+    pub position_group: i16,
+}
 
-    if let Some((x, y)) = spawn_cfg.position_offsets {
-        properties.push((X_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
-        properties.push((Y_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
+impl ObjectProperties for ParticleSpawnTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (TARGET_ITEM, GDValue::Group(self.particle_group)),
+            (TARGET_ITEM_2, GDValue::Group(self.position_group)),
+            (
+                MATCH_ROTATION_OF_SPAWNED_PARTICLES,
+                GDValue::Bool(self.match_rotation),
+            ),
+        ];
+
+        if let Some((x, y)) = self.position_offsets {
+            properties.push((X_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
+            properties.push((Y_OFFSET_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
+        }
+
+        if let Some((x, y)) = self.position_variation {
+            properties.push((X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
+            properties.push((Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
+        }
+
+        if let Some((rot, var)) = self.rotation_config {
+            properties.push((ROTATION_OF_SPAWNED_PARTICLES, GDValue::Int(rot)));
+            properties.push((ROTATION_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(var)));
+        }
+
+        if let Some((scale, var)) = self.scale_config {
+            properties.push((SCALE_OF_SPAWNED_PARTICLES, GDValue::Float(scale)));
+            properties.push((SCALE_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Float(var)));
+        }
+        properties
     }
-
-    if let Some((x, y)) = spawn_cfg.position_variation {
-        properties.push((X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(x)));
-        properties.push((Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(y)));
+    fn object_id(&self) -> i32 {
+        TRIGGER_SPAWN_PARTICLE
     }
-
-    if let Some((rot, var)) = spawn_cfg.rotation_config {
-        properties.push((ROTATION_OF_SPAWNED_PARTICLES, GDValue::Int(rot)));
-        properties.push((ROTATION_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Int(var)));
-    }
-
-    if let Some((scale, var)) = spawn_cfg.scale_config {
-        properties.push((SCALE_OF_SPAWNED_PARTICLES, GDValue::Float(scale)));
-        properties.push((SCALE_VARIATION_OF_SPAWNED_PARTICLES, GDValue::Float(var)));
-    }
-
-    GDObject::new(TRIGGER_SPAWN_PARTICLE, config, properties)
 }
 
 // collision blocks
@@ -976,25 +1027,30 @@ object_descriptor!(
 
 // camera triggers
 
-/// Returns a camera zoom trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `zoom`: Resulting camera zoom. Default is 1.0
-/// * `time`: Time to zoom
-/// * `easing`: Zoom easing config. See [`MoveEasing`] struct.
-pub fn camera_zoom(
-    config: &GDObjConfig,
-    zoom: f64,
-    time: f64,
-    easing: Option<(MoveEasing, f64)>,
-) -> GDObject {
-    let mut properties = vec![
-        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
-        (CAMERA_ZOOM, GDValue::Float(zoom)),
-    ];
+/// Zooms the camera
+#[derive(Debug, Clone, PartialEq)]
+pub struct CameraZoomTrigger {
+    /// How far to zoom the camera. Values above 1 zoom in, values below 1 zoom out. This value must be positive.
+    pub zoom: f64,
+    /// Time to zoom
+    pub time: f64,
+    /// Zoom easing
+    pub easing: Option<(MoveEasing, f64)>,
+}
 
-    add_easing(&mut properties, easing);
-    GDObject::new(TRIGGER_CAMERA_ZOOM, config, properties)
+impl ObjectProperties for CameraZoomTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(self.time)),
+            (CAMERA_ZOOM, GDValue::Float(self.zoom)),
+        ];
+
+        add_easing(&mut properties, self.easing);
+        properties
+    }
+    fn object_id(&self) -> i32 {
+        TRIGGER_CAMERA_ZOOM
+    }
 }
 
 object_descriptor!(
@@ -1216,18 +1272,23 @@ object_descriptor!(
     }
 );
 
-/// Returns a middleground config trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-#[inline]
-pub fn mg_config(
-    config: &GDObjConfig,
-    offset_y: i32,
-    easing: Option<(MoveEasing, f64)>,
-) -> GDObject {
-    let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(offset_y))];
-    add_easing(&mut properties, easing);
-    GDObject::new(TRIGGER_MIDDLEGROUND_CONFIG, config, properties)
+/// Moves the middleground.
+pub struct MiddleGroundConfigTrigger {
+    /// Where to move it relative to its normal position
+    pub offset_y: i32,
+    /// Easing for moving the middleground
+    pub easing: Option<(MoveEasing, f64)>,
+}
+
+impl ObjectProperties for MiddleGroundConfigTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(self.offset_y))];
+        add_easing(&mut properties, self.easing);
+        properties
+    }
+    fn object_id(&self) -> i32 {
+        TRIGGER_MIDDLEGROUND_CONFIG
+    }
 }
 
 object_descriptor!(
@@ -1270,7 +1331,7 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// Area stop trigger config
+    /// Stops an area effect
     AreaStopTrigger: TRIGGER_AREA_STOP => {
         effect_id: i16 => Short TARGET_ITEM
     }

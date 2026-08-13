@@ -467,7 +467,7 @@ macro_rules! prop_value {
 // quick way to create object descriptors where the descriptor can be serialised as a list of its properties
 macro_rules! object_descriptor {
     ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, PartialEq)]
         #[allow(missing_docs)]
         $(#[$meta])*
         pub struct $descriptor {
