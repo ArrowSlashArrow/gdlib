@@ -73,13 +73,14 @@ pub enum Anim {
     Spikeball(animation_ids::Spikeball),
 }
 
-impl From<Anim> for i32 {
-    fn from(value: Anim) -> i32 {
-        match value {
-            Anim::Bat(b) => b as i32,
-            Anim::BigBeast(b) => b as i32,
-            Anim::Spikeball(s) => s as i32,
-            Anim::Other(i) => i,
+impl Anim {
+    /// Converts `self` to its animation ID
+    pub fn to_num(&self) -> i32 {
+        match self {
+            Anim::Bat(b) => *b as i32,
+            Anim::BigBeast(b) => *b as i32,
+            Anim::Spikeball(s) => *s as i32,
+            Anim::Other(i) => *i,
         }
     }
 }
@@ -606,8 +607,11 @@ repr_t!(
 /// Extra ID 2 parameter in the event trigger
 pub enum ExtraID2 {
     #[default]
+    /// All players activate the event
     All = 0,
+    /// Only Player 1 activates the event
     P1 = 1,
+    /// Only Player 2 activates the event
     P2 = 2,
 }
 
@@ -1080,30 +1084,6 @@ pub struct RotationConfig {
     pub lock_object_rotation: bool,
 }
 
-/// Configuration struct for the time trigger
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct TimeTriggerConfig {
-    /// Starting time of target timer that will be set on activation of the trigger
-    pub start_time: f64,
-    /// Time at which to call the target group
-    pub stop_time: f64,
-    /// Whether or not to pause the timer once it reaches the stop time
-    pub pause_when_reached: bool,
-    /// Time multiplier for this timer
-    pub time_mod: f64,
-    /// Target timer ID
-    pub timer_id: i16,
-    /// Toggles ignoring global timewarp
-    pub ignore_timewarp: bool,
-    /// Starts this timer paused, which allows a time control trigger to un-pause it
-    pub start_paused: bool,
-    /// Only starts the timer if any of these are met:
-    ///     1. Target timer is at 0.00
-    ///     2. The `start_paused` option is on
-    ///     3. The timer is not currently counting
-    pub dont_override: bool,
-}
-
 /// Degree amount rotation specifier
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RotationNormal {
@@ -1226,37 +1206,39 @@ pub struct ColourTriggerConfig {
     pub use_player_col_2: bool,
 }
 
-#[repr(i32)]
-#[allow(missing_docs)]
-/// Enum for middle grounds
-pub enum MiddleGround {
-    None = 0,
-    SeasweptMountains = 1,
-    RockyMountains = 2,
-    Clouds = 3,
-}
+repr_t!(
+    /// Enum for middle grounds
+    MiddleGround: i32 {
+        None = 0,
+        SeasweptMountains = 1,
+        RockyMountains = 2,
+        Clouds = 3,
+    } default None
+);
 
-#[repr(i32)]
-/// Enum for an optional player target. Used in the touch trigger
-pub enum OptionalPlayerTarget {
-    /// Registers input from both players
-    None = 0,
-    /// Only registers input from player 1.
-    Player1 = 1,
-    /// Only registers input from player 2.
-    Player2 = 2,
-}
+repr_t!(
+    /// Enum for an optional player target. Used in the touch trigger.
+    OptionalPlayerTarget: i32 {
+        /// Registers input from both players
+        None = 0,
+        /// Only registers input from player 1.
+        Player1 = 1,
+        /// Only registers input from player 2.
+        Player2 = 2,
+    } default None
+);
 
-#[repr(i32)]
-/// Enum for modes of activation in a touch trigger
-pub enum TouchToggle {
-    /// Alternates between activating and deactivating the target group
-    None = 0,
-    /// Activates target group only
-    ToggleOn = 1,
-    /// De-activates target group only
-    ToggleOff = 2,
-}
+repr_t!(
+    /// Enum for modes of activation in a touch trigger
+    TouchToggle: i32 {
+        /// Alternates between activating and deactivating the target group
+        None = 0,
+        /// Activates target group only
+        ToggleOn = 1,
+        /// De-activates target group only
+        ToggleOff = 2,
+    } default None
+);
 
 // helper function to parse strings of this formatting "k1.v1.k2.v2.etc.etc."
 fn parse_sibling_items<T, S>(s: &str) -> Vec<(T, S)>

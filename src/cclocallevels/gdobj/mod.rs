@@ -424,4 +424,68 @@ impl GDObject {
     pub fn set_config(&mut self, config: GDObjConfig) {
         self.config = config;
     }
+
+    /// Creates an object from a property descriptor object. This is the standard way to create objects with extra properties such as triggers.
+    pub fn from_config<P: ObjectProperties>(id: i32, config: GDObjConfig, details: P) -> Self {
+        Self {
+            id,
+            config,
+            properties: details.serialise(),
+        }
+    }
 }
+
+/// Trait for structs that encode configuration for a GD object. This trait is used in [`GDObject::from_config`].
+pub trait ObjectProperties {
+    /// Serialise this object to a list of properties in the form of tuples: (id, value)
+    fn serialise(&self) -> Vec<(u16, GDValue)>;
+}
+
+macro_rules! prop_value {
+    (as_i32, $field:expr) => {
+        GDValue::Int($field as i32)
+    };
+    (to_i32, $field:expr) => {
+        GDValue::Int($field.to_num())
+    };
+    (Events, $field:expr) => {
+        GDValue::Events($field.clone())
+    };
+    (ProbabilitiesList, $field:expr) => {
+        GDValue::from_prob_list($field.clone())
+    };
+    (Remaps, $field:expr) => {
+        GDValue::from_spawn_remaps($field.clone())
+    };
+    ($t:ident, $field:expr) => {
+        GDValue::$t($field)
+    };
+}
+
+// quick way to create object descriptors where the descriptor can be serialised as a list of its properties
+macro_rules! object_descriptor {
+    ($(#[$meta:meta])* $descriptor:ident { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
+        #[derive(Debug, Clone)]
+        #[allow(missing_docs)]
+        $(#[$meta])*
+        pub struct $descriptor {
+            $(
+                $(#[$fmeta])*
+                pub $field: $ftype,
+            )*
+        }
+
+        impl ObjectProperties for $descriptor {
+            fn serialise(&self) -> Vec<(u16, GDValue)> {
+                vec![
+                    $(
+                        ($prop_id, crate::cclocallevels::gdobj::prop_value!($prop_t, self.$field)),
+                    )*
+                ]
+            }
+        }
+    };
+}
+
+pub(crate) use object_descriptor;
+pub(crate) use prop_value;

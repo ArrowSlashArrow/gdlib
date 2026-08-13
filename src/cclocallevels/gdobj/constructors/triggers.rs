@@ -3,8 +3,9 @@
 //! **This file is incomplete. More triggers will be added in the future.**
 
 use crate::cclocallevels::gdobj::{
-    Event, GDObjConfig, GDObject, GDValue, MoveEasing,
+    Event, GDObjConfig, GDObject, GDValue, MoveEasing, ObjectProperties,
     ids::{objects::*, properties::*},
+    object_descriptor,
     structs::*,
 };
 
@@ -117,7 +118,7 @@ pub fn start_pos(
     disabled: bool,
 ) -> GDObject {
     GDObject::new(
-        START_POS,
+        TRIGGER_START_POS,
         config,
         vec![
             (
@@ -286,72 +287,39 @@ pub fn pulse_trigger(
     GDObject::new(TRIGGER_PULSE, config, properties)
 }
 
-/// Returns a stop trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Target group to stop/pause/resume
-/// * `stop_mode`: Stop mode (see [`StopMode`] struct)
-/// * `use_control_id`: Only stops certain triggers within a group if enabled.
-#[inline]
-pub fn stop_trigger(
-    config: &GDObjConfig,
-    target_group: i16,
-    stop_mode: StopMode,
-    use_control_id: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_STOP,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (USE_CONTROL_ID, GDValue::Bool(use_control_id)),
-            (STOP_MODE, GDValue::Int(stop_mode.to_num())),
-        ],
-    )
-}
+object_descriptor!(
+    /// Stop trigger
+    StopTrigger {
+        /// Target group to stop/pause/resume
+        target_group: i16 => Group TARGET_ITEM,
+        /// Stop mode (see [`StopMode`] struct)
+        stop_mode: StopMode => to_i32 STOP_MODE,
+        /// Only stops certain triggers within a group if enabled.
+        use_control_id: bool => Bool USE_CONTROL_ID
+    }
+);
 
-/// Returns an alpha trigger
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Target group to stop/pause/resume
-/// * `opacity`: Opacity to set group at
-/// * `fade_time`: Time to fade to the opacity
-#[inline]
-pub fn alpha_trigger(
-    config: &GDObjConfig,
-    target_group: i16,
-    opacity: f64,
-    fade_time: f64,
-) -> GDObject {
-    GDObject::new(
-        1007,
-        config,
-        vec![
-            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
-            (OPACITY, GDValue::Float(opacity)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Alpha trigger
+    AlphaTrigger {
+        /// Target group to stop/pause/resume
+        target_group: i16 => Group TARGET_ITEM,
+        /// Opacity to set group at
+        opacity: f64 => Float OPACITY,
+        /// Time to fade to the opacity
+        fade_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE
+    }
+);
 
-/// Returns a toggle trigger
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Target group to stop/pause/resume
-/// * `activate_group`: Active group instead of deactivating?
-#[inline]
-pub fn toggle_trigger(config: &GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
-    GDObject::new(
-        TRIGGER_TOGGLE,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Toggle trigger
+    ToggleTrigger {
+        /// Target group to stop/pause/resume
+        target_group: i16 => Group TARGET_ITEM,
+        /// Active group instead of deactivating?
+        activate_group: bool => Bool ACTIVATE_GROUP
+    }
+);
 
 /// Returns a transition object
 /// # Arguments
@@ -387,38 +355,30 @@ pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
     GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
 }
 
-/// Returns a link visible trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: group that is linked visibly
-#[inline]
-pub fn link_visible(config: &GDObjConfig, target_group: i16) -> GDObject {
-    GDObject::new(
-        TRIGGER_LINK_VISIBLE,
-        config,
-        vec![(TARGET_ITEM, GDValue::Group(target_group))],
-    )
-}
+object_descriptor!(
+    /// This object ensures that if any one of the objects in the group is visible, then all are loaded
+    LinkVisibleTrigger {
+        /// group that is linked visibly
+        target_group: i16 => Group TARGET_ITEM
+    }
+);
 
-/// Returns a timewarp trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `time_scale`: How much to speed up/slow down time by. 1.0 is the default
-#[inline]
-pub fn timewarp(config: &GDObjConfig, time_scale: f64) -> GDObject {
-    GDObject::new(
-        TRIGGER_TIME_WARP,
-        config,
-        vec![(TIMEWARP_AMOUNT, GDValue::Float(time_scale))],
-    )
-}
+object_descriptor!(
+    /// Timewarp trigger
+    TimewarpTrigger {
+        /// How much to speed up/slow down time by. 1.0 is the default
+        time_scale: f64 => Float TIMEWARP_AMOUNT
+    }
+);
+
+// these have no params so we don't need a struct for them
 
 /// Returns a trigger that shows the player
 /// # Arguments
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn show_player(config: &GDObjConfig) -> GDObject {
-    GDObject::new(1613, config, vec![])
+    GDObject::new(TRIGGER_SHOW_PLAYER, config, vec![])
 }
 
 /// Returns a trigger that hides the player
@@ -426,7 +386,7 @@ pub fn show_player(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn hide_player(config: &GDObjConfig) -> GDObject {
-    GDObject::new(1612, config, vec![])
+    GDObject::new(TRIGGER_HIDE_PLAYER, config, vec![])
 }
 
 /// Returns a trigger that shows the player trail
@@ -434,7 +394,7 @@ pub fn hide_player(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
-    GDObject::new(ENABLE_PLAYER_TRAIL, config, vec![])
+    GDObject::new(TRIGGER_ENABLE_PLAYER_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that hides the player trail
@@ -442,7 +402,7 @@ pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale\
 #[inline]
 pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
-    GDObject::new(DISABLE_PLAYER_TRAIL, config, vec![])
+    GDObject::new(TRIGGER_DISABLE_PLAYER_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that enables the background effect
@@ -450,7 +410,7 @@ pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
-    GDObject::new(BG_EFFECT_ON, config, vec![])
+    GDObject::new(TRIGGER_BG_EFFECT_ON, config, vec![])
 }
 
 /// Returns a trigger that disables the background effect
@@ -458,112 +418,66 @@ pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn bg_effect_off(config: &GDObjConfig) -> GDObject {
-    GDObject::new(BG_EFFECT_OFF, config, vec![])
+    GDObject::new(TRIGGER_BG_EFFECT_OFF, config, vec![])
 }
 
-/// Returns a group reset trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: group that is to be reset
-#[inline]
-pub fn group_reset(config: &GDObjConfig, target_group: i16) -> GDObject {
-    GDObject::new(
-        TRIGGER_RESET_GROUP,
-        config,
-        vec![(TARGET_ITEM, GDValue::Group(target_group))],
-    )
-}
+object_descriptor!(
+    /// Group reset trigger
+    GroupResetTrigger {
+        /// group that is to be reset
+        target_group: i16 => Group TARGET_ITEM
+    }
+);
 
-/// Returns a shake trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `strength`: Strength of shake
-/// * `interval`: Interval in seconds between each shake
-/// * `duration`: Total duration of shaking
-#[inline]
-pub fn shake_trigger(
-    config: &GDObjConfig,
-    strength: i32,
-    interval: f64,
-    duration: f64,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_SHAKE,
-        config,
-        vec![
-            (SHAKE_STRENGTH, GDValue::Int(strength)),
-            (SHAKE_INTERVAL, GDValue::Float(interval)),
-            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(duration)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Shake trigger
+    ShakeTrigger {
+        /// Strength of shake
+        strength: i32 => Int SHAKE_STRENGTH,
+        /// Interval in seconds between each shake
+        interval: f64 => Float SHAKE_INTERVAL,
+        /// Total duration of shaking
+        duration: f64 => Float DURATION_GROUP_TRIGGER_CHANCE
+    }
+);
 
-/// Returns a background speed config trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `mod_x`: X-axis speed of BG in terms of player speed. Default is 0.3
-/// * `mod_y`: Y-axis speed of BG in terms of player speed. Default is 0.5
-#[inline]
-pub fn bg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
-    GDObject::new(
-        BG_SPEED_CONFIG,
-        config,
-        vec![
-            (X_MOVEMENT_MULTIPLIER, GDValue::Float(mod_x)),
-            (Y_MOVEMENT_MULTIPLIER, GDValue::Float(mod_y)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Background speed trigger
+    BGSpeedTrigger {
+        /// X-axis speed of BG in terms of player speed. Default is 0.3
+        mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
+        /// Y-axis speed of BG in terms of player speed. Default is 0.5
+        mod_y: f64 => Float Y_MOVEMENT_MULTIPLIER
+    }
+);
 
-/// Returns a middleground speed config trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `mod_x`: X-axis speed of MG in terms of player speed. Default is 0.3
-/// * `mod_y`: Y-axis speed of MG in terms of player speed. Default is 0.5
-#[inline]
-pub fn mg_speed(config: &GDObjConfig, mod_x: f64, mod_y: f64) -> GDObject {
-    GDObject::new(
-        MG_SPEED_CONFIG,
-        config,
-        vec![
-            (X_MOVEMENT_MULTIPLIER, GDValue::Float(mod_x)),
-            (Y_MOVEMENT_MULTIPLIER, GDValue::Float(mod_y)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Middleground speed trigger
+    MGSpeedTrigger {
+        /// X-axis speed of MG in terms of player speed. Default is 0.3
+        mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
+        /// Y-axis speed of MG in terms of player speed. Default is 0.5
+        mod_y: f64 => Float Y_MOVEMENT_MULTIPLIER
+    }
+);
 
-/// Returns a player control trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `p1`: Enables these controls for player 1
-/// * `p2`: Enables these controls for player 2
-/// * `stop_jump`: Cancel's the player's current jump
-/// * `stop_move`: Stops the player from moving
-/// * `stop_rotation`: Stops the player's rotation
-/// * `stop_slide`: Stops the player from sliding after a force
-#[inline]
-pub fn player_control(
-    config: &GDObjConfig,
-    p1: bool,
-    p2: bool,
-    stop_jump: bool,
-    stop_move: bool,
-    stop_rotation: bool,
-    stop_slide: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_PLAYER_CONTROL,
-        config,
-        vec![
-            (CONTROLLING_PLAYER_1, GDValue::Bool(p1)),
-            (CONTROLLING_PLAYER_2, GDValue::Bool(p2)),
-            (STOP_PLAYER_JUMP, GDValue::Bool(stop_jump)),
-            (STOP_PLAYER_MOVEMENT, GDValue::Bool(stop_move)),
-            (STOP_PLAYER_ROTATION, GDValue::Bool(stop_rotation)),
-            (STOP_PLAYER_SLIDING, GDValue::Bool(stop_slide)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Controls what the player can and can't do. Useful for suppressing player input.
+    PlayerControlTrigger {
+        /// Enables these controls for player 1
+        p1: bool => Bool CONTROLLING_PLAYER_1,
+        /// Enables these controls for player 2
+        p2: bool => Bool CONTROLLING_PLAYER_2,
+        /// Cancel's the player's current jump
+        stop_jump: bool => Bool STOP_PLAYER_JUMP,
+        /// Stops the player from moving
+        stop_move: bool => Bool STOP_PLAYER_MOVEMENT,
+        /// Stops the player's rotation
+        stop_rotation: bool => Bool STOP_PLAYER_ROTATION,
+        /// Stops the player from sliding after a force
+        stop_slide: bool => Bool STOP_PLAYER_SLIDING
+    }
+);
 
 /// Returns a gravity trigger
 /// # Arguments
@@ -787,110 +701,71 @@ pub fn item_compare(
     GDObject::new(TRIGGER_ITEM_COMPARE, config, properties)
 }
 
-/// Returns a persistent item trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `item_id`: Target item ID
-/// * `timer`: Targets a timer with the corresponding ID if enabled
-/// * `persistent`: make this item persistent?
-/// * `target_all`: Target all persistent items?
-/// * `reset`: Reset item(s) to 0?
-pub fn persistent_item(
-    config: &GDObjConfig,
-    item_id: i16,
-    timer: bool,
-    persistent: bool,
-    target_all: bool,
-    reset: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_PERSISTENT_ITEM,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Item(item_id)),
-            (SET_PERSISTENT_ITEM, GDValue::Bool(persistent)),
-            (TARGET_ALL_PERSISTENT_ITEMS, GDValue::Bool(target_all)),
-            (RESET_ITEM_TO_0, GDValue::Bool(reset)),
-            (TIMER, GDValue::Bool(timer)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Enables the value of items to persist across attempts.
+    PersistentItemTrigger {
+        /// Target item ID
+        item_id: i16 => Item TARGET_ITEM,
+        /// Targets a timer with the corresponding ID if enabled
+        timer: bool => Bool TIMER,
+        /// make this item persistent?
+        persistent: bool => Bool SET_PERSISTENT_ITEM,
+        /// Target all persistent items?
+        target_all: bool => Bool TARGET_ALL_PERSISTENT_ITEMS,
+        /// Reset item(s) to 0?
+        reset: bool => Bool RESET_ITEM_TO_0
+    }
+);
 
 // spawners
 
-/// Returns a random trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `chance`: chance to trigger group 1
-/// * `target_group1`: target group 1
-/// * `target_group1`: target group 2
-pub fn random_trigger(
-    config: &GDObjConfig,
-    chance: f64,
-    target_group1: i16,
-    target_group2: i16,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_RANDOM,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group1)),
-            (TARGET_ITEM_2, GDValue::Group(target_group2)),
-            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(chance)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Randomly picks between triggering two groups.
+    ///
+    /// This trigger uses [`crate::core::rand::check_seed_random`] to determine the group to trigger. The first target group's chance of being spawned is determined by the `chance` parameter.
+    /// If the chance is 42%, then the first target group has a 42% chance of being spawned. The second target group has a `1 - chance`, or 58% chance in this example of being toggled.
+    ///
+    /// If it is desirable not to activate a group, use 0 as the ID. This trigger will not activate any group ID 0.
+    RandomTrigger {
+        /// Float in the range [0.0, 1.0] to spawn the first target group
+        chance: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        /// Has a `chance` chance to be spawned
+        target_group1: i16 => Group TARGET_ITEM,
+        /// Has a `1 - chance` chance to be spawned
+        target_group2: i16 => Group TARGET_ITEM_2
+    }
+);
 
-/// Returns a spawn trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `spawn_id`: Spawns this group
-/// * `delay`: Delay between beign triggered and spawning the group
-/// * `delay_variation`: Random variation on delay
-/// * `reset_remap`: Resets the remapping of group IDs
-/// * `spawn_ordered`: Spawns constituents of group in the order of x-position
-/// * `preview_disable`: prevents the trigger's resulting spawns from being rendered in editor preview
-pub fn spawn_trigger(
-    config: &GDObjConfig,
-    spawn_id: i16,
-    delay: f64,
-    delay_variation: f64,
-    reset_remap: bool,
-    spawn_ordered: bool,
-    preview_disable: bool,
-    spawn_remap: Vec<(i16, i16)>,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_SPAWN,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(spawn_id)),
-            (SPAWN_DELAY, GDValue::Float(delay)),
-            (DISABLE_PREVIEW, GDValue::Bool(preview_disable)),
-            (SPAWN_ORDERED, GDValue::Bool(spawn_ordered)),
-            (SPAWN_DELAY_VARIATION, GDValue::Float(delay_variation)),
-            (RESET_REMAP, GDValue::Bool(reset_remap)),
-            (SPAWN_ID_REMAPS, GDValue::from_spawn_remaps(spawn_remap)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Spawns a group
+    SpawnTrigger {
+        /// Spawns this group
+        spawn_id: i16 => Group TARGET_ITEM,
+        /// Delay between beign triggered and spawning the group
+        delay: f64 => Float SPAWN_DELAY,
+        /// Random variation on delay
+        delay_variation: f64 => Float SPAWN_DELAY_VARIATION,
+        /// Resets the remapping of group IDs
+        reset_remap: bool => Bool RESET_REMAP,
+        /// Spawns constituents of group in the order of x-position
+        spawn_ordered: bool => Bool SPAWN_ORDERED,
+        /// prevents the trigger's resulting spawns from being rendered in editor preview
+        preview_disable: bool => Bool DISABLE_PREVIEW,
+        /// List of ID remaps: (old, new). When a group is triggered with remaps, it will use new IDs
+        spawn_remaps: Vec<(i16, i16)> => Remaps SPAWN_ID_REMAPS
+        // spawn_remap: Vec<(i16, i16)> - special case, uses `GDValue::from_spawn_remaps()` conversion (not a plain variant), and `Vec` does not implement `Copy`, could not convert
+    }
+);
 
-/// Returns an on-death trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Spawns this group
-/// * `activate_group`: Activate this group (instead of toggling off)?
-#[inline]
-pub fn on_death(config: &GDObjConfig, target_group: i16, activate_group: bool) -> GDObject {
-    GDObject::new(
-        TRIGGER_ON_DEATH,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Activates a group on player death
+    OnDeathTrigger {
+        /// Spawns this group
+        target_group: i16 => Group TARGET_ITEM,
+        /// Activate this group instead of toggling it off
+        activate_group: bool => Bool ACTIVATE_GROUP
+    }
+);
 
 /// Returns a particle spawner trigger
 /// # Arguments
@@ -938,228 +813,164 @@ pub fn spawn_particle(
 
 // collision blocks
 
-/// Returns a collision block object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `id`: Collision block ID
-/// * `dynamic`: Does this block register collisions with other collision blocks?
-#[inline]
-pub fn collision_block(config: &GDObjConfig, id: i16, dynamic: bool) -> GDObject {
-    GDObject::new(
-        COLLISION_BLOCK,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Item(id)),
-            (DYNAMIC_BLOCK, GDValue::Bool(dynamic)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Collision block object
+    CollisionBlockTrigger {
+        /// Collision block ID
+        id: i16 => Item INPUT_ITEM_1,
+        /// Whether this block registers collisions with other collision blocks
+        dynamic: bool => Bool DYNAMIC_BLOCK
+    }
+);
 
-/// Returns a toggle block object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Spawns this group
-/// * `activate_group`: Activate/spawn group instead of deactivating?
-/// * `claim_touch`: Disable buffer clicking?
-/// * `multi_activate`: Allow multiple activations?
-/// * `spawn_only`: Spawn only without toggling?
-#[inline]
-pub fn toggle_block(
-    config: &GDObjConfig,
-    target_group: i16,
-    activate_group: bool,
-    claim_touch: bool,
-    multi_activate: bool,
-    spawn_only: bool,
-) -> GDObject {
-    GDObject::new(
-        TOGGLE_BLOCK,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
-            (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
-            (CLAIM_TOUCH, GDValue::Bool(claim_touch)),
-            (SPAWN_ONLY, GDValue::Bool(spawn_only)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Block that detects player input while the player is inside
+    ToggleBlockTrigger {
+        /// Group to activate/deactivate
+        target_group: i16 => Group TARGET_ITEM,
+        /// Activate/spawn group instead of deactivating
+        activate_group: bool => Bool ACTIVATE_GROUP,
+        /// Disable buffer clicking to activate this block
+        claim_touch: bool => Bool CLAIM_TOUCH,
+        /// Allows multiple activations
+        multi_activate: bool => Bool MULTI_ACTIVATE,
+        /// Spawn only without toggling
+        spawn_only: bool => Bool SPAWN_ONLY
+    }
+);
 
-/// Returns a state block object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `state_on`: Group that is activated when the player enters this block's hitbox
-/// * `state_off`: Group that is activated when the player exits this block's hitbox
-#[inline]
-pub fn state_block(config: &GDObjConfig, state_on: i16, state_off: i16) -> GDObject {
-    GDObject::new(
-        COLLISION_STATE_BLOCK,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(state_on)),
-            (TARGET_ITEM_2, GDValue::Group(state_off)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Block that changes state based on whether the player is inside it or not.
+    StateBlockTrigger {
+        /// Group that is activated when the player enters this block's hitbox
+        state_on: i16 => Group TARGET_ITEM,
+        /// Group that is activated when the player exits this block's hitbox
+        state_off: i16 => Group TARGET_ITEM_2
+    }
+);
 
-/// Returns a collision trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `collider_cfg`: Settings for colliders for this collision detection. See [`ColliderConfig`]
-/// * `target_id`: ID of group that is activated when the two colliders collide
-/// * `activate_group`: whether this trigger will activate or deactivate the target group
-/// * `trigger_on_exit`: activates group when the two colliders' hitboxes stop overlapping after collision
-///   instead of when they start colliding.
-///
-/// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
-#[inline]
-pub fn collision_trigger(
-    config: &GDObjConfig,
-    collider_cfg: ColliderConfig,
-    target_id: i16,
-    activate_group: bool,
-    trigger_on_exit: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_COLLISION,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Item(collider_cfg.collider1)),
-            (INPUT_ITEM_2, GDValue::Item(collider_cfg.collider2)),
-            (TARGET_ITEM, GDValue::Item(target_id)),
-            (
-                CONTROLLING_PLAYER_1,
-                GDValue::Bool(collider_cfg.collide_player1),
-            ),
-            (
-                CONTROLLING_PLAYER_2,
-                GDValue::Bool(collider_cfg.collide_player2),
-            ),
-            (
-                CONTROLLING_TARGET_PLAYER,
-                GDValue::Bool(collider_cfg.collide_both_players),
-            ),
-            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
-            (TRIGGER_ON_EXIT, GDValue::Bool(trigger_on_exit)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Triggers a group when it detects a collision between two collision blocks or optionally players.
+    ///
+    /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
+    CollisionTrigger {
+        /// ID of first collision block
+        collider1: i16 => Item INPUT_ITEM_1,
+        /// ID of second collision block
+        collider2: i16 => Item INPUT_ITEM_2,
+        /// ID of group that is activated when the two colliders collide
+        target_id: i16 => Item TARGET_ITEM,
+        /// Whether to check for collision with player 1 instead of collider 1
+        collide_player1: bool => Bool CONTROLLING_PLAYER_1,
+        /// Whether to check for collision with player 2 instead of collider 1.
+        ///   Does not override collision checking with player 1 if `collide_player1` is also true.
+        collide_player2: bool => Bool CONTROLLING_PLAYER_2,
+        /// Whether to check for collision between the two players instead of two collision blocks
+        collide_both_players: bool => Bool CONTROLLING_TARGET_PLAYER,
+        /// whether this trigger will activate or deactivate the target group
+        activate_group: bool => Bool ACTIVATE_GROUP,
+        /// activates group when the two colliders' hitboxes stop overlapping after collision
+        ///   instead of when they start colliding.
+        trigger_on_exit: bool => Bool TRIGGER_ON_EXIT
+    }
+);
 
-/// Returns a collision trigger
-///
-/// Activates a group when the two colliders collide or do not collide.
-/// This condition is only checked once and never again
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `collider_cfg`: Settings for colliders for this collision detection. See [`ColliderConfig`]
-/// * `true_id`: ID of group that is activated if the two colliders collide
-/// * `false_id`: ID of group that is activated if the two colliders do not collide
-#[inline]
-pub fn instant_coll_trigger(
-    config: &GDObjConfig,
-    collider_cfg: ColliderConfig,
-    true_id: i16,
-    false_id: i16,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_COLLISION,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Item(collider_cfg.collider1)),
-            (INPUT_ITEM_2, GDValue::Item(collider_cfg.collider2)),
-            (TARGET_ITEM, GDValue::Item(true_id)),
-            (TARGET_ITEM_2, GDValue::Item(false_id)),
-            (
-                CONTROLLING_PLAYER_1,
-                GDValue::Bool(collider_cfg.collide_player1),
-            ),
-            (
-                CONTROLLING_PLAYER_2,
-                GDValue::Bool(collider_cfg.collide_player2),
-            ),
-            (
-                CONTROLLING_TARGET_PLAYER,
-                GDValue::Bool(collider_cfg.collide_both_players),
-            ),
-        ],
-    )
+object_descriptor!(
+    /// Instant collision trigger
+    ///
+    /// Activates a group when the two colliders collide or do not collide.
+    /// This condition is only checked once and never again.
+    InstantCollTrigger {
+        /// ID of first collision block
+        collider1: i16 => Item INPUT_ITEM_1,
+        /// ID of second collision block
+        collider2: i16 => Item INPUT_ITEM_2,
+        /// ID of group that is activated if the two colliders collide
+        true_id: i16 => Item TARGET_ITEM,
+        /// ID of group that is activated if the two colliders do not collide
+        false_id: i16 => Item TARGET_ITEM_2,
+        /// Whether to check for collision with player 1 instead of collider 1
+        collide_player1: bool => Bool CONTROLLING_PLAYER_1,
+        /// Whether to check for collision with player 2 instead of collider 1.
+        ///   Does not override collision checking with player 1 if `collide_player1` is also true.
+        collide_player2: bool => Bool CONTROLLING_PLAYER_2,
+        /// Whether to check for collision between the two players instead of two collision blocks
+        collide_both_players: bool => Bool CONTROLLING_TARGET_PLAYER
+    }
+);
+
+impl InstantCollTrigger {
+    /// Creates a new instance of this object from two collision block IDs
+    pub fn two_colliders(
+        collider1_id: i16,
+        collider2_id: i16,
+        true_id: i16,
+        false_id: i16,
+    ) -> Self {
+        Self {
+            collider1: collider1_id,
+            collider2: collider2_id,
+            collide_player1: false,
+            collide_player2: false,
+            collide_both_players: false,
+            true_id,
+            false_id,
+        }
+    }
 }
 
 // time triggers
 
-/// Returns a time trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `time_cfg`: Main trigger configuration. See [`TimeTriggerConfig`].
-/// * `target_group`: Group that is activated when the timer reaches the target value
-pub fn time_trigger(
-    config: &GDObjConfig,
-    time_cfg: TimeTriggerConfig,
-    target_group: i16,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_TIME,
-        config,
-        vec![
-            (START_TIME, GDValue::Float(time_cfg.start_time)),
-            (TARGET_TIME, GDValue::Float(time_cfg.stop_time)),
-            (
-                PAUSE_AT_TARGET_TIME,
-                GDValue::Bool(time_cfg.pause_when_reached),
-            ),
-            (TIME_VALUE_MULTIPLER, GDValue::Float(time_cfg.time_mod)),
-            (INPUT_ITEM_1, GDValue::Item(time_cfg.timer_id)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (IGNORE_TIMEWARP, GDValue::Bool(time_cfg.ignore_timewarp)),
-            (START_PAUSED_TIMER, GDValue::Bool(time_cfg.start_paused)),
-            (DONT_OVERRIDE, GDValue::Bool(time_cfg.dont_override)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Time trigger
+    TimeTrigger {
+        /// Starting time of target timer that will be set on activation of the trigger
+        start_time: f64 => Float START_TIME,
+        /// Time at which to call the target group
+        stop_time: f64 => Float TARGET_TIME,
+        /// Whether or not to pause the timer once it reaches the stop time
+        pause_when_reached: bool => Bool PAUSE_AT_TARGET_TIME,
+        /// Time multiplier for this timer
+        time_mod: f64 => Float TIME_VALUE_MULTIPLER,
+        /// Target timer ID
+        timer_id: i16 => Item INPUT_ITEM_1,
+        /// Group that is activated when the timer reaches the target value
+        target_group: i16 => Group TARGET_ITEM,
+        /// Toggles ignoring global timewarp
+        ignore_timewarp: bool => Bool IGNORE_TIMEWARP,
+        /// Starts this timer paused, which allows a time control trigger to un-pause it
+        start_paused: bool => Bool START_PAUSED_TIMER,
+        /// Only starts the timer if any of these are met:
+        ///     1. Target timer is at 0.00
+        ///     2. The `start_paused` option is on
+        ///     3. The timer is not currently counting
+        dont_override: bool => Bool DONT_OVERRIDE
+    }
+);
 
-/// Returns a time control trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `id`: Timer ID
-/// * `stop`: If enabled, stops the timer; otherwise, starts the timer.
-#[inline]
-pub fn time_control(config: &GDObjConfig, id: i16, stop: bool) -> GDObject {
-    GDObject::new(
-        TRIGGER_TIME_CONTROL,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Item(id)),
-            (STOP_TIME_COUNTER, GDValue::Bool(stop)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Time control trigger
+    TimeControlTrigger {
+        /// Timer ID
+        id: i16 => Item INPUT_ITEM_1,
+        /// If enabled, stops the timer; otherwise, starts the timer.
+        stop: bool => Bool STOP_TIME_COUNTER
+    }
+);
 
-/// Returns a time event trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `id`: Timer ID
-/// * `target_group`: If enabled, stops the timer; otherwise, starts the timer.
-/// * `target_time`: At what time the timer should be to activate objects in `target_group`.
-/// * `multi_activate`: Should this event be triggerable multiple times?
-#[inline]
-pub fn time_event(
-    config: &GDObjConfig,
-    id: i16,
-    target_group: i16,
-    target_time: f64,
-    multi_activate: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_TIME_EVENT,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Group(id)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (TARGET_TIME, GDValue::Float(target_time)),
-            (MULTIACTIVATABLE_TIME_EVENT, GDValue::Bool(multi_activate)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Triggers a group when a given timer reaches a specific time.
+    TimeEventTrigger {
+        /// Timer ID
+        id: i16 => Group INPUT_ITEM_1,
+        /// If enabled, stops the timer; otherwise, starts the timer.
+        target_group: i16 => Group TARGET_ITEM,
+        /// At what time the timer should be to activate objects in `target_group`.
+        target_time: f64 => Float TARGET_TIME,
+        /// Whether this event should be triggerable multiple times
+        multi_activate: bool => Bool MULTIACTIVATABLE_TIME_EVENT
+    }
+);
 
 // camera triggers
 
@@ -1180,171 +991,93 @@ pub fn camera_zoom(
         (CAMERA_ZOOM, GDValue::Float(zoom)),
     ];
 
-    if let Some((easing, rate)) = easing {
-        properties.push((MOVE_EASING, GDValue::Int(easing as i32)));
-        properties.push((EASING_RATE, GDValue::Float(rate)));
-    }
+    add_easing(&mut properties, easing);
     GDObject::new(TRIGGER_CAMERA_ZOOM, config, properties)
 }
 
-/// Returns a camera guide object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `zoom`: Zoom of camera guide
-/// * `offset_x`: Center offset from this object in x axis
-/// * `offset_y`: Center offset from this object in y axis
-/// * `opacity`: Opacity of guidelines
-#[inline]
-pub fn camera_guide(
-    config: &GDObjConfig,
-    zoom: f64,
-    offset_x: i32,
-    offset_y: i32,
-    opacity: f64,
-) -> GDObject {
-    GDObject::new(
-        CAMERA_GUIDE,
-        config,
-        vec![
-            (MOVE_UNITS_X, GDValue::Int(offset_x)),
-            (MOVE_UNITS_Y, GDValue::Int(offset_y)),
-            (CAMERA_ZOOM, GDValue::Float(zoom)),
-            (CAMERA_GUIDE_PREVIEW_OPACITY, GDValue::Float(opacity)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Visual guide for the camera in the edito
+    CameraGuideTrigger {
+        /// Zoom of camera guide
+        zoom: f64 => Float CAMERA_ZOOM,
+        /// Center offset from this object in x axis
+        offset_x: i32 => Int MOVE_UNITS_X,
+        /// Center offset from this object in y axis
+        offset_y: i32 => Int MOVE_UNITS_Y,
+        /// Opacity of guidelines
+        opacity: f64 => Float CAMERA_GUIDE_PREVIEW_OPACITY
+    }
+);
 
-// im too lazy to organise ts
+object_descriptor!(
+    /// Makes a group of objets follow another group
+    FollowTrigger {
+        /// Multiplier for x-axis movement of follow group
+        x_mod: f64 => Float XAXIS_FOLLOW_MOD,
+        /// Multiplier for y-axis movement of follow group
+        y_mod: f64 => Float YAXIS_FOLLOW_MOD,
+        /// Time that the follow group is followed for. -1.0 = infinite.
+        follow_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        /// Group that is following
+        target_group: i16 => Group TARGET_ITEM,
+        /// Group that is being followed
+        follow_group: i16 => Group TARGET_ITEM_2
+    }
+);
 
-/// Returns a follow trigger object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `x_mod`: Multiplier for x-axis movement of follow group
-/// * `y_mod`: Multiplier for y-axis movement of follow group
-/// * `follow_time`: Time that the follow group is followed for. -1.0 = infinite.
-/// * `target_group`: Group that is following
-/// * `follow_group`: Group that is being followed
-#[inline]
-pub fn follow_trigger(
-    config: &GDObjConfig,
-    x_mod: f64,
-    y_mod: f64,
-    follow_time: f64,
-    target_group: i16,
-    follow_group: i16,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_FOLLOW,
-        config,
-        vec![
-            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(follow_time)),
-            (XAXIS_FOLLOW_MOD, GDValue::Float(x_mod)),
-            (YAXIS_FOLLOW_MOD, GDValue::Float(y_mod)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (TARGET_ITEM_2, GDValue::Group(follow_group)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Sets animation modes for objects with animations such as bats
+    AnimateTrigger {
+        /// Objects to animate
+        target_group: i16 => Group TARGET_ITEM,
+        animation: Anim => to_i32 ANIMATION_ID
+    }
+);
 
-/// Returns an animate trigger object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Objects to animate
-/// * `animation`: Animation ID, provided in [`Anim`] enum
-#[inline]
-pub fn animate_trigger(config: &GDObjConfig, target_group: i16, animation: Anim) -> GDObject {
-    GDObject::new(
-        TRIGGER_ANIMATE,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (ANIMATION_ID, GDValue::Int(animation.into())),
-        ],
-    )
-}
+object_descriptor!(
+    /// TODO: doc
+    CountTrigger {
+        /// Checks this item
+        item_id: i16 => Item INPUT_ITEM_1,
+        /// Target group to activate
+        target_id: i16 => Group TARGET_ITEM,
+        /// Target count of item at `item_id`
+        target_count: i32 => Int TARGET_COUNT,
+        /// Whether or not to activate the target group
+        activate_group: bool => Bool ACTIVATE_GROUP,
+        /// Whether or not this trigger is multi-activatable
+        multi_activate: bool => Bool MULTI_ACTIVATE
+    }
+);
 
-/// Returns a count trigger object
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `item_id`: Checks this item
-/// * `target_id`: Target group to activate
-/// * `target_count`: Target count of item at `item_id`
-/// * `activate_group`: Whether or not to activate the target group
-/// * `multi_activate`: Whether or not this trigger is multi-activatable
-#[inline]
-pub fn count_trigger(
-    config: &GDObjConfig,
-    item_id: i16,
-    target_id: i16,
-    target_count: i32,
-    activate_group: bool,
-    multi_activate: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_COUNT,
-        config,
-        vec![
-            (INPUT_ITEM_1, GDValue::Item(item_id)),
-            (TARGET_ITEM, GDValue::Group(target_id)),
-            (TARGET_COUNT, GDValue::Int(target_count)),
-            (ACTIVATE_GROUP, GDValue::Bool(activate_group)),
-            (MULTI_ACTIVATE, GDValue::Bool(multi_activate)),
-        ],
-    )
-}
+object_descriptor!(
+    AdvancedRandomTrigger {
+        /// List of tuples: (target group, chance to trigger this group).
+        ///
+        /// Chances are considered relative to each other, meaning that they are not
+        /// precentage-based. Two groups with the same relative chance will have the same
+        /// (50-50) chance to be triggered
+        probabilities: Vec<(i16, i32)> => ProbabilitiesList RANDOM_PROBABILITIES_LIST
+    }
+);
 
-/// Returns an advanced random trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `probabilities`: List of tuples: (target group, chance to trigger this group).
-///
-/// Chances are considered relative to each other, meaning that they are not
-/// precentage-based. Two groups with the same relative chance will have the same
-/// (50-50) chance to be triggered
-#[inline]
-pub fn advanced_random_trigger(config: &GDObjConfig, probabilities: Vec<(i16, i32)>) -> GDObject {
-    GDObject::new(
-        TRIGGER_ADVANCED_RANDOM,
-        config,
-        vec![(
-            RANDOM_PROBABILITIES_LIST,
-            GDValue::from_prob_list(probabilities),
-        )],
-    )
-}
-
-/// Returns a UI config trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: the UI objects
-/// * `ui_reference_obj`: Group with a single object that is a reference for the center of the camera.
-/// * `x_reference`: Reference position for the element on the X-axis
-/// * `y_reference`: Reference position for the element on the Y-axis
-/// * `x_ref_relative`: Whether or not the x-axis position scales with aspect ratio
-/// * `y_ref_relative`: Whether or not the y-axis position scales with aspect ratio
-#[inline]
-pub fn ui_config_trigger(
-    config: &GDObjConfig,
-    target_group: i16,
-    ui_reference_obj: i16,
-    x_reference: UIReferencePos,
-    y_reference: UIReferencePos,
-    x_ref_relative: bool,
-    y_ref_relative: bool,
-) -> GDObject {
-    GDObject::new(
-        UI_CONFIG,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (TARGET_ITEM_2, GDValue::Group(ui_reference_obj)),
-            (X_REFERENCE_POSITION, GDValue::Int(x_reference as i32)),
-            (Y_REFERENCE_POSITION, GDValue::Int(y_reference as i32 + 4)),
-            (X_REFERENCE_IS_RELATIVE, GDValue::Bool(x_ref_relative)),
-            (Y_REFERENCE_IS_RELATIVE, GDValue::Bool(y_ref_relative)),
-        ],
-    )
-}
+object_descriptor!(
+    /// UI config trigger
+    UIConfigTrigger {
+        /// the UI objects
+        target_group: i16 => Group TARGET_ITEM,
+        /// Group with a single object that is a reference for the center of the camera.
+        ui_reference_obj: i16 => Group TARGET_ITEM_2,
+        /// Reference position for the element on the X-axis
+        x_reference: UIReferencePos => as_i32 X_REFERENCE_POSITION,
+        /// Reference position for the element on the Y-axis
+        // y_reference: UIReferencePos => Y_REFERENCE_POSITION - special case, value is `y_reference as i32 + 4`, not a plain cast, could not convert
+        /// Whether or not the x-axis position scales with aspect ratio
+        x_ref_relative: bool => Bool X_REFERENCE_IS_RELATIVE,
+        /// Whether or not the y-axis position scales with aspect ratio
+        y_ref_relative: bool => Bool Y_REFERENCE_IS_RELATIVE
+    }
+);
 
 /// Returns a rotate trigger
 /// # Arguments
@@ -1463,38 +1196,23 @@ pub fn scale_trigger(
     GDObject::new(TRIGGER_SCALE, config, properties)
 }
 
-/// Returns a scale trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `speed`: Follow speed in the range \[0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
-/// * `delay`: Delay of the following group
-/// * `offset`: Y offset of the following group
-/// * `max_speed`: Speed limit of the following group
-/// * `move_time`: How long the group will follow the player
-/// * `target_group`: The group that is following the player's y-pos
-#[inline]
-pub fn follow_player_y(
-    config: &GDObjConfig,
-    speed: f64,
-    delay: f64,
-    offset: i32,
-    max_speed: f64,
-    move_time: f64,
-    target_group: i16,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_FOLLOW_PLAYER_Y,
-        config,
-        vec![
-            (FOLLOW_SPEED, GDValue::Float(speed)),
-            (FOLLOW_DELAY, GDValue::Float(delay)),
-            (FOLLOW_OFFSET, GDValue::Int(offset)),
-            (MAX_FOLLOW_SPEED, GDValue::Float(max_speed)),
-            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(move_time)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-        ],
-    )
-}
+object_descriptor!(
+    /// Makes an object follow the player on the y-axis
+    FollowPlayerYTrigger {
+        /// Follow speed in the range \[0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
+        speed: f64 => Float FOLLOW_SPEED,
+        /// Delay of the following group
+        delay: f64 => Float FOLLOW_DELAY,
+        /// Y offset of the following group
+        offset: i32 => Int FOLLOW_OFFSET,
+        /// Speed limit of the following group
+        max_speed: f64 => Float MAX_FOLLOW_SPEED,
+        /// How long the group will follow the player
+        move_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        /// The group that is following the player's y-pos
+        target_group: i16 => Group TARGET_ITEM
+    }
+);
 
 /// Returns a middleground config trigger
 /// # Arguments
@@ -1510,6 +1228,52 @@ pub fn mg_config(
     GDObject::new(TRIGGER_MIDDLEGROUND_CONFIG, config, properties)
 }
 
+object_descriptor!(
+    /// Event config trigger
+    EventTrigger {
+        /// Group to target
+        target_group: i16 => Group TARGET_ITEM,
+        events: Vec<Event> => Events EVENT_LISTENERS,
+        /// Activates group only if the player interacts with certain objects. For example, landing on an object with a specific material ID will activate the group if this ID is set to its material ID.
+        /// If this ID is set, blocks with other material IDs will not cause the group to activate
+        extra_id: i16 => Group EVENT_EXTRA_ID,
+        /// Applies to a specific player. See [`ExtraID2`]
+        extra_id2: ExtraID2 => as_i32 EVENT_EXTRA_ID_2
+        // (IS_INTERACTABLE, GDValue::Bool(true)) - hardcoded constant, not parameter-driven, could not convert
+    }
+);
+
+object_descriptor!(
+    /// Changes the middle ground
+    MiddleGroundTrigger {
+        /// Change to this middleground
+        middleground: MiddleGround => to_i32 MIDDLEGROUND
+    }
+);
+
+object_descriptor!(
+    /// Touch trigger
+    TouchTrigger {
+        /// Group that is activated when the trigger registers a click
+        target_group: i16 => Group TARGET_ITEM,
+        /// Toggles target group on holding and releasing instead of clicking
+        hold_mode: bool => Bool TOUCH_HOLD_MODE,
+        /// Blocks 2nd player's clicks. Deprecated in favour of [`OptionalPlayerTarget::Player1`]
+        dual_mode: bool => Bool TOUCH_DUAL_MODE,
+        /// Toggles a specific activation mode. See [`TouchToggle`]
+        toggle: TouchToggle => to_i32 TOUCH_TOGGLE_ONOFF,
+        /// Only registers clicks from one player. See [`OptionalPlayerTarget`]
+        target_player: OptionalPlayerTarget => to_i32 TOUCH_PLAYER_ONLY
+    }
+);
+
+object_descriptor!(
+    /// Area stop trigger config
+    AreaStopTrigger {
+        effect_id: i16 => Short TARGET_ITEM
+    }
+);
+
 // util fn to add easing to properties if it is specified
 fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
     if let Some((easing, rate)) = easing {
@@ -1518,82 +1282,6 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
             (EASING_RATE, GDValue::Float(rate)),
         ]);
     }
-}
-
-/// Returns an event config trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-pub fn event_trigger(
-    config: &GDObjConfig,
-    target_group: i16,
-    events: Vec<Event>,
-    extra_id: i16,
-    extra_id2: ExtraID2,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_EVENT,
-        config,
-        vec![
-            (IS_INTERACTABLE, GDValue::Bool(true)),
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (EVENT_LISTENERS, GDValue::Events(events)),
-            (EVENT_EXTRA_ID, GDValue::Group(extra_id)),
-            (EVENT_EXTRA_ID_2, GDValue::Int(extra_id2 as i32)),
-        ],
-    )
-}
-
-/// Returns a middle ground change trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `middleground`: Middleground to change to
-pub fn middle_ground_trigger(config: &GDObjConfig, middleground: MiddleGround) -> GDObject {
-    GDObject::new(
-        TRIGGER_MIDDLEGROUND_CHANGE,
-        config,
-        vec![(MIDDLEGROUND, GDValue::Int(middleground as i32))],
-    )
-}
-
-/// Returns a middle ground change trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `target_group`: Group that is activated when the trigger registers a click
-/// * `hold_mode`: Toggles target group on holding and releasing instead of clicking
-/// * `dual_mode`: Blocks 2nd player's clicks. Deprecated in favour of [`OptionalPlayerTarget::Player1`]
-/// * `toggle`: Toggles a specific activation mode. See [`TouchToggle`]
-/// * `target_player`: Only registers clicks from one player. See [`OptionalPlayerTarget`]
-pub fn touch_trigger(
-    config: &GDObjConfig,
-    target_group: i16,
-    hold_mode: bool,
-    dual_mode: bool,
-    toggle: TouchToggle,
-    target_player: OptionalPlayerTarget,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_TOUCH,
-        config,
-        vec![
-            (TARGET_ITEM, GDValue::Group(target_group)),
-            (TOUCH_HOLD_MODE, GDValue::Bool(hold_mode)),
-            (TOUCH_DUAL_MODE, GDValue::Bool(dual_mode)),
-            (TOUCH_TOGGLE_ONOFF, GDValue::Int(toggle as i32)),
-            (TOUCH_PLAYER_ONLY, GDValue::Int(target_player as i32)),
-        ],
-    )
-}
-
-/// Returns an area stop trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `effect_id`: Area effect that is stopped
-pub fn area_stop(config: &GDObjConfig, effect_id: i16) -> GDObject {
-    GDObject::new(
-        TRIGGER_AREA_STOP,
-        config,
-        vec![(TARGET_ITEM, GDValue::Short(effect_id))],
-    )
 }
 
 /* TODO: trigger constructors

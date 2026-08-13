@@ -11,9 +11,12 @@ use crate::{
             self, GDObject,
             constructors::{
                 misc::default_block,
-                triggers::{advanced_random_trigger, event_trigger, move_trigger},
+                triggers::{AdvancedRandomTrigger, EventTrigger, move_trigger},
             },
-            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
+            ids::{
+                objects::{TRIGGER_ADVANCED_RANDOM, TRIGGER_EVENT},
+                properties::RANDOM_PROBABILITIES_LIST,
+            },
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
                 ColourChannel, DefaultMove, Event, ExtraID2, Group, MoveEasing, MoveMode, ZLayer,
@@ -105,9 +108,12 @@ fn obj_properties() {
 #[test]
 fn adv_random() {
     let mut level = GDLevel::default();
-    level.add_object(advanced_random_trigger(
-        &GDObjConfig::default().pos(45.0, 45.0),
-        vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
+    level.add_object(GDObject::from_config(
+        TRIGGER_ADVANCED_RANDOM,
+        GDObjConfig::default().pos(45.0, 45.0),
+        AdvancedRandomTrigger {
+            probabilities: vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
+        },
     ));
     let _ = level.export_to_gmd("test_gmds/generated_adv_random.gmd");
 }
@@ -164,12 +170,15 @@ fn serialise_level_benchmark() {
 fn event_trigger_test() {
     let mut level = GDLevel::default();
     let cfg = GDObjConfig::new().pos(45.0, 45.0);
-    level.add_object(event_trigger(
-        &cfg,
-        123,
-        vec![Event::BallSwitch, Event::FallSpeedLow],
-        0,
-        ExtraID2::All,
+    level.add_object(GDObject::from_config(
+        TRIGGER_EVENT,
+        cfg,
+        EventTrigger {
+            target_group: 123,
+            events: vec![Event::BallSwitch, Event::FallSpeedLow],
+            extra_id: 0,
+            extra_id2: ExtraID2::All,
+        },
     ));
 }
 
