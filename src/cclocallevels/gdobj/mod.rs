@@ -426,9 +426,9 @@ impl GDObject {
     }
 
     /// Creates an object from a property descriptor object. This is the standard way to create objects with extra properties such as triggers.
-    pub fn from_config<P: ObjectProperties>(id: i32, config: GDObjConfig, details: P) -> Self {
+    pub fn from_config<P: ObjectProperties>(config: GDObjConfig, details: P) -> Self {
         Self {
-            id,
+            id: details.object_id(),
             config,
             properties: details.serialise(),
         }
@@ -439,6 +439,8 @@ impl GDObject {
 pub trait ObjectProperties {
     /// Serialise this object to a list of properties in the form of tuples: (id, value)
     fn serialise(&self) -> Vec<(u16, GDValue)>;
+    /// Returns the object ID that this struct is configured for.
+    fn object_id(&self) -> i32;
 }
 
 macro_rules! prop_value {
@@ -464,7 +466,7 @@ macro_rules! prop_value {
 
 // quick way to create object descriptors where the descriptor can be serialised as a list of its properties
 macro_rules! object_descriptor {
-    ($(#[$meta:meta])* $descriptor:ident { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
+    ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
         #[derive(Debug, Clone)]
         #[allow(missing_docs)]
         $(#[$meta])*
@@ -482,6 +484,10 @@ macro_rules! object_descriptor {
                         ($prop_id, crate::cclocallevels::gdobj::prop_value!($prop_t, self.$field)),
                     )*
                 ]
+            }
+
+            fn object_id(&self) -> i32 {
+                $object
             }
         }
     };

@@ -289,7 +289,7 @@ pub fn pulse_trigger(
 
 object_descriptor!(
     /// Stop trigger
-    StopTrigger {
+    StopTrigger: TRIGGER_STOP => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Stop mode (see [`StopMode`] struct)
@@ -301,7 +301,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Alpha trigger
-    AlphaTrigger {
+    AlphaTrigger: TRIGGER_ALPHA => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Opacity to set group at
@@ -313,7 +313,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Toggle trigger
-    ToggleTrigger {
+    ToggleTrigger: TRIGGER_TOGGLE => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Active group instead of deactivating?
@@ -357,7 +357,7 @@ pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
 
 object_descriptor!(
     /// This object ensures that if any one of the objects in the group is visible, then all are loaded
-    LinkVisibleTrigger {
+    LinkVisibleTrigger: TRIGGER_LINK_VISIBLE => {
         /// group that is linked visibly
         target_group: i16 => Group TARGET_ITEM
     }
@@ -365,7 +365,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Timewarp trigger
-    TimewarpTrigger {
+    TimewarpTrigger: TRIGGER_TIME_WARP => {
         /// How much to speed up/slow down time by. 1.0 is the default
         time_scale: f64 => Float TIMEWARP_AMOUNT
     }
@@ -423,7 +423,7 @@ pub fn bg_effect_off(config: &GDObjConfig) -> GDObject {
 
 object_descriptor!(
     /// Group reset trigger
-    GroupResetTrigger {
+    GroupResetTrigger: TRIGGER_RESET_GROUP => {
         /// group that is to be reset
         target_group: i16 => Group TARGET_ITEM
     }
@@ -431,7 +431,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Shake trigger
-    ShakeTrigger {
+    ShakeTrigger: TRIGGER_SHAKE => {
         /// Strength of shake
         strength: i32 => Int SHAKE_STRENGTH,
         /// Interval in seconds between each shake
@@ -443,7 +443,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Background speed trigger
-    BGSpeedTrigger {
+    BGSpeedTrigger: TRIGGER_BG_SPEED_CONFIG => {
         /// X-axis speed of BG in terms of player speed. Default is 0.3
         mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of BG in terms of player speed. Default is 0.5
@@ -453,7 +453,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Middleground speed trigger
-    MGSpeedTrigger {
+    MGSpeedTrigger: TRIGGER_MG_SPEED_CONFIG => {
         /// X-axis speed of MG in terms of player speed. Default is 0.3
         mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of MG in terms of player speed. Default is 0.5
@@ -463,7 +463,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Controls what the player can and can't do. Useful for suppressing player input.
-    PlayerControlTrigger {
+    PlayerControlTrigger: TRIGGER_PLAYER_CONTROL => {
         /// Enables these controls for player 1
         p1: bool => Bool CONTROLLING_PLAYER_1,
         /// Enables these controls for player 2
@@ -642,68 +642,70 @@ pub fn item_edit(
     GDObject::new(TRIGGER_ITEM_EDIT, config, properties)
 }
 
-/// Returns an item compare trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `true_id`: Group that is activated when the comparison is true
-/// * `false_id`: Group that is activated when the comparison is false
-/// * \*`lhs`: [`CompareOperand`] config struct for left-hand side operand.
-/// * \*`rhs`: [`CompareOperand`] config struct for right-hand side operand.
-/// * `compare_op`: Operator used to compare the two sides. See [`CompareOp`] enum.
-/// * `tolerance`: Tolerant range of comparsion. Comparsion will be true if the absolute resulting value is less than or equal to the tolerance.
+/// Spawns groups based on a comparsion between two items.
 ///
-/// \* The modifier operators describe how the modifier interacts with the item, except for setting the item
-///
-/// The modifier is applied to each respective operand according to the specified modifier operator.
-/// The round and sign modes are applied at the end of evaluation to each operand.
-/// The right-hand side will be just the modifier if the item id is left as 0 (not specified).
-/// This is useful when it is necessary to compare an item value and an integer or float literal.
-pub fn item_compare(
-    config: &GDObjConfig,
+/// The comparison evalutes both sides at the time of being called. Each side is evaluted as follows:
+/// 1. The item's value is read
+/// 2. Based on the modifying operator, the value is then also modified with the second operator being the modifier value. For example, it may get multiplied by 0.75 if the modifier is 0.75 and the modifying operand is multiplication.
+/// 3. The result is rounded based on the [`RoundMode`]
+/// 4. The result's sign is modified based on the [`SignMode`]
+pub struct ItemCompareTrigger {
+    /// Group that is activated when the comparison is true. Set to 0 to not spawn a group.
     true_id: i16,
+    /// Group that is activated when the comparison is false. Set to 0 to not spawn a group.
     false_id: i16,
+    /// Left-hand operand of comparison. See [`CompareOperand`].
     lhs: CompareOperand,
+    /// Right-hand operand of comparison. See [`CompareOperand`].
     rhs: CompareOperand,
+    /// Operator used to compare the two sides. See [`CompareOp`] enum.
     compare_op: CompareOp,
+    /// Tolerant range of comparsion. Comparsion will be true if the resulting value is off by at most this value.
     tolerance: f64,
-) -> GDObject {
-    let properties = vec![
-        (TARGET_ITEM, GDValue::Item(true_id)),
-        (TARGET_ITEM_2, GDValue::Item(false_id)),
-        // ids
-        (INPUT_ITEM_1, GDValue::Item(lhs.operand_item.id())),
-        (INPUT_ITEM_2, GDValue::Item(rhs.operand_item.id())),
-        // types
-        (
-            FIRST_ITEM_TYPE,
-            GDValue::Int(lhs.operand_item.get_type_as_i32()),
-        ),
-        (
-            SECOND_ITEM_TYPE,
-            GDValue::Int(rhs.operand_item.get_type_as_i32()),
-        ),
-        // modifiers
-        (MODIFIER, GDValue::Float(lhs.modifier)),
-        (SECOND_MODIFIER, GDValue::Float(rhs.modifier)),
-        // modifiers ops
-        (LEFT_OPERATOR, GDValue::Int(lhs.mod_op.to_num())),
-        (RIGHT_OPERATOR, GDValue::Int(rhs.mod_op.to_num())),
-        (COMPARE_OPERATOR, GDValue::Int(compare_op.to_num())),
-        (TOLERANCE, GDValue::Float(tolerance)),
-        // round modes
-        (LEFT_ROUND_MODE, GDValue::Int(lhs.rounding as i32)),
-        (RIGHT_ROUND_MODE, GDValue::Int(rhs.rounding as i32)),
-        // sign modes
-        (LEFT_SIGN_MODE, GDValue::Int(lhs.sign as i32)),
-        (RIGHT_SIGN_MODE, GDValue::Int(rhs.sign as i32)),
-    ];
+}
 
-    GDObject::new(TRIGGER_ITEM_COMPARE, config, properties)
+impl ObjectProperties for ItemCompareTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        vec![
+            (TARGET_ITEM, GDValue::Item(self.true_id)),
+            (TARGET_ITEM_2, GDValue::Item(self.false_id)),
+            // ids
+            (INPUT_ITEM_1, GDValue::Item(self.lhs.operand_item.id())),
+            (INPUT_ITEM_2, GDValue::Item(self.rhs.operand_item.id())),
+            // types
+            (
+                FIRST_ITEM_TYPE,
+                GDValue::Int(self.lhs.operand_item.get_type_as_i32()),
+            ),
+            (
+                SECOND_ITEM_TYPE,
+                GDValue::Int(self.rhs.operand_item.get_type_as_i32()),
+            ),
+            // modifiers
+            (MODIFIER, GDValue::Float(self.lhs.modifier)),
+            (SECOND_MODIFIER, GDValue::Float(self.rhs.modifier)),
+            // modifiers ops
+            (LEFT_OPERATOR, GDValue::Int(self.lhs.mod_op.to_num())),
+            (RIGHT_OPERATOR, GDValue::Int(self.rhs.mod_op.to_num())),
+            (COMPARE_OPERATOR, GDValue::Int(self.compare_op.to_num())),
+            (TOLERANCE, GDValue::Float(self.tolerance)),
+            // round modes
+            (LEFT_ROUND_MODE, GDValue::Int(self.lhs.rounding as i32)),
+            (RIGHT_ROUND_MODE, GDValue::Int(self.rhs.rounding as i32)),
+            // sign modes
+            (LEFT_SIGN_MODE, GDValue::Int(self.lhs.sign as i32)),
+            (RIGHT_SIGN_MODE, GDValue::Int(self.rhs.sign as i32)),
+        ]
+    }
+
+    fn object_id(&self) -> i32 {
+        TRIGGER_ITEM_COMPARE
+    }
 }
 
 object_descriptor!(
     /// Enables the value of items to persist across attempts.
-    PersistentItemTrigger {
+    PersistentItemTrigger: TRIGGER_PERSISTENT_ITEM => {
         /// Target item ID
         item_id: i16 => Item TARGET_ITEM,
         /// Targets a timer with the corresponding ID if enabled
@@ -726,7 +728,7 @@ object_descriptor!(
     /// If the chance is 42%, then the first target group has a 42% chance of being spawned. The second target group has a `1 - chance`, or 58% chance in this example of being toggled.
     ///
     /// If it is desirable not to activate a group, use 0 as the ID. This trigger will not activate any group ID 0.
-    RandomTrigger {
+    RandomTrigger: TRIGGER_RANDOM => {
         /// Float in the range [0.0, 1.0] to spawn the first target group
         chance: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// Has a `chance` chance to be spawned
@@ -738,7 +740,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Spawns a group
-    SpawnTrigger {
+    SpawnTrigger: TRIGGER_SPAWN => {
         /// Spawns this group
         spawn_id: i16 => Group TARGET_ITEM,
         /// Delay between beign triggered and spawning the group
@@ -759,7 +761,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Activates a group on player death
-    OnDeathTrigger {
+    OnDeathTrigger: TRIGGER_ON_DEATH => {
         /// Spawns this group
         target_group: i16 => Group TARGET_ITEM,
         /// Activate this group instead of toggling it off
@@ -815,7 +817,7 @@ pub fn spawn_particle(
 
 object_descriptor!(
     /// Collision block object
-    CollisionBlockTrigger {
+    CollisionBlock: COLLISION_BLOCK => {
         /// Collision block ID
         id: i16 => Item INPUT_ITEM_1,
         /// Whether this block registers collisions with other collision blocks
@@ -825,7 +827,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Block that detects player input while the player is inside
-    ToggleBlockTrigger {
+    ToggleBlock: TOGGLE_BLOCK => {
         /// Group to activate/deactivate
         target_group: i16 => Group TARGET_ITEM,
         /// Activate/spawn group instead of deactivating
@@ -841,7 +843,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Block that changes state based on whether the player is inside it or not.
-    StateBlockTrigger {
+    StateBlock: COLLISION_STATE_BLOCK => {
         /// Group that is activated when the player enters this block's hitbox
         state_on: i16 => Group TARGET_ITEM,
         /// Group that is activated when the player exits this block's hitbox
@@ -853,7 +855,7 @@ object_descriptor!(
     /// Triggers a group when it detects a collision between two collision blocks or optionally players.
     ///
     /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
-    CollisionTrigger {
+    CollisionTrigger: TRIGGER_COLLISION => {
         /// ID of first collision block
         collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
@@ -880,7 +882,7 @@ object_descriptor!(
     ///
     /// Activates a group when the two colliders collide or do not collide.
     /// This condition is only checked once and never again.
-    InstantCollTrigger {
+    InstantCollTrigger: TRIGGER_INSTANT_COLLISION => {
         /// ID of first collision block
         collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
@@ -923,7 +925,7 @@ impl InstantCollTrigger {
 
 object_descriptor!(
     /// Time trigger
-    TimeTrigger {
+    TimeTrigger: TRIGGER_TIME => {
         /// Starting time of target timer that will be set on activation of the trigger
         start_time: f64 => Float START_TIME,
         /// Time at which to call the target group
@@ -950,7 +952,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Time control trigger
-    TimeControlTrigger {
+    TimeControlTrigger: TRIGGER_TIME_CONTROL => {
         /// Timer ID
         id: i16 => Item INPUT_ITEM_1,
         /// If enabled, stops the timer; otherwise, starts the timer.
@@ -960,7 +962,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Triggers a group when a given timer reaches a specific time.
-    TimeEventTrigger {
+    TimeEventTrigger: TRIGGER_TIME_EVENT => {
         /// Timer ID
         id: i16 => Group INPUT_ITEM_1,
         /// If enabled, stops the timer; otherwise, starts the timer.
@@ -997,7 +999,7 @@ pub fn camera_zoom(
 
 object_descriptor!(
     /// Visual guide for the camera in the edito
-    CameraGuideTrigger {
+    CameraGuide: CAMERA_GUIDE => {
         /// Zoom of camera guide
         zoom: f64 => Float CAMERA_ZOOM,
         /// Center offset from this object in x axis
@@ -1011,7 +1013,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Makes a group of objets follow another group
-    FollowTrigger {
+    FollowTrigger: TRIGGER_FOLLOW => {
         /// Multiplier for x-axis movement of follow group
         x_mod: f64 => Float XAXIS_FOLLOW_MOD,
         /// Multiplier for y-axis movement of follow group
@@ -1027,7 +1029,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Sets animation modes for objects with animations such as bats
-    AnimateTrigger {
+    AnimateTrigger: TRIGGER_ANIMATE => {
         /// Objects to animate
         target_group: i16 => Group TARGET_ITEM,
         animation: Anim => to_i32 ANIMATION_ID
@@ -1035,8 +1037,8 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// TODO: doc
-    CountTrigger {
+    /// Actiavtes/deactivates a group when an item reaches a specific count. The condition for doing so is checked every tick.
+    CountTrigger: TRIGGER_COUNT => {
         /// Checks this item
         item_id: i16 => Item INPUT_ITEM_1,
         /// Target group to activate
@@ -1051,7 +1053,7 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    AdvancedRandomTrigger {
+    AdvancedRandomTrigger: TRIGGER_ADVANCED_RANDOM => {
         /// List of tuples: (target group, chance to trigger this group).
         ///
         /// Chances are considered relative to each other, meaning that they are not
@@ -1063,7 +1065,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// UI config trigger
-    UIConfigTrigger {
+    UIConfigTrigger: TRIGGER_UI_CONFIG => {
         /// the UI objects
         target_group: i16 => Group TARGET_ITEM,
         /// Group with a single object that is a reference for the center of the camera.
@@ -1198,7 +1200,7 @@ pub fn scale_trigger(
 
 object_descriptor!(
     /// Makes an object follow the player on the y-axis
-    FollowPlayerYTrigger {
+    FollowPlayerYTrigger: TRIGGER_FOLLOW_PLAYER_Y => {
         /// Follow speed in the range \[0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
         speed: f64 => Float FOLLOW_SPEED,
         /// Delay of the following group
@@ -1230,7 +1232,7 @@ pub fn mg_config(
 
 object_descriptor!(
     /// Event config trigger
-    EventTrigger {
+    EventTrigger: TRIGGER_EVENT => {
         /// Group to target
         target_group: i16 => Group TARGET_ITEM,
         events: Vec<Event> => Events EVENT_LISTENERS,
@@ -1245,15 +1247,15 @@ object_descriptor!(
 
 object_descriptor!(
     /// Changes the middle ground
-    MiddleGroundTrigger {
+    MiddleGroundTrigger: TRIGGER_MIDDLEGROUND_CHANGE => {
         /// Change to this middleground
         middleground: MiddleGround => to_i32 MIDDLEGROUND
     }
 );
 
 object_descriptor!(
-    /// Touch trigger
-    TouchTrigger {
+    /// Toggles a group of objects when the player clicks.
+    TouchTrigger: TRIGGER_TOUCH => {
         /// Group that is activated when the trigger registers a click
         target_group: i16 => Group TARGET_ITEM,
         /// Toggles target group on holding and releasing instead of clicking
@@ -1269,7 +1271,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Area stop trigger config
-    AreaStopTrigger {
+    AreaStopTrigger: TRIGGER_AREA_STOP => {
         effect_id: i16 => Short TARGET_ITEM
     }
 );

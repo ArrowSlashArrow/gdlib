@@ -109,7 +109,6 @@ fn obj_properties() {
 fn adv_random() {
     let mut level = GDLevel::default();
     level.add_object(GDObject::from_config(
-        TRIGGER_ADVANCED_RANDOM,
         GDObjConfig::default().pos(45.0, 45.0),
         AdvancedRandomTrigger {
             probabilities: vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
@@ -171,7 +170,6 @@ fn event_trigger_test() {
     let mut level = GDLevel::default();
     let cfg = GDObjConfig::new().pos(45.0, 45.0);
     level.add_object(GDObject::from_config(
-        TRIGGER_EVENT,
         cfg,
         EventTrigger {
             target_group: 123,
