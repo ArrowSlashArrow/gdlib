@@ -1352,6 +1352,30 @@ object_descriptor!(
     }
 );
 
+object_descriptor!(
+    /// Rotates the gameplay direction
+    RotateGameplayTrigger: TRIGGER_ROTATE_GAMEPLAY => {
+        /// Enables the `override_velocity` and `velocity_modifier` paramaters.
+        edit_velocity: bool => Bool EDIT_VELOCITY,
+        /// Sets the velocity of the player instead of multipling the player's current velocity. Uses `velocity_modifier` for each respective axis of motion.
+        override_velocity: bool => Bool OVERRIDE_VELOCITY,
+        /// Modifier of velocity. Applied to the player when the trigger is activated
+        velocity_modifier_x: f64 => Float X_VELOCITY_MODIFIER,
+        /// Modifier of velocity. Applied to the player when the trigger is activated
+        velocity_modifier_y: f64 => Float Y_VELOCITY_MODIFIER,
+        /// Change to a different gameplay channel when the trigger is activated. Enables `channel_only` and `target_channel`.
+        change_channel: bool => Bool CHANGE_CHANNEL,
+        /// Change to the channel without rotating gameplay
+        channel_only: bool => Bool CHANNEL_ONLY,
+        /// Channel to change to
+        target_channel: i32 => Int TARGET_CHANNEL,
+        /// Don't slide (???)
+        dont_slide: bool => Bool DONT_SLIDE,
+        /// Instantly rotates the camera to reflect gameplay rotation
+        instant_offset: bool => Bool INSTANT_OFFSET
+    }
+);
+
 // util fn to add easing to properties if it is specified
 fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
     if let Some((easing, rate)) = easing {
