@@ -193,6 +193,10 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     494u16 => ("Timer", GDObjPropType::Item),
     495u16 => ("Extra sticky", GDObjPropType::Bool),
     496u16 => ("Don't boost Y?", GDObjPropType::Bool),
+    498u16 => ("Beats per minute", GDObjPropType::Int),
+    499u16 => ("BPM guide speed", GDObjPropType::Unknown),
+    500u16 => ("BPM guide disabled", GDObjPropType::Bool),
+    501u16 => ("Beats per bar", GDObjPropType::Int),
     504u16 => ("Spawn only", GDObjPropType::Bool),
     506u16 => ("Camera guide preview opacity", GDObjPropType::Float),
     507u16 => ("No particles", GDObjPropType::Bool),
@@ -431,6 +435,7 @@ pub const OBJECT_NAMES: &[(i32, &str)] = &[
     (3620, "Trigger Item compare"),
     (3640, "Collision state block"),
     (3641, "Trigger Persistent item"),
+    (3642, "BPM Guide"),
     (3643, "Toggle block"),
     (3662, "Trigger Link visible"),
 ];

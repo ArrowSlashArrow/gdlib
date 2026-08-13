@@ -1281,3 +1281,18 @@ impl From<i16> for Group {
         Self::Regular(value)
     }
 }
+
+repr_t!(
+    strict BPMSpeed: i32 {
+        /// 1x speed
+        Normal = 0,
+        /// 0.5x speed
+        Slow = 1,
+        /// 2x speed
+        Fast = 2,
+        /// 3x speed
+        Faster = 3,
+        /// 4x speed
+        Fastest = 4,
+    } default Normal
+);

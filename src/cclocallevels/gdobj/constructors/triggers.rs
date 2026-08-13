@@ -1337,6 +1337,21 @@ object_descriptor!(
     }
 );
 
+object_descriptor!(
+    BPMGuide: BPM_GUIDE => {
+        /// Beats per minute
+        bpm: i32 => Int BEATS_PER_MINUTE,
+        /// Beats per bar
+        bpb: i32 => Int BEATS_PER_BAR,
+        /// How many seconds forward to show the guide
+        duration: i32 => Int DURATION_GROUP_TRIGGER_CHANCE,
+        /// Speed at which to show the bpm guide
+        speed: BPMSpeed => as_i32 BPM_GUIDE_SPEED,
+        /// Disables the guide
+        disabled: bool => Bool BPM_GUIDE_DISABLED
+    }
+);
+
 // util fn to add easing to properties if it is specified
 fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
     if let Some((easing, rate)) = easing {
@@ -1403,7 +1418,6 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
  * edit sfx trigger
  *
  * Misc.
- * bpm marker
  * gradient
  *
  * Player triggers
