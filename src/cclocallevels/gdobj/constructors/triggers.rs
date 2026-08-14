@@ -1162,11 +1162,11 @@ pub struct RotateTrigger {
     pub easing: Easing,
     /// Group to rotate.
     pub target_group: i16,
-    /// Group to rotate around. The rotation will not work if this group has no objects in it. Leave as 0 to rotate around the target group's origin instead.
+    /// Group to rotate around. The rotation will not work if this group has no objects in it. Leave as 0 to rotate around the target group's center instead.
     pub center_group_id: i16,
     /// Restricts the rotation in a box where the left, bottom, right, and top edges respectively are the first, second, third and fourth group's position.
     /// The four fields in the tuple correspond to `MinX`, `MinY`, `MaxX`, `MaxY` in the rotation trigger in that order.
-    /// If this field is specified, the target group will stop rotating once their origin's position exceeds the position of `MaxX` or `MaxY` group and inversely for `MinX` and `MinY`.   
+    /// If this field is specified, the target group will stop rotating once their center's position exceeds the position of `MaxX` or `MaxY` group and inversely for `MinX` and `MinY`.   
     pub bounding_box: Option<(i16, i16, i16, i16)>,
 }
 
@@ -1257,40 +1257,55 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Easing) {
     ]);
 }
 
-/// Returns a scale trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `scale_config`: Scaling config. See [`ScaleConfig`]
-/// * `easing`: Optional move easing and rate. See [`MoveEasing`]
-/// * `center_group_id`: Center of group that is being scaled. Leave as 0 to use the default center
-/// * `target_group`: Group that is being scaled.
-/// * `duration`: How long the scaling will be
-pub fn scale_trigger(
-    config: &GDObjConfig,
-    scale_config: ScaleConfig,
-    easing: Easing,
-    center_group_id: i16,
-    target_group: i16,
-    duration: f64,
-) -> GDObject {
-    let mut properties = vec![
-        (NEW_X_SCALE, GDValue::Float(scale_config.x_scale)),
-        (NEW_Y_SCALE, GDValue::Float(scale_config.y_scale)),
-        (DIV_BY_VALUE_X, GDValue::Bool(scale_config.div_by_value_x)),
-        (DIV_BY_VALUE_Y, GDValue::Bool(scale_config.div_by_value_y)),
-        (TARGET_ITEM, GDValue::Group(target_group)),
-        (TARGET_ITEM_2, GDValue::Group(center_group_id)),
-        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(duration)),
-        (ONLY_MOVE, GDValue::Bool(scale_config.only_move)),
-        (RELATIVE_SCALE, GDValue::Bool(scale_config.relative_scale)),
-        (
-            RELATIVE_ROTATION,
-            GDValue::Bool(scale_config.relative_rotation),
-        ),
-    ];
+#[derive(Debug, Clone, PartialEq)]
+/// Changes object size
+pub struct ScaleTrigger {
+    /// Parameters for scaling itself. See [`ScaleConfig`]
+    pub scale_config: ScaleConfig,
+    /// Easing for scaling motion. See [`MoveEasing`]
+    pub easing: Easing,
+    /// Center of group that is being scaled. Leave as 0 for the target group's center
+    pub center_group_id: i16,
+    /// Objects to scale
+    pub target_group: i16,
+    /// How long the scaling will take in seconds
+    pub duration: f64,
+}
 
-    add_easing(&mut properties, easing);
-    GDObject::new(TRIGGER_SCALE, config, properties)
+impl ObjectProperties for ScaleTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (NEW_X_SCALE, GDValue::Float(self.scale_config.x_scale)),
+            (NEW_Y_SCALE, GDValue::Float(self.scale_config.y_scale)),
+            (
+                DIV_BY_VALUE_X,
+                GDValue::Bool(self.scale_config.div_by_value_x),
+            ),
+            (
+                DIV_BY_VALUE_Y,
+                GDValue::Bool(self.scale_config.div_by_value_y),
+            ),
+            (TARGET_ITEM, GDValue::Group(self.target_group)),
+            (TARGET_ITEM_2, GDValue::Group(self.center_group_id)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(self.duration)),
+            (ONLY_MOVE, GDValue::Bool(self.scale_config.only_move)),
+            (
+                RELATIVE_SCALE,
+                GDValue::Bool(self.scale_config.relative_scale),
+            ),
+            (
+                RELATIVE_ROTATION,
+                GDValue::Bool(self.scale_config.relative_rotation),
+            ),
+        ];
+
+        add_easing(&mut properties, self.easing);
+        properties
+    }
+
+    fn object_id(&self) -> i32 {
+        TRIGGER_SCALE
+    }
 }
 
 object_descriptor!(
