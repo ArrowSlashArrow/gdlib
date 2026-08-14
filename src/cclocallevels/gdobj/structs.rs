@@ -1304,3 +1304,11 @@ repr_t!(
         Divide = 2,
     } default Add
 );
+
+repr_t!(
+    strict InstantCountComparison: i32 {
+        Equals = 0,
+        Larger = 1,
+        Smaller = 2
+    } default Equals
+);

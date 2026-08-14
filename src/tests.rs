@@ -241,7 +241,7 @@ fn cc_game_manager_parse() {
 #[test]
 #[ignore]
 fn _temp_read_objs() {
-    let level = GDLevel::from_gmd("test_gmds/Unnamed 37.gmd").unwrap();
+    let level = GDLevel::from_gmd("GMDS/Unnamed 37.gmd").unwrap();
     let data = level.get_decrypted_data().unwrap();
 
     for (idx, obj) in data.objects.iter().enumerate() {

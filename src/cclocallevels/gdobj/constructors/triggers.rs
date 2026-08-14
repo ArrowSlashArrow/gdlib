@@ -1228,6 +1228,16 @@ pub fn rotate_trigger(
     GDObject::new(TRIGGER_ROTATION, config, properties)
 }
 
+// util fn to add easing to properties if it is specified
+fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
+    if let Some((easing, rate)) = easing {
+        properties.extend_from_slice(&[
+            (MOVE_EASING, GDValue::Easing(easing)),
+            (EASING_RATE, GDValue::Float(rate)),
+        ]);
+    }
+}
+
 /// Returns a scale trigger
 /// # Arguments
 /// * `config`: General object options, such as position and scale
@@ -1395,21 +1405,25 @@ object_descriptor!(
         /// What the item's value is multiplied/divided by when using one of those modes in the trigger
         modifier: f64 => Float PICKUP_MODIFIER,
         /// Which operation to do
-        mode: PickupTriggerMode => as_i32 PICKUP_TRIGGER_MODE,
+        mode: PickupTriggerMode => as_i32 PICKUP_COUNT_MODE,
         /// Set the item's value to the count directly.
         override_value: bool => Bool PICKUP_OVERRIDE_VALUE,
     }
 );
 
-// util fn to add easing to properties if it is specified
-fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
-    if let Some((easing, rate)) = easing {
-        properties.extend_from_slice(&[
-            (MOVE_EASING, GDValue::Easing(easing)),
-            (EASING_RATE, GDValue::Float(rate)),
-        ]);
+object_descriptor!(
+    /// Activates/deactivates objects in the target group when the comparison between the item's value and the target count is true.
+    InstantCountTrigger: TRIGGER_INSTANT_COUNT => {
+        item_id: i16 => Item INPUT_ITEM_1,
+        target_group: i16 => Group TARGET_ITEM,
+        /// Number to reach
+        target_count: i32 => Int TARGET_COUNT,
+        /// Spawns objects in the group instead of deactivating them
+        activate_group: bool => Bool ACTIVATE_GROUP,
+        /// Which operator to use for the comparison condition. See [`InstantCountComparison`]. Example: using `Smaller` activates the group when the item's value becomes smaller than the target count.
+        comparison: InstantCountComparison => as_i32 PICKUP_COUNT_MODE
     }
-}
+);
 
 /* TODO: trigger constructors
  * Animation triggers
@@ -1441,9 +1455,6 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
  * Background triggers
  * switch bg
  * sdwitch ground
- *
- * Item triggers
- * instant count trigger
  *
  * Spawner triggers
  * sequence
