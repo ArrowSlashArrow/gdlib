@@ -11,7 +11,7 @@ use crate::{
             self, GDObject,
             constructors::{
                 misc::default_block,
-                triggers::{AdvancedRandomTrigger, EventTrigger, move_trigger},
+                triggers::{AdvancedRandomTrigger, EventTrigger, MoveTrigger},
             },
             ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
             meta::{GDObjAttributes, GDObjConfig},
@@ -49,19 +49,21 @@ fn move_constructor() {
     let mut level = GDLevel::default();
     level.identity.name = "move trigger t3st".into();
     level.identity.creator = "gdlib".into();
-    level.add_object(move_trigger(
-        &GDObjConfig::default().pos(45.0, 45.0),
-        MoveMode::Default(DefaultMove {
-            dx: 45.0,
-            dy: 54.0,
-            x_lock: None,
-            y_lock: None,
-        }),
-        17.38,
-        679,
-        false,
-        true,
-        Easing::from(MoveEasing::ElasticInOut, 1.50),
+    level.add_object(GDObject::from_config(
+        GDObjConfig::default().pos(45.0, 45.0),
+        MoveTrigger {
+            move_config: MoveMode::Default(DefaultMove {
+                dx: 45.0,
+                dy: 54.0,
+                x_lock: None,
+                y_lock: None,
+            }),
+            time: 17.38,
+            target_group: 679,
+            silent: false,
+            dynamic: true,
+            easing: Easing::from(MoveEasing::BackOut, 1.50),
+        },
     ));
 
     level

@@ -10,6 +10,7 @@
 //! - [`hide_player_trail`]
 //! - [`bg_effect_on`]
 //! - [`bg_effect_off`]
+//!
 //! All other triggers have a configuration struct that should be used instead.
 
 use crate::cclocallevels::gdobj::{
@@ -19,97 +20,109 @@ use crate::cclocallevels::gdobj::{
     structs::*,
 };
 
-/// Returns a move trigger object
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `move_config`: Details for the movement of the target group. See [`MoveMode`] struct
-/// * `time`: Move time of group.
-/// * `target_group`: Group that is moving.
-/// * `silent`: Skips collision checking with the player(s) in the path of its motion. Useful for reducing lag. Collision blocks are unaffected.
-/// * `dynamic`: Updates location of the target group in real time for target/directional move modes.
-/// * `easing`: Optional easing and easing rate (default: 2) tuple.
-pub fn move_trigger(
-    config: &GDObjConfig,
-    move_config: MoveMode,
-    time: f64,
-    target_group: i16,
-    silent: bool,
-    dynamic: bool,
-    easing: Easing,
-) -> GDObject {
-    // aim: target group 2
-    let mut properties = vec![
-        (TARGET_ITEM, GDValue::Group(target_group)),
-        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(time)),
-        (SMALL_STEP, GDValue::Bool(true)),
-        (DYNAMIC_MOVE, GDValue::Bool(dynamic)),
-        (SILENT_MOVE, GDValue::Bool(silent)),
-    ];
+#[derive(Debug, Clone, PartialEq)]
+/// Moves objects
+pub struct MoveTrigger {
+    /// Details for the movement of the target group. See [`MoveMode`] struct
+    pub move_config: MoveMode,
+    /// Move time of group.
+    pub time: f64,
+    /// Group that is moving.
+    pub target_group: i16,
+    /// Skips collision checking with the player(s) in the path of its motion. Useful for reducing lag.
+    ///
+    /// **WARNING**: If this option is used with dynamic collision blocks, the game can crash!
+    pub silent: bool,
+    /// Updates location of the target group in real time for target/directional move modes.
+    pub dynamic: bool,
+    /// Eases motion
+    pub easing: Easing,
+}
 
-    add_easing(&mut properties, easing);
+impl ObjectProperties for MoveTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (TARGET_ITEM, GDValue::Group(self.target_group)),
+            (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(self.time)),
+            (SMALL_STEP, GDValue::Bool(true)),
+            (DYNAMIC_MOVE, GDValue::Bool(self.dynamic)),
+            (SILENT_MOVE, GDValue::Bool(self.silent)),
+        ];
 
-    match move_config {
-        MoveMode::Default(config) => {
-            if let Some(lock) = config.x_lock {
-                properties.push((
-                    match lock {
-                        MoveLock::Player => FOLLOW_PLAYERS_X_MOVEMENT,
-                        MoveLock::Camera => FOLLOW_CAMERAS_X_MOVEMENT,
-                    },
-                    GDValue::Int(1),
-                ));
-                properties.push((X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)));
-            } else {
-                properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
+        add_easing(&mut properties, self.easing);
+
+        match &self.move_config {
+            MoveMode::Default(config) => {
+                if let Some(lock) = config.x_lock {
+                    properties.extend_from_slice(&[
+                        (
+                            match lock {
+                                MoveLock::Player => FOLLOW_PLAYERS_X_MOVEMENT,
+                                MoveLock::Camera => FOLLOW_CAMERAS_X_MOVEMENT,
+                            },
+                            GDValue::Int(1),
+                        ),
+                        (X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)),
+                    ]);
+                } else {
+                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
+                }
+
+                if let Some(lock) = config.y_lock {
+                    properties.extend_from_slice(&[
+                        (
+                            match lock {
+                                MoveLock::Player => FOLLOW_PLAYERS_Y_MOVEMENT,
+                                MoveLock::Camera => FOLLOW_CAMERAS_Y_MOVEMENT,
+                            },
+                            GDValue::Int(1),
+                        ),
+                        (Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)),
+                    ]);
+                } else {
+                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
+                }
             }
+            MoveMode::Targeting(config) => {
+                properties.push((TARGET_MOVE_MODE, GDValue::Int(1)));
+                if let Some(id) = config.center_group_id {
+                    properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
+                }
 
-            if let Some(lock) = config.y_lock {
-                properties.push((
-                    match lock {
-                        MoveLock::Player => FOLLOW_PLAYERS_Y_MOVEMENT,
-                        MoveLock::Camera => FOLLOW_CAMERAS_Y_MOVEMENT,
-                    },
-                    GDValue::Int(1),
-                ));
-                properties.push((Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)));
-            } else {
-                properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
+                if let Some(axis) = config.axis_only {
+                    properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::Int(axis as i32)));
+                }
+
+                match config.target_group_id {
+                    MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                    MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                    MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
+                };
+            }
+            MoveMode::Directional(config) => {
+                if let Some(id) = config.center_group_id {
+                    properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
+                }
+
+                match config.target_group_id {
+                    MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
+                    MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
+                    MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
+                };
+
+                properties.extend_from_slice(&[
+                    (DIRECTIONAL_MOVE_MODE, GDValue::Int(1)),
+                    (DIRECTIONAL_MODE_DISTANCE, GDValue::Int(config.distance)),
+                ]);
             }
         }
-        MoveMode::Targeting(config) => {
-            properties.push((TARGET_MOVE_MODE, GDValue::Int(1)));
-            if let Some(id) = config.center_group_id {
-                properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
-            }
 
-            if let Some(axis) = config.axis_only {
-                properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::Int(axis as i32)));
-            }
-
-            match config.target_group_id {
-                MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
-            };
-        }
-        MoveMode::Directional(config) => {
-            if let Some(id) = config.center_group_id {
-                properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
-            }
-
-            match config.target_group_id {
-                MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
-            };
-
-            properties.push((DIRECTIONAL_MOVE_MODE, GDValue::Int(1)));
-            properties.push((DIRECTIONAL_MODE_DISTANCE, GDValue::Int(config.distance)));
-        }
+        properties
     }
 
-    GDObject::new(TRIGGER_MOVE, config, properties)
+    fn object_id(&self) -> i32 {
+        TRIGGER_MOVE
+    }
 }
 
 /// Starts the player at some arbitrary position in the level. If there are multiple in the same level, the one that is furthest to the right and not disabled starts the player.
