@@ -13,7 +13,7 @@
 //! All other triggers have a configuration struct that should be used instead.
 
 use crate::cclocallevels::gdobj::{
-    Event, GDObjConfig, GDObject, GDValue, MoveEasing, ObjectProperties,
+    Event, GDObjConfig, GDObject, GDValue, ObjectProperties,
     ids::{objects::*, properties::*},
     object_descriptor,
     structs::*,
@@ -36,7 +36,7 @@ pub fn move_trigger(
     target_group: i16,
     silent: bool,
     dynamic: bool,
-    easing: Option<(MoveEasing, f64)>,
+    easing: Easing,
 ) -> GDObject {
     // aim: target group 2
     let mut properties = vec![
@@ -1045,7 +1045,7 @@ pub struct CameraZoomTrigger {
     /// Time to zoom
     pub time: f64,
     /// Zoom easing
-    pub easing: Option<(MoveEasing, f64)>,
+    pub easing: Easing,
 }
 
 impl ObjectProperties for CameraZoomTrigger {
@@ -1147,95 +1147,114 @@ object_descriptor!(
     }
 );
 
-/// Returns a rotate trigger
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `move_time`: Time to rotate the target
-/// * `rotation_cfg`: Rotation specifics. See [`RotationConfig`]
-/// * `easing`: optional move easing and rate. See [`MoveEasing`]
-/// * `target_group`: Group that will rotate
-/// * `center_group_id`: Group that is being rotated around
-/// * `bounding_box`: Optional vertices of a bounding box that limit the position of the rotation group.
-///
-/// The tuple corresponds to the `MinX`, `MinY`, `MaxX`, `MaxY` group ids respectively in the rotate trigger.
-pub fn rotate_trigger(
-    config: &GDObjConfig,
-    move_time: f64,
-    rotation_cfg: RotationConfig,
-    easing: Option<(MoveEasing, f64)>,
-    target_group: i16,
-    center_group_id: i16,
-    bounding_box: Option<(i16, i16, i16, i16)>,
-) -> GDObject {
-    let mut properties = vec![
-        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(move_time)),
-        (DYNAMIC_MOVE, GDValue::Bool(rotation_cfg.dynamic_mode)),
-        (
-            LOCK_OBJECT_ROTATION,
-            GDValue::Bool(rotation_cfg.lock_object_rotation),
-        ),
-        (TARGET_ITEM, GDValue::Group(target_group)),
-        (TARGET_ITEM_2, GDValue::Group(center_group_id)),
-    ];
+#[derive(Debug, Clone, PartialEq)]
+/// Rotates a group of objects.
+pub struct RotateTrigger {
+    /// How long the rotation should take in total
+    pub move_time: f64,
+    /// How to rotate the objects. See [`RotationMode`]
+    pub rotation_mode: RotationMode,
+    /// Update location of aim group every tick
+    pub dynamic_mode: bool,
+    /// Prevent target object from rotating around its center
+    pub lock_object_rotation: bool,
+    /// Easing mode for rotation.
+    pub easing: Easing,
+    /// Group to rotate.
+    pub target_group: i16,
+    /// Group to rotate around. The rotation will not work if this group has no objects in it. Leave as 0 to rotate around the target group's origin instead.
+    pub center_group_id: i16,
+    /// Restricts the rotation in a box where the left, bottom, right, and top edges respectively are the first, second, third and fourth group's position.
+    /// The four fields in the tuple correspond to `MinX`, `MinY`, `MaxX`, `MaxY` in the rotation trigger in that order.
+    /// If this field is specified, the target group will stop rotating once their origin's position exceeds the position of `MaxX` or `MaxY` group and inversely for `MinX` and `MinY`.   
+    pub bounding_box: Option<(i16, i16, i16, i16)>,
+}
 
-    match rotation_cfg.mode {
-        RotationMode::Aim(cfg) => {
-            properties.extend_from_slice(&[
-                (TARGET_MOVE_MODE, GDValue::Bool(true)),
-                (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
-                (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
-            ]);
+impl ObjectProperties for RotateTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (
+                DURATION_GROUP_TRIGGER_CHANCE,
+                GDValue::Float(self.move_time),
+            ),
+            (DYNAMIC_MOVE, GDValue::Bool(self.dynamic_mode)),
+            (
+                LOCK_OBJECT_ROTATION,
+                GDValue::Bool(self.lock_object_rotation),
+            ),
+            (TARGET_ITEM, GDValue::Group(self.target_group)),
+            (TARGET_ITEM_2, GDValue::Group(self.center_group_id)),
+        ];
 
-            if let Some(player) = cfg.player_target {
-                properties.push(match player {
-                    RotationPlayerTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
-                    RotationPlayerTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
-                });
+        match &self.rotation_mode {
+            RotationMode::Aim(cfg) => {
+                properties.extend_from_slice(&[
+                    (TARGET_MOVE_MODE, GDValue::Bool(true)),
+                    (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
+                    (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
+                ]);
+
+                if let Some(player) = cfg.player_target {
+                    properties.push(match player {
+                        RotationPlayerTarget::Player1 => {
+                            (CONTROLLING_PLAYER_1, GDValue::Bool(true))
+                        }
+                        RotationPlayerTarget::Player2 => {
+                            (CONTROLLING_PLAYER_2, GDValue::Bool(true))
+                        }
+                    });
+                }
+            }
+            RotationMode::Follow(cfg) => {
+                properties.extend_from_slice(&[
+                    (DIRECTIONAL_MOVE_MODE, GDValue::Bool(true)),
+                    (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
+                    (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
+                ]);
+
+                if let Some(player) = cfg.player_target {
+                    properties.push(match player {
+                        RotationPlayerTarget::Player1 => {
+                            (CONTROLLING_PLAYER_1, GDValue::Bool(true))
+                        }
+                        RotationPlayerTarget::Player2 => {
+                            (CONTROLLING_PLAYER_2, GDValue::Bool(true))
+                        }
+                    });
+                }
+            }
+            RotationMode::Default(cfg) => {
+                properties.extend_from_slice(&[
+                    (ROTATE_DEGREES, GDValue::Float(cfg.degrees)),
+                    (ROTATE_X360, GDValue::Int(cfg.x360)),
+                ]);
             }
         }
-        RotationMode::Follow(cfg) => {
-            properties.extend_from_slice(&[
-                (DIRECTIONAL_MOVE_MODE, GDValue::Bool(true)),
-                (ROTATION_TARGET_ID, GDValue::Group(cfg.aim_target)),
-                (ROTATION_OFFSET, GDValue::Float(cfg.rot_offset)),
-            ]);
 
-            if let Some(player) = cfg.player_target {
-                properties.push(match player {
-                    RotationPlayerTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
-                    RotationPlayerTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
-                });
-            }
-        }
-        RotationMode::Default(cfg) => {
+        add_easing(&mut properties, self.easing);
+        if let Some((min_x, min_y, max_x, max_y)) = self.bounding_box {
             properties.extend_from_slice(&[
-                (ROTATE_DEGREES, GDValue::Float(cfg.degrees)),
-                (ROTATE_X360, GDValue::Int(cfg.x360)),
+                (MINX_ID, GDValue::Group(min_x)),
+                (MINY_ID, GDValue::Group(min_y)),
+                (MAXX_ID, GDValue::Group(max_x)),
+                (MAXY_ID, GDValue::Group(max_y)),
             ]);
         }
+
+        properties
     }
 
-    add_easing(&mut properties, easing);
-    if let Some((min_x, min_y, max_x, max_y)) = bounding_box {
-        properties.extend_from_slice(&[
-            (MINX_ID, GDValue::Group(min_x)),
-            (MINY_ID, GDValue::Group(min_y)),
-            (MAXX_ID, GDValue::Group(max_x)),
-            (MAXY_ID, GDValue::Group(max_y)),
-        ]);
+    fn object_id(&self) -> i32 {
+        TRIGGER_ROTATION
     }
-
-    GDObject::new(TRIGGER_ROTATION, config, properties)
 }
 
 // util fn to add easing to properties if it is specified
-fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
-    if let Some((easing, rate)) = easing {
-        properties.extend_from_slice(&[
-            (MOVE_EASING, GDValue::Easing(easing)),
-            (EASING_RATE, GDValue::Float(rate)),
-        ]);
-    }
+fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Easing) {
+    properties.extend_from_slice(&[
+        (MOVE_EASING, GDValue::Easing(easing.easing)),
+        (EASING_RATE, GDValue::Float(easing.easing_rate)),
+    ]);
 }
 
 /// Returns a scale trigger
@@ -1249,7 +1268,7 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
 pub fn scale_trigger(
     config: &GDObjConfig,
     scale_config: ScaleConfig,
-    easing: Option<(MoveEasing, f64)>,
+    easing: Easing,
     center_group_id: i16,
     target_group: i16,
     duration: f64,
@@ -1297,7 +1316,7 @@ pub struct MiddleGroundConfigTrigger {
     /// Where to move it relative to its normal position
     pub offset_y: i32,
     /// Easing for moving the middleground
-    pub easing: Option<(MoveEasing, f64)>,
+    pub easing: Easing,
 }
 
 impl ObjectProperties for MiddleGroundConfigTrigger {
@@ -1450,7 +1469,6 @@ object_descriptor!(
  * enter area fade
  * enter area tint
  * enter area stop
- * area stop
  *
  * Background triggers
  * switch bg
@@ -1466,9 +1484,6 @@ object_descriptor!(
  * rotate camera
  * edge camera
  * camera mode
- *
- * Gameplay triggers
- * rotate gameplay
  *
  * Sound triggers
  * song trigger

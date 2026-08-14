@@ -6,7 +6,7 @@ use crate::cclocallevels::{
     gdobj::{
         ids::properties::*,
         meta::{GDObjAttributes, GDObjConfig},
-        structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, MoveEasing, ZLayer},
+        structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, ZLayer},
     },
     properties::{self, OBJECT_NAMES, get_obj_property_type},
 };

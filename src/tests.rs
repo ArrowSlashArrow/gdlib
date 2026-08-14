@@ -13,13 +13,11 @@ use crate::{
                 misc::default_block,
                 triggers::{AdvancedRandomTrigger, EventTrigger, move_trigger},
             },
-            ids::{
-                objects::{TRIGGER_ADVANCED_RANDOM, TRIGGER_EVENT},
-                properties::RANDOM_PROBABILITIES_LIST,
-            },
+            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
-                ColourChannel, DefaultMove, Event, ExtraID2, Group, MoveEasing, MoveMode, ZLayer,
+                ColourChannel, DefaultMove, Easing, Event, ExtraID2, Group, MoveEasing, MoveMode,
+                ZLayer,
             },
         },
     },
@@ -63,7 +61,7 @@ fn move_constructor() {
         679,
         false,
         true,
-        Some((MoveEasing::ElasticInOut, 1.50)),
+        Easing::from(MoveEasing::ElasticInOut, 1.50),
     ));
 
     level

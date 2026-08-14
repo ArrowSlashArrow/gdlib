@@ -327,6 +327,33 @@ impl From<i32> for MoveEasing {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// How an easing
+pub struct Easing {
+    /// Type of easing to apply. Different easings produce different curves of motion.
+    pub easing: MoveEasing,
+    /// The higher this number is, the "smoother" the movement will be.
+    pub easing_rate: f64,
+}
+
+impl Easing {
+    /// No easing.
+    pub fn none() -> Self {
+        Easing {
+            easing: MoveEasing::None,
+            easing_rate: 0.0,
+        }
+    }
+
+    /// Converts an (easing, rate) tuple into Self.
+    pub fn from(easing: MoveEasing, rate: f64) -> Self {
+        Easing {
+            easing,
+            easing_rate: rate,
+        }
+    }
+}
+
 /// Enum for all values represented by Geometry Dash.
 /// All values are parsed according to their specified [`GDObjPropType`].
 #[derive(Debug, Clone, PartialEq)]
