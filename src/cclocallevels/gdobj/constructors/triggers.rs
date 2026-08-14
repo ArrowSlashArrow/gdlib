@@ -112,57 +112,48 @@ pub fn move_trigger(
     GDObject::new(TRIGGER_MOVE, config, properties)
 }
 
-/// Returns a start pos object
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `gameplay_settings`: Gameplay options for startpos
-/// * `target_order`: Target order (of what, I don't know); Default: 0
-/// * `target_channel`: Target channel (once again, I don't know); Default: 0
-/// * `disabled`: Disabled startpos? Default: false
-pub fn start_pos(
-    config: &GDObjConfig,
-    gameplay_settings: StartposConfig,
-    target_order: i32,
-    target_channel: i32,
-    disabled: bool,
-) -> GDObject {
-    GDObject::new(
-        TRIGGER_START_POS,
-        config,
+/// Starts the player at some arbitrary position in the level. If there are multiple in the same level, the one that is furthest to the right and not disabled starts the player.
+#[derive(Debug, Default, Clone, Copy)]
+#[allow(missing_docs)]
+pub struct StartposConfig {
+    /// Starting speed of player
+    pub start_speed: Speed,
+    pub starting_gamemode: Gamemode,
+    pub starting_as_mini: bool,
+    pub starting_as_dual: bool,
+    pub starting_mirrored: bool,
+    pub reset_camera: bool,
+    pub rotate_gameplay: bool,
+    pub reverse_gameplay: bool,
+    pub target_order: i32,
+    pub target_channel: i32,
+    /// Startpos won't start the player here.
+    pub disabled: bool,
+}
+
+impl ObjectProperties for StartposConfig {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (
-                STARTING_SPEED,
-                GDValue::Int(gameplay_settings.start_speed as i32),
-            ),
+            (STARTING_SPEED, GDValue::Int(self.start_speed as i32)),
             (
                 STARTING_GAMEMODE,
-                GDValue::Int(gameplay_settings.starting_gamemode as i32),
+                GDValue::Int(self.starting_gamemode as i32),
             ),
-            (
-                STARTING_IN_MINI_MODE,
-                GDValue::Bool(gameplay_settings.starting_as_mini),
-            ),
-            (
-                STARTING_IN_DUAL_MODE,
-                GDValue::Bool(gameplay_settings.starting_as_dual),
-            ),
-            (IS_DISABLED, GDValue::Bool(disabled)),
+            (STARTING_IN_MINI_MODE, GDValue::Bool(self.starting_as_mini)),
+            (STARTING_IN_DUAL_MODE, GDValue::Bool(self.starting_as_dual)),
+            (IS_DISABLED, GDValue::Bool(self.disabled)),
             (
                 STARTING_IN_MIRROR_MODE,
-                GDValue::Bool(gameplay_settings.starting_mirrored),
+                GDValue::Bool(self.starting_mirrored),
             ),
-            (
-                ROTATE_GAMEPLAY,
-                GDValue::Bool(gameplay_settings.rotate_gameplay),
-            ),
-            (
-                REVERSE_GAMEPLAY,
-                GDValue::Bool(gameplay_settings.reverse_gameplay),
-            ),
-            (TARGET_ORDER, GDValue::Int(target_order)),
-            (TARGET_CHANNEL, GDValue::Int(target_channel)),
-            (RESET_CAMERA, GDValue::Bool(gameplay_settings.reset_camera)),
+            (ROTATE_GAMEPLAY, GDValue::Bool(self.rotate_gameplay)),
+            (REVERSE_GAMEPLAY, GDValue::Bool(self.reverse_gameplay)),
+            (TARGET_ORDER, GDValue::Int(self.target_order)),
+            (TARGET_CHANNEL, GDValue::Int(self.target_channel)),
+            (RESET_CAMERA, GDValue::Bool(self.reset_camera)),
+            // not sure what these properties do but they are required for the trigger to work
+            // 10000 + x => `kAx`
+            // i suspect that these might be related to the level start string somehow
             (10010, GDValue::Int(0)),
             (10011, GDValue::String(String::new())),
             (10022, GDValue::Int(0)),
@@ -185,8 +176,12 @@ pub fn start_pos(
             (10045, GDValue::Int(1)),
             (10046, GDValue::Int(0)),
             (10009, GDValue::Int(1)),
-        ],
-    )
+        ]
+    }
+
+    fn object_id(&self) -> i32 {
+        TRIGGER_START_POS
+    }
 }
 
 /// Returns a colour trigger

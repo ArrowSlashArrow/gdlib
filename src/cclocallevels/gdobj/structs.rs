@@ -1101,17 +1101,6 @@ pub enum RotationMode {
     Follow(RotationAim),
 }
 
-/// Struct for specifying rotation settings in a rotate trigger
-#[derive(Debug, Clone, PartialEq)]
-pub struct RotationConfig {
-    /// See [`RotationMode`]
-    pub mode: RotationMode,
-    /// Update location of aim group in real time]
-    pub dynamic_mode: bool,
-    /// Prevent target object from rotating around its center
-    pub lock_object_rotation: bool,
-}
-
 /// Degree amount rotation specifier
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RotationNormal {
@@ -1148,27 +1137,6 @@ pub struct RotationAim {
     pub rot_offset: f64,
     ///  Overrides aim_target if not None, uses either P1 or P2 as the target instead.
     pub player_target: Option<RotationPlayerTarget>,
-}
-
-/// Gameplay starting settings specification struct for the startpos trigger
-#[derive(Debug, Default, Clone, Copy)]
-pub struct StartposConfig {
-    /// Starting speed of player
-    pub start_speed: Speed,
-    /// Starting gamemode; Default: Cube
-    pub starting_gamemode: Gamemode,
-    /// Starting as mini? Default: false
-    pub starting_as_mini: bool,
-    /// Start as dual? Default: false
-    pub starting_as_dual: bool,
-    /// Start as mirrored? Default: false
-    pub starting_mirrored: bool,
-    /// Reset camera? Default: false
-    pub reset_camera: bool,
-    /// Rotate gameplay? Default: false
-    pub rotate_gameplay: bool,
-    /// Reverse gameplay? Default: false
-    pub reverse_gameplay: bool,
 }
 
 /// Configuration struct for collide triggers which specifies the colliders
