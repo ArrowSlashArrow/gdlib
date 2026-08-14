@@ -1,6 +1,16 @@
 //! This file contains constructors for trigger objects.
-//! # ⚠️ Warning
-//! **This file is incomplete. More triggers will be added in the future.**
+//!
+//! Since most triggers have paramters, structs are defined for most triggers which implement [`ObjectProperties`].
+//! This allows the programmer to construct a Trigger struct and easily create an object from it by using [`GDObject::from_config`].
+//!
+//! The few triggers that do not have any parameters can be created by calling their respective function to get a GDObject directly. There are 6 of these:
+//! - [`show_player`]
+//! - [`hide_player`]
+//! - [`show_player_trail`]
+//! - [`hide_player_trail`]
+//! - [`bg_effect_on`]
+//! - [`bg_effect_off`]
+//! All other triggers have a configuration struct that should be used instead.
 
 use crate::cclocallevels::gdobj::{
     Event, GDObjConfig, GDObject, GDValue, MoveEasing, ObjectProperties,
@@ -1376,6 +1386,21 @@ object_descriptor!(
     }
 );
 
+object_descriptor!(
+    /// The poor man's ItemEditTrigger.
+    PickupTrigger: TRIGGER_PICKUP => {
+        /// Item to modify
+        item_id: i32 => Int INPUT_ITEM_1,
+        count: i32 => Int TARGET_COUNT,
+        /// What the item's value is multiplied/divided by when using one of those modes in the trigger
+        modifier: f64 => Float PICKUP_MODIFIER,
+        /// Which operation to do
+        mode: PickupTriggerMode => as_i32 PICKUP_TRIGGER_MODE,
+        /// Set the item's value to the count directly.
+        override_value: bool => Bool PICKUP_OVERRIDE_VALUE,
+    }
+);
+
 // util fn to add easing to properties if it is specified
 fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, f64)>) {
     if let Some((easing, rate)) = easing {
@@ -1419,7 +1444,6 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Option<(MoveEasing, 
  *
  * Item triggers
  * instant count trigger
- * pickup trigger
  *
  * Spawner triggers
  * sequence

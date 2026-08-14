@@ -1296,3 +1296,11 @@ repr_t!(
         Fastest = 4,
     } default Normal
 );
+
+repr_t!(
+    strict PickupTriggerMode: i32 {
+        Add = 0,
+        Multiply = 1,
+        Divide = 2,
+    } default Add
+);
