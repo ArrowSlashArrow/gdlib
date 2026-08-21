@@ -6,7 +6,11 @@ use crate::cclocallevels::{
     gdobj::{
         ids::properties::*,
         meta::{GDObjAttributes, GDObjConfig},
-        structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, ZLayer},
+        structs::{
+            ColourChannel, Event,
+            GDObjPropType::{self},
+            GDValue, Group, ZLayer,
+        },
     },
     properties::{self, OBJECT_NAMES, get_obj_property_type},
 };
@@ -441,6 +445,16 @@ pub trait ObjectProperties {
     fn serialise(&self) -> Vec<(u16, GDValue)>;
     /// Returns the object ID that this struct is configured for.
     fn object_id(&self) -> i32;
+    /// Converts a `GDobject` to this struct. Should fail if the object ID doesn't match and if the required values aren't of the right type.
+    /// Values that are missing from the original object (usually due to being unset) should be filled in with their type's implementation of `Default`.
+    /// For GD-specific types, such as [`structs::Speed`], the `Default` implementation will be whatever is the regular default value when a trigger is placed in the game.
+    #[allow(unused_variables)]
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        None
+    }
 }
 
 macro_rules! prop_value {
@@ -464,10 +478,60 @@ macro_rules! prop_value {
     };
 }
 
+// GDValue => field type conversion
+macro_rules! from_obj_value {
+    (Events, $field:expr) => {
+        $field.into()
+    };
+    (ProbabilitiesList, $field:expr) => {
+        $field.into_vec()
+    };
+    (Remaps, $field:expr) => {
+        $field.into_vec()
+    };
+    ($t:ident, $field:expr) => {
+        $field.into()
+    };
+}
+
+macro_rules! object_field_match {
+    (to_i32, $field_type:ty, $p:ident) => {
+        match $p {
+            GDValue::Int(l) => <$field_type>::from(l),
+            _ => return None,
+        }
+    };
+    (as_i32, $field_type:ty, $p:ident) => {
+        match $p {
+            GDValue::Int(l) => match <$field_type>::try_from(l) {
+                Ok(v) => v,
+                Err(_) => return None,
+            },
+            _ => return None,
+        }
+    };
+    (Remaps, $field_type:ty, $p:ident) => {
+        match $p {
+            // GDValue::Int(l) => l
+            GDValue::SpawnRemapsList(l) => {
+                crate::cclocallevels::gdobj::from_obj_value!(Remaps, l)
+            }
+            _ => return None,
+        }
+    };
+    ($gd_type:ident, $field_type:ty, $p:ident) => {
+        match $p {
+            // GDValue::Int(l) => l
+            GDValue::$gd_type(l) => crate::cclocallevels::gdobj::from_obj_value!($gd_type, l),
+            _ => return None,
+        }
+    };
+}
+
 // quick way to create object descriptors where the descriptor can be serialised as a list of its properties
 macro_rules! object_descriptor {
     ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, Default)]
         #[allow(missing_docs)]
         $(#[$meta])*
         pub struct $descriptor {
@@ -489,9 +553,51 @@ macro_rules! object_descriptor {
             fn object_id(&self) -> i32 {
                 $object
             }
+
+            fn from_object(obj: &GDObject) -> Option<Self> {
+                if obj.id == $object {
+                    return None;
+                }
+
+                let mut this = Self::default();
+
+                $(
+                    // here, try to assign each field the value from the object
+                    this.$field = match obj.get_property($prop_id) {
+                        // field exists, try to parse it. return None if you get bad data.
+                        Some(p) => crate::cclocallevels::gdobj::object_field_match!($prop_t, $ftype, p),
+                        // field doesn't exist, use default parameter
+                        None => <$ftype>::default(),
+                    };
+                )*
+
+                return Some(this);
+            }
         }
     };
 }
 
+/*
+pub fn from_trigger(trigger: &GDObject) -> Option<Self> {
+    if trigger.id != TRIGGER_ADVANCED_RANDOM {
+        return None;
+    }
+
+    let mut this = Self::default();
+    this.probabilities = match trigger.get_property(RANDOM_PROBABILITIES_LIST) {
+        Some(p) => match p {
+            GDValue::ProbabilitiesList(l) => l.into_vec(),
+            _ => return None,
+        },
+        None => vec![],
+    };
+
+    return Some(this);
+}
+
+*/
+
+pub(crate) use from_obj_value;
 pub(crate) use object_descriptor;
+pub(crate) use object_field_match;
 pub(crate) use prop_value;

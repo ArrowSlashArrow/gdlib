@@ -1,6 +1,6 @@
 //! Implementations and uses of Pseudo-RNG in Geometry Dash.
 
-use crate::cclocallevels::gdobj::structs::{GDValue, Group};
+use crate::cclocallevels::gdobj::{constructors::triggers::AdvancedRandomTrigger, structs::Group};
 
 const LCG_MULTIPLIER: u64 = 214_013;
 const LCG_CONSTANT: u64 = 2_531_011;
@@ -60,13 +60,8 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 ///
 /// This algorithm was sourced from the Andriod APK for GD and is verified to work as of GD 2.2801.
 #[must_use]
-pub fn check_seed_advanced_random(seed: u64, probabilities: &GDValue) -> Option<Group> {
-    // tuples of (group, chance)
-    let prob_list = match probabilities {
-        GDValue::ProbabilitiesList(probs) => probs,
-        _ => return None,
-    };
-
+pub fn check_seed_advanced_random(seed: u64, trigger: &AdvancedRandomTrigger) -> Option<Group> {
+    let prob_list = &trigger.probabilities;
     let total_chance: i32 = prob_list.iter().map(|(_, chance)| chance).sum();
     let accumulated_chance_threshold =
         (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;

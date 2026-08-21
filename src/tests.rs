@@ -13,7 +13,6 @@ use crate::{
                 misc::default_block,
                 triggers::{AdvancedRandomTrigger, EventTrigger, MoveTrigger},
             },
-            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
                 ColourChannel, DefaultMove, Easing, Event, ExtraID2, Group, MoveEasing, MoveMode,
@@ -21,7 +20,7 @@ use crate::{
             },
         },
     },
-    core::rand::{check_seed_advanced_random, next_seed_mut},
+    core::rand::check_seed_advanced_random,
 };
 
 fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
@@ -205,10 +204,12 @@ fn advanced_random_predict() {
 
     for &(obj_str, seed, expected) in tests {
         let adv_rand = GDObject::parse_str(obj_str);
-        // get probabilities table
-        let probabilities = adv_rand.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
         assert_eq!(
-            check_seed_advanced_random(seed, &probabilities).unwrap(),
+            check_seed_advanced_random(
+                seed,
+                &AdvancedRandomTrigger::from_trigger(&adv_rand).unwrap()
+            )
+            .unwrap(),
             Group::Regular(expected)
         );
     }
@@ -263,40 +264,6 @@ fn _temp_level_header() -> anyhow::Result<()> {
         for c in cs {
             println!("{:?}", c);
         }
-    }
-
-    Ok(())
-}
-
-#[test]
-fn get_seed_from_criteria() -> anyhow::Result<()> {
-    let level = GDLevel::from_gmd("test_gmds/Chompstep.gmd")?;
-    let mut objects = level.get_decrypted_data().unwrap().objects;
-
-    // advanced random objects do not change the group for some reason
-    objects.retain(|o| o.id == TRIGGER_ADVANCED_RANDOM && o.config.pos.0 > 0.0);
-    objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
-
-    let expected = vec![3, 2, 2, 2, 2, 2, 2, 2];
-
-    let mut seed = 0;
-
-    'outer: for obj in objects {
-        // get probabilities table
-        let probabilities = obj.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
-
-        let mut seed_clone = seed;
-        for g in &expected {
-            let got = check_seed_advanced_random(seed, &probabilities).unwrap();
-            next_seed_mut(&mut seed_clone);
-            if let Group::Regular(g1) = got
-                && g1 != *g
-            {
-                seed += 1;
-                continue 'outer;
-            }
-        }
-        println!("found seed: {}", seed_clone);
     }
 
     Ok(())

@@ -13,6 +13,13 @@ macro_rules! parse {
     ($v:expr => $t:ty) => {
         $v.parse::<$t>().unwrap_or_default()
     };
+    // rept_t enums with strict
+    ($v:expr => $t:ty => $next:ty) => {
+        <$next>::try_from($v.parse::<$t>().unwrap_or_default()).unwrap_or_default()
+    }; // rept_t enums without strict
+       // ($v:expr => $t:ty : $next:ty) => {
+       //     <$next>::from($v.parse::<$t>().unwrap_or_default()).unwrap_or_default()
+       // };
 }
 
 pub mod animation_ids {
@@ -85,6 +92,19 @@ impl Anim {
     }
 }
 
+impl Default for Anim {
+    fn default() -> Self {
+        // By default, both the animation mode and type are unset.
+        Self::Other(0)
+    }
+}
+
+impl From<i32> for Anim {
+    fn from(value: i32) -> Self {
+        Self::Other(value)
+    }
+}
+
 /// In-level value container. Used in such triggers as item edit, item compare and item persisent
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
@@ -148,12 +168,15 @@ impl Item {
 repr_t!(
     /// Enum for counter types
     ItemType: i32 {
+        /// This is the default item type designated by every trigger that deals with items.
+        /// However, due to this variant having a value of 1 instead of 0, any properties of this type will not be automatically designated as `Self::Counter`.
+        /// Using [`GDValue::from`] circumvents this by interpreting unset values as their default values, which in this case is the `Counter` variant.
         Counter = 1,
         Timer = 2,
         Points = 3,
         MainTime = 4,
         Attempts = 5,
-    }
+    } default Counter
 );
 
 repr_t!(
@@ -162,7 +185,9 @@ repr_t!(
         Attempts = -3,
         Points = -2,
         MainTime = -1,
-    }
+        /// Counter labels are not set to any special mode by default.
+        None = 0
+    } default None
 );
 
 /// Corresponding types for [`GDValue`]s.
@@ -183,6 +208,22 @@ pub enum GDObjPropType {
     ProbabilitiesList,
     SpawnRemapsList,
     Toggle,
+    Speed,
+    Gamemode,
+    ItemEditOperator,
+    ItemCompareOperator,
+    BPMSpeed,
+    ItemEditRoundMode,
+    ItemEditSignMode,
+    TouchToggle,
+    AxisOnlyMove,
+    ArrowDirection,
+    PlayerTarget,
+    TransitionMode,
+    UIReferencePos,
+    CounterMode,
+    ItemType,
+    StopMode,
     Unknown,
 }
 
@@ -388,12 +429,52 @@ pub enum GDValue {
     ZLayer(ZLayer),
     /// A list of [`Event`]s. Used in the event trigger.
     Events(Vec<Event>),
+    /// A player speed
+    Speed(Speed),
+    /// A gamemode
+    Gamemode(Gamemode),
+    /// An arithmetic operator, used in the ItemEdit trigger
+    ItemEditOperator(Op),
+    /// A comparison operator, using the the ItemCompare trigger
+    ItemCompareOperator(CompareOp),
+    /// BPMSpeed preset. While also corresponding to player speed, it uses a different enumeration.
+    BPMSpeed(BPMSpeed),
+    /// Rounding mode in an ItemEdit
+    ItemEditRoundMode(RoundMode),
+    /// Singing mode in an ItemEdit
+    ItemEditSignMode(SignMode),
+    /// TODO: doc
+    TouchToggle(TouchToggle),
+    /// TODO: doc
+    AxisOnlyMove(AxisOnlyMove),
+    /// TODO: doc
+    ArrowDirection(ArrowDirection),
+    /// TODO: doc
+    PlayerTarget(OptionalPlayerTarget),
+    /// TODO: doc
+    TransitionMode(TransitionMode),
+    /// TODO: doc
+    UIReferencePos(UIReferencePos),
+    /// TODO: doc
+    CounterMode(CounterMode),
+    /// TODO: doc
+    ItemType(ItemType),
+    /// TODO: doc
+    StopMode(StopMode),
+
     /// A UTF-8 string. The fallback for any value that did not fit any of the aforementioned criteria.
     String(String), // fallback
 }
 
 impl GDValue {
-    /// Converts input string to a variant of this enum based on the property type
+    /// Converts input string to a variant of this enum based on the property type.
+    ///
+    /// This function will not panic - instead it uses `.unwrap_or_default()` for all data conversion steps.
+    /// Malformed input data will be lost and replaced with its default counterpart.
+    /// For example, when trying to parse an integer property whose actual value is "abc_not_an_integer", this function will return `GDValue::Int(0)` as 0 is the default value for an int.
+    /// This also applies to any enums. If an enum with a specific set of values gets a value outside of its supported range, the function will return the enum's default value.
+    ///
+    /// This is intended behaviour to ensure that corrupted values don't cause the function to panic when parsing a large collection of GDValue, notably when parsing a GDLevel.
     pub fn from(t: GDObjPropType, s: &str) -> Self {
         match t {
             GDObjPropType::Bool => Self::Bool(s == "1"),
@@ -419,9 +500,40 @@ impl GDValue {
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
             GDObjPropType::Item => Self::Item(parse!(s => i16)),
+            GDObjPropType::BPMSpeed => Self::BPMSpeed(parse!(s => i32 => BPMSpeed)),
+            GDObjPropType::Gamemode => Self::Gamemode(parse!(s => i32 => Gamemode)),
+            GDObjPropType::ItemCompareOperator => {
+                Self::ItemCompareOperator(parse!(s => i32 => CompareOp))
+            }
+            GDObjPropType::ItemEditOperator => Self::ItemEditOperator(parse!(s => i32 => Op)),
+            GDObjPropType::ItemEditRoundMode => {
+                Self::ItemEditRoundMode(parse!(s => i32 => RoundMode))
+            }
+            GDObjPropType::ItemEditSignMode => Self::ItemEditSignMode(parse!(s => i32 => SignMode)),
+            GDObjPropType::Speed => Self::Speed(parse!(s => i32 => Speed)),
+            GDObjPropType::TouchToggle => Self::TouchToggle(parse!(s => i32 => TouchToggle)),
+            GDObjPropType::AxisOnlyMove => Self::AxisOnlyMove(parse!(s => i32 => AxisOnlyMove)),
+            GDObjPropType::ArrowDirection => {
+                Self::ArrowDirection(parse!(s => i32 => ArrowDirection))
+            }
+            GDObjPropType::PlayerTarget => {
+                Self::PlayerTarget(parse!(s => i32 => OptionalPlayerTarget))
+            }
+            GDObjPropType::TransitionMode => {
+                Self::TransitionMode(parse!(s => i32 => TransitionMode))
+            }
+            GDObjPropType::UIReferencePos => {
+                Self::UIReferencePos(parse!(s => i32 => UIReferencePos))
+            }
+            GDObjPropType::CounterMode => Self::CounterMode(parse!(s => i32 => CounterMode)),
+            GDObjPropType::ItemType => Self::ItemType(parse!(s => i32 => ItemType)),
+            GDObjPropType::StopMode => Self::StopMode(parse!(s => i32 => StopMode)),
             GDObjPropType::Text | GDObjPropType::Unknown => Self::String(s.to_owned()),
         }
     }
+
+    // todo: from that handles bad data (from_safe)
+    // returns Result<Self, &str> where Ok(Self) if all good, but Err(param) if bad
 
     #[inline]
     /// Converts a vector of [`Group`]s to a [`GDValue`]
@@ -539,6 +651,22 @@ impl Display for GDValue {
             GDValue::String(v) => write!(f, "{v}"),
             GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts => i_buf)),
+            GDValue::BPMSpeed(b) => write!(f, "{}", i_buf.format(*b as i32)),
+            GDValue::Gamemode(g) => write!(f, "{}", i_buf.format(*g as i32)),
+            GDValue::ItemCompareOperator(ic) => write!(f, "{}", i_buf.format(*ic as i32)),
+            GDValue::ItemEditOperator(ie) => write!(f, "{}", i_buf.format(*ie as i32)),
+            GDValue::ItemEditSignMode(s) => write!(f, "{}", i_buf.format(*s as i32)),
+            GDValue::ItemEditRoundMode(r) => write!(f, "{}", i_buf.format(*r as i32)),
+            GDValue::Speed(s) => write!(f, "{}", i_buf.format(*s as i32)),
+            GDValue::TouchToggle(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::AxisOnlyMove(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::ArrowDirection(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::PlayerTarget(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::TransitionMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::UIReferencePos(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::CounterMode(v) => write!(f, "{}", i_buf.format(v.to_num())),
+            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(v.to_num())),
+            GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
         }
     }
 }
@@ -628,19 +756,17 @@ repr_t!(
     }
 );
 
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[allow(missing_docs)]
-/// Extra ID 2 parameter in the event trigger
-pub enum ExtraID2 {
-    #[default]
-    /// All players activate the event
-    All = 0,
-    /// Only Player 1 activates the event
-    P1 = 1,
-    /// Only Player 2 activates the event
-    P2 = 2,
-}
+repr_t!(
+    /// Extra ID 2 parameter in the event trigger
+    strict ExtraID2: i32 {
+        /// All players activate the event
+        All = 0,
+        /// Only Player 1 activates the event
+        P1 = 1,
+        /// Only Player 2 activates the event
+        P2 = 2,
+    } default All
+);
 
 /// Enum for move targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -670,11 +796,11 @@ repr_t!(
 
 repr_t!(
     /// Enum for stop trigger modes
-    StopMode: i32 {
+    strict StopMode: i32 {
         Stop = 0,
         Pause = 1,
         Resume = 2,
-    }
+    } default Stop
 );
 
 repr_t!(
@@ -688,11 +814,11 @@ repr_t!(
 
 repr_t!(
     /// Enum for transition object enter/exit config
-    TransitionMode: i32 {
+    strict TransitionMode: i32 {
         Both = 0,
         Enter = 1,
         Exit = 2,
-    }
+    } default Both
 );
 
 /// Enum for transition object type (from top, from bottom, etc.)
@@ -718,26 +844,26 @@ pub enum TransitionType {
 
 repr_t!(
     /// Enum for item operators
-    Op: i32 {
+    strict Op: i32 {
         /// Assignment
         Set = 0,
         Add = 1,
         Sub = 2,
         Mul = 3,
         Div = 4,
-    }
+    } default Set
 );
 
 repr_t!(
     /// Enum for item comparison operators
-    CompareOp: i32 {
+    strict CompareOp: i32 {
         Equals = 0,
         Greater = 1,
         GreaterOrEquals = 2,
         Less = 3,
         LessOrEquals = 4,
         NotEquals = 5,
-    }
+    } default Equals
 );
 
 /// Compare operand configuration specifier for the item control trigger
@@ -789,7 +915,7 @@ repr_t!(
         Nearest = 1,
         Floor = 2,
         Ceiling = 3,
-    }
+    } default None
 );
 
 repr_t!(
@@ -799,7 +925,7 @@ repr_t!(
         None = 0,
         Absolute = 1,
         Negative = 2,
-    }
+    } default None
 );
 
 /// Enum for target player in gravity trigger
@@ -840,7 +966,7 @@ repr_t!(
         Center = 2,
         Left = 3,
         Right = 4,
-    }
+    } default Auto
 );
 
 /// Config struct for default movement
@@ -867,15 +993,16 @@ pub struct TargetMove {
     pub axis_only: Option<AxisOnlyMove>,
 }
 
-/// Optional axis lock for move triggers
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AxisOnlyMove {
-    /// Locks to X-axis
-    X = 1,
-    /// Locks to Y-axis
-    Y = 2,
-}
+repr_t!(
+    /// Optional axis lock for move triggers
+    strict AxisOnlyMove: i32 {
+        Unset = 0,
+        /// Locks to X-axis
+        X = 1,
+        /// Locks to Y-axis
+        Y = 2,
+    } default Unset
+);
 
 /// Config struct for moving to a specific target.
 #[derive(Debug, Clone, PartialEq)]
@@ -1200,7 +1327,7 @@ repr_t!(
 
 repr_t!(
     /// Enum for an optional player target. Used in the touch trigger.
-    OptionalPlayerTarget: i32 {
+    strict OptionalPlayerTarget: i32 {
         /// Registers input from both players
         None = 0,
         /// Only registers input from player 1.
@@ -1212,7 +1339,7 @@ repr_t!(
 
 repr_t!(
     /// Enum for modes of activation in a touch trigger
-    TouchToggle: i32 {
+    strict TouchToggle: i32 {
         /// Alternates between activating and deactivating the target group
         None = 0,
         /// Activates target group only
@@ -1306,4 +1433,15 @@ repr_t!(
         Larger = 1,
         Smaller = 2
     } default Equals
+);
+
+repr_t!(
+    // todo: check this
+    /// The `Default` implementation for this enum is `Self::Right`. When this object is placed in the editor normally, it assumes this orientation to start with.
+    strict ArrowDirection: i32 {
+        Up = 1,
+        Down = 2,
+        Left = 3,
+        Right = 4
+    } default Right
 );

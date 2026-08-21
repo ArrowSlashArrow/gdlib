@@ -79,31 +79,23 @@ impl Error for GDError {
     }
 }
 
-impl From<DecodeError> for GDError {
-    fn from(value: DecodeError) -> Self {
-        Self::DecodeError(value)
-    }
+// macro just for GDError
+macro_rules! from_error {
+    ($fp:path => $err:ident) => {
+        impl From<$fp> for GDError {
+            fn from(value: $fp) -> Self {
+                Self::$err(value)
+            }
+        }
+    };
 }
-impl From<std::io::Error> for GDError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-impl From<plist::Error> for GDError {
-    fn from(value: plist::Error) -> Self {
-        Self::BadPlist(value)
-    }
-}
-impl From<aho_corasick::BuildError> for GDError {
-    fn from(value: aho_corasick::BuildError) -> Self {
-        Self::AhoCorasick(value)
-    }
-}
-impl From<std::string::FromUtf8Error> for GDError {
-    fn from(value: std::string::FromUtf8Error) -> Self {
-        Self::FromUtf8Error(value)
-    }
-}
+
+from_error!(DecodeError => DecodeError);
+from_error!(std::io::Error => Io);
+from_error!(plist::Error => BadPlist);
+from_error!(aho_corasick::BuildError => AhoCorasick);
+from_error!(std::string::FromUtf8Error => FromUtf8Error);
+
 // TODO: make this more verbose, probably better?
 impl From<GDError> for std::fmt::Error {
     fn from(_: GDError) -> Self {

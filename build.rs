@@ -53,6 +53,9 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
             if line.starts_with("};") {
                 break;
             }
+            if line.trim_start().starts_with("///") {
+                writeln!(out_str, "{}", line).unwrap();
+            }
             if line.trim_start().starts_with("/*") || line.trim_start().starts_with("//") {
                 continue;
             }

@@ -10,6 +10,7 @@
 //! - [`hide_player_trail`]
 //! - [`bg_effect_on`]
 //! - [`bg_effect_off`]
+//! - [`reverse_gameplay`]
 //!
 //! All other triggers have a configuration struct that should be used instead.
 
@@ -39,6 +40,7 @@ pub struct MoveTrigger {
     pub easing: Easing,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for MoveTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -84,7 +86,7 @@ impl ObjectProperties for MoveTrigger {
                 }
             }
             MoveMode::Targeting(config) => {
-                properties.push((TARGET_MOVE_MODE, GDValue::Int(1)));
+                properties.push((TARGET_MOVE_MODE, GDValue::Bool(true)));
                 if let Some(id) = config.center_group_id {
                     properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
                 }
@@ -144,6 +146,7 @@ pub struct StartposConfig {
     pub disabled: bool,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for StartposConfig {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
@@ -311,7 +314,7 @@ object_descriptor!(
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Stop mode (see [`StopMode`] struct)
-        stop_mode: StopMode => to_i32 STOP_MODE,
+        stop_mode: StopMode => as_i32 STOP_MODE,
         /// Only stops certain triggers within a group if enabled.
         use_control_id: bool => Bool USE_CONTROL_ID
     }
@@ -349,13 +352,11 @@ pub struct TransitionTrigger {
     pub channel: i32,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for TransitionTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (
-                ENTEREXIT_TRANSITION_CONFIG,
-                GDValue::Int(self.mode.to_num()),
-            ),
+            (ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(self.mode as i32)),
             (TARGET_TRANSITION_CHANNEL, GDValue::Int(self.channel)),
         ]
     }
@@ -506,6 +507,7 @@ pub struct GravityTrigger {
     pub target_player: Option<TargetPlayer>,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for GravityTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![(GRAVITY, GDValue::Float(self.gravity))];
@@ -535,6 +537,7 @@ pub struct EndTrigger {
     pub no_sfx: bool,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for EndTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -571,6 +574,7 @@ pub struct CounterLabel {
     pub seconds_only: bool,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for CounterLabel {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -651,6 +655,7 @@ pub struct ItemEditTrigger {
     pub result_sign: SignMode,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for ItemEditTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mod_op = match self.multiply_mod {
@@ -669,9 +674,9 @@ impl ObjectProperties for ItemEditTrigger {
                 GDValue::Int(self.target.get_type_as_i32()),
             ),
             (MODIFIER, GDValue::Float(self.modifier)),
-            (LEFT_OPERATOR, GDValue::Int(self.assign_op.to_num())),
-            (RIGHT_OPERATOR, GDValue::Int(id_op.to_num())),
-            (COMPARE_OPERATOR, GDValue::Int(mod_op.to_num())),
+            (LEFT_OPERATOR, GDValue::Int(self.assign_op as i32)),
+            (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
+            (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
             (LEFT_ROUND_MODE, GDValue::Int(self.id_rounding as i32)),
             (RIGHT_ROUND_MODE, GDValue::Int(self.result_rounding as i32)),
             (LEFT_SIGN_MODE, GDValue::Int(self.id_sign as i32)),
@@ -720,6 +725,7 @@ pub struct ItemCompareTrigger {
     pub tolerance: f64,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for ItemCompareTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
@@ -741,9 +747,9 @@ impl ObjectProperties for ItemCompareTrigger {
             (MODIFIER, GDValue::Float(self.lhs.modifier)),
             (SECOND_MODIFIER, GDValue::Float(self.rhs.modifier)),
             // modifiers ops
-            (LEFT_OPERATOR, GDValue::Int(self.lhs.mod_op.to_num())),
-            (RIGHT_OPERATOR, GDValue::Int(self.rhs.mod_op.to_num())),
-            (COMPARE_OPERATOR, GDValue::Int(self.compare_op.to_num())),
+            (LEFT_OPERATOR, GDValue::Int(self.lhs.mod_op as i32)),
+            (RIGHT_OPERATOR, GDValue::Int(self.rhs.mod_op as i32)),
+            (COMPARE_OPERATOR, GDValue::Int(self.compare_op as i32)),
             (TOLERANCE, GDValue::Float(self.tolerance)),
             // round modes
             (LEFT_ROUND_MODE, GDValue::Int(self.lhs.rounding as i32)),
@@ -845,6 +851,7 @@ pub struct ParticleSpawnTrigger {
     pub position_group: i16,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for ParticleSpawnTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1056,6 +1063,7 @@ pub struct CameraZoomTrigger {
     pub easing: Easing,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for CameraZoomTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1102,10 +1110,11 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// Sets animation modes for objects with animations such as bats
+    /// Sets animation modes for objects with animations such as (but not limited to) bats and spikeballs.
     AnimateTrigger: TRIGGER_ANIMATE => {
         /// Objects to animate
         target_group: i16 => Group TARGET_ITEM,
+        /// When parsed with [`Self::from_object`], this ID will be cast to [`Anim::Other`]
         animation: Anim => to_i32 ANIMATION_ID
     }
 );
@@ -1136,6 +1145,28 @@ object_descriptor!(
         probabilities: Vec<(i16, i32)> => ProbabilitiesList RANDOM_PROBABILITIES_LIST
     }
 );
+
+impl AdvancedRandomTrigger {
+    // maybe we can put this into the ObjectProperties trait
+    /// Converts a `GDobject` to this struct. Fails the object ID doesn't match and if the required values aren't of the right type.
+    /// Values that are missing from the original object (usually due to being unset) are filled in with their type's implementation of `Default`.
+    pub fn from_trigger(trigger: &GDObject) -> Option<Self> {
+        if trigger.id != TRIGGER_ADVANCED_RANDOM {
+            return None;
+        }
+
+        let mut this = Self::default();
+        this.probabilities = match trigger.get_property(RANDOM_PROBABILITIES_LIST) {
+            Some(p) => match p {
+                GDValue::ProbabilitiesList(l) => l.into_vec(),
+                _ => return None,
+            },
+            None => vec![],
+        };
+
+        return Some(this);
+    }
+}
 
 object_descriptor!(
     /// UI config trigger
@@ -1178,6 +1209,7 @@ pub struct RotateTrigger {
     pub bounding_box: Option<(i16, i16, i16, i16)>,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for RotateTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1280,6 +1312,7 @@ pub struct ScaleTrigger {
     pub duration: f64,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for ScaleTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1342,6 +1375,7 @@ pub struct MiddleGroundConfigTrigger {
     pub easing: Easing,
 }
 
+// TODO: implement `from_object`
 impl ObjectProperties for MiddleGroundConfigTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(self.offset_y))];
@@ -1386,9 +1420,9 @@ object_descriptor!(
         /// Blocks 2nd player's clicks. Deprecated in favour of [`OptionalPlayerTarget::Player1`]
         dual_mode: bool => Bool TOUCH_DUAL_MODE,
         /// Toggles a specific activation mode. See [`TouchToggle`]
-        toggle: TouchToggle => to_i32 TOUCH_TOGGLE_ONOFF,
+        toggle: TouchToggle => as_i32 TOUCH_TOGGLE_ONOFF,
         /// Only registers clicks from one player. See [`OptionalPlayerTarget`]
-        target_player: OptionalPlayerTarget => to_i32 TOUCH_PLAYER_ONLY
+        target_player: OptionalPlayerTarget => as_i32 TOUCH_PLAYER_ONLY
     }
 );
 
