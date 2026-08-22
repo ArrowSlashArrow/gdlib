@@ -162,6 +162,9 @@ impl GDLevelData {
 
         #[cfg(not(feature = "parallel"))]
         let object_data = {
+            // the average size of an object is assumed to be 64 bytes. this value is not optimized in any way.
+            // a value too small would cause a lot of resizing that could have been prevented,
+            // and a value too large would allocate an unnecessarily large amount of space.
             let mut data = String::with_capacity(self.objects.len() * 64);
             for obj in &self.objects {
                 data.push_str(&obj.serialise_to_string());

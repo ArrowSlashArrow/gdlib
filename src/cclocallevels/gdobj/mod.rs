@@ -124,6 +124,8 @@ impl Debug for GDObject {
     }
 }
 
+const KA_PROPERTY_OFFSET: u16 = 10_000;
+
 impl GDObject {
     /// Parses raw object string to `GDObject`
     pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
@@ -139,7 +141,7 @@ impl GDObject {
             let idx_u16 = match idx.parse::<u16>() {
                 Ok(n) => n,
                 Err(_) => match idx[2..].parse::<u16>() {
-                    Ok(n) => n + 10_000,
+                    Ok(n) => n + KA_PROPERTY_OFFSET,
                     Err(_) => 65535,
                 },
             };
@@ -314,25 +316,30 @@ impl GDObject {
         }
     }
 
-    /// Returns this object as a property string
+    /// Returns this object as a property string. This function does not preserve the order of properties as they
+    /// originally were in the object since property order does not matter because they are collectively treated as
+    /// part of a dictionary of properties for this object. Each property is serialized as follows:
+    /// * The id of this object (property ID 1) is serialized at the beginning of the string.
+    /// * Each property covered in [`GDObjConfig`] is serialized with [`GDObjConfig::serialise_to_string`].
+    /// * Each remaining property's value is serialized by `GDValue`'s implementation of Display.
+    ///
+    /// Each object string is guaranteed to end with a `;`, meaning that to encode multiple objects, it is recommended
+    /// to simply call this function and join them without any delimeter, which is what the [`serialise_objects`] function does.
     #[must_use]
     pub fn serialise_to_string(&self) -> String {
+        // the average length of a property is assumed to be 8 bytes - an estimate.
         let mut properties_string = String::with_capacity(self.properties.len() * 8);
         for (idx, val) in &self.properties {
-            let (pref, id) = if *idx < 10_000 {
-                ("", *idx)
+            // `GDValue` implementation for `Display` handles serialization.
+            if *idx < KA_PROPERTY_OFFSET {
+                write!(properties_string, ",{idx},{val}").unwrap();
             } else {
-                ("kA", idx - 10_000) // also need to add a "kA" prepend
-            };
-
-            write!(properties_string, ",{pref}{id},{val}").unwrap();
+                write!(properties_string, ",kA{},{val}", idx - KA_PROPERTY_OFFSET).unwrap();
+            }
         }
         let config_str = self.config.serialise_to_string();
 
-        let mut raw_str = format!("1,{}{config_str}{properties_string}", self.id);
-        raw_str.retain(|c| c != '"');
-        raw_str.push(';');
-        raw_str
+        format!("1,{}{config_str}{properties_string};", self.id)
     }
 
     /// Returns this object's name
@@ -439,7 +446,14 @@ impl GDObject {
     }
 }
 
+/// Returns the objects in the iterator as a string.
+pub fn serialise_objects<I: IntoIterator<Item = GDObject>>(objects: I) {}
+
 /// Trait for structs that encode configuration for a GD object. This trait is used in [`GDObject::from_config`].
+///
+/// Structs that implement this trait cannot be treated as or directly converted into `GDValue` since this trait lacks a definition for an object configuration function -
+/// specifically one that returns [`GDObjConfig`] - because this trait is intended to encode only the properties specific to one object. Of course, it is trivial to convert
+/// any struct that implements this trait if you also have a `GDObjConfig`, which is exactly what [`GDObject::from_config`] does.
 pub trait ObjectProperties {
     /// Serialise this object to a list of properties in the form of tuples: (id, value)
     fn serialise(&self) -> Vec<(u16, GDValue)>;

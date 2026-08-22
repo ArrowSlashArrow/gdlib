@@ -190,7 +190,7 @@ repr_t!(
     } default None
 );
 
-/// Corresponding types for [`GDValue`]s.
+/// Corresponding types for [`GDValue`]s. Most variants are undocumented as they are the direct unit counterpart of their `GDValue` equivalents. If a variant here has no documentation, see the `GDValue` variant with the same name.   
 #[repr(u8)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 #[allow(missing_docs)]
@@ -200,18 +200,24 @@ pub enum GDObjPropType {
     Float,
     Text,
     Bool,
+    /// Refers specifically to a single group field.
     Group,
+    /// Refers primarily to two properties: the groups an object is part of and its pink groups
+    GroupList,
     Item,
+    /// Easing type only. The easing rate is stored in another property internally, but the two are grouped together in GDValue for `convenience`.
     Easing,
     EventsList,
     ColourChannel,
     ProbabilitiesList,
     SpawnRemapsList,
+    /// Like a boolean, except it can also be `Unset`. Used in the option trigger.
     Toggle,
     Speed,
     Gamemode,
     ItemEditOperator,
     ItemCompareOperator,
+    /// Functionally the same as [`Self::Speed`], but uses a different mapping for each speed. Used in the BPM trigger.
     BPMSpeed,
     ItemEditRoundMode,
     ItemEditSignMode,
@@ -396,7 +402,8 @@ impl Easing {
 }
 
 /// Enum for all values represented by Geometry Dash.
-/// All values are parsed according to their specified [`GDObjPropType`].
+/// All of these variants have a corresponding [`GDObjPropType`], however there is one key difference:
+/// `GDObjPropType` only distinguishes the type of properties, while this enum also stores the parsed value (see [`GDValue::from`]).
 #[derive(Debug, Clone, PartialEq)]
 #[must_use]
 #[non_exhaustive]
@@ -410,18 +417,25 @@ pub enum GDValue {
     /// Any boolean.
     Bool(bool),
     /// Alternative boolean form. It is serialised as -1 instead of 0 if false.
-    Toggle(bool),
+    Toggle(Toggle),
     /// Any group, which is represented by an `i16`.
+    ///
+    /// This enum deals only with normal groups where the distinction between regular and parent groups is not important.
+    /// Parent groups should only show up in [`Self::GroupList`] when parsing the `PARENT_GROUPS` property regardless.
+    /// See [`Group`] for the GDLib group struct.
     Group(i16),
     /// Any item ID, whcih is represented by an `i16`.
     Item(i16),
     /// A list of group IDs as i16, which is stored in a SmallVec.
+    ///
+    /// All groups in this vector are treated as normal groups. Keep this in mind when the distiction between regular and parent groups is important.
+    /// See [`Group`] for the GDLib group struct.
     GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
-    /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger
+    /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger.
     ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
-    /// A list of spawn remap pairs: (old id, new id)
+    /// A list of spawn remap pairs: (old id, new id). Used in the spawn trigger.
     SpawnRemapsList(smallvec::SmallVec<[(i16, i16); LIST_ALLOCSIZE]>),
-    /// A [`MoveEasing`].
+    /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for a more
     Easing(MoveEasing),
     /// A [`ColourChannel`]. It may be any of the built in ones, or one with an ID in the range of \[1, 999]
     ColourChannel(ColourChannel),
@@ -462,7 +476,7 @@ pub enum GDValue {
     /// TODO: doc
     StopMode(StopMode),
 
-    /// A UTF-8 string. The fallback for any value that did not fit any of the aforementioned criteria.
+    /// A UTF-8 string. The fallback for any value that did not fit any of the aforementioned criteria. Any properties marked with [`GDObjPropType::Unknown`] are parsed to a String.
     String(String), // fallback
 }
 
@@ -474,11 +488,11 @@ impl GDValue {
     /// For example, when trying to parse an integer property whose actual value is "abc_not_an_integer", this function will return `GDValue::Int(0)` as 0 is the default value for an int.
     /// This also applies to any enums. If an enum with a specific set of values gets a value outside of its supported range, the function will return the enum's default value.
     ///
-    /// This is intended behaviour to ensure that corrupted values don't cause the function to panic when parsing a large collection of GDValue, notably when parsing a GDLevel.
+    /// This is intended behaviour to ensure that corrupted values don't cause the function to panic when parsing a large collection of `GDValue`, notably when parsing a `GDLevel`.
     pub fn from(t: GDObjPropType, s: &str) -> Self {
         match t {
             GDObjPropType::Bool => Self::Bool(s == "1"),
-            GDObjPropType::Toggle => Self::Toggle(s == "1"),
+            GDObjPropType::Toggle => Self::Toggle(parse!(s => i32 => Toggle)),
             GDObjPropType::ColourChannel => {
                 Self::ColourChannel(ColourChannel::from(parse!(s => i16)))
             }
@@ -499,6 +513,9 @@ impl GDValue {
                 Self::SpawnRemapsList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
+            GDObjPropType::GroupList => {
+                Self::GroupList(s.split('.').map(|i| parse!(i => i16)).collect())
+            }
             GDObjPropType::Item => Self::Item(parse!(s => i16)),
             GDObjPropType::BPMSpeed => Self::BPMSpeed(parse!(s => i32 => BPMSpeed)),
             GDObjPropType::Gamemode => Self::Gamemode(parse!(s => i32 => Gamemode)),
@@ -573,9 +590,21 @@ impl GDValue {
     }
 
     #[inline]
-    /// Converts a raw zlayer value to a [`GDValue`].
+    /// Converts a raw Z-layer value to a [`GDValue`].
     pub fn zlayer(s: &str) -> Self {
         Self::ZLayer(ZLayer::from(s.parse().unwrap_or(0)))
+    }
+
+    #[inline]
+    /// Quick cast for `Self::Easing` to [`Easing`]. Returns `None` if `self` is not `Self::Easing`.
+    pub fn to_easing(&self, easing_rate: f64) -> Option<Easing> {
+        match self {
+            Self::Easing(e) => Some(Easing {
+                easing: *e,
+                easing_rate,
+            }),
+            _ => None,
+        }
     }
 }
 
@@ -634,8 +663,9 @@ impl Display for GDValue {
                 f,
                 "{}",
                 match b {
-                    true => "1",
-                    false => "-1",
+                    Toggle::On => "1",
+                    Toggle::Unset => "0",
+                    Toggle::Off => "-1",
                 }
             ),
             GDValue::ColourChannel(v) => write!(f, "{}", i_buf.format(Into::<i16>::into(*v))),
@@ -1444,4 +1474,13 @@ repr_t!(
         Left = 3,
         Right = 4
     } default Right
+);
+
+repr_t!(
+    /// Option toggle in the Option trigger. Can also be unset.
+    strict Toggle: i32 {
+        On = 1,
+        Unset = 0,
+        Off = -1
+    } default Unset
 );
