@@ -214,10 +214,6 @@ impl GDLevelData {
     /// Returns a list of all the groups that do not contain any objects
     #[must_use]
     pub fn get_unused_groups(&self) -> Vec<Group> {
-        // let all: BTreeSet<Group> = (1..10000).map(Group::Regular).collect();
-        // let used: BTreeSet<Group> = self.get_used_groups().into_iter().collect();
-
-        // all.difference(&used).cloned().collect::<Vec<Group>>()
         let mut used: [bool; 10_000] = [false; 10_000];
         for object in &self.objects {
             for group in &object.config.groups {

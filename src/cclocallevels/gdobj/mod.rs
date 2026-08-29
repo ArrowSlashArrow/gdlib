@@ -32,30 +32,12 @@ macro_rules! parse {
     };
 }
 
-// for debug purposes
-
-// fn parse_with_err_handle<T>(s: &str, p: u16) -> T
-// where
-//     T: FromStr + Default + Display,
-//     <T as FromStr>::Err: Debug,
-// {
-//     match s.parse::<T>() {
-//         Ok(n) => n,
-//         Err(e) => {
-//             println!(
-//                 "Error with parsing property {p} with value {s}, type {} ({e:?})",
-//                 type_name::<T>()
-//             );
-//             T::default()
-//         }
-//     }
-// }
-
-/// Container for GD Object properties.
+/// An in-game object in GD. This struct covers all objects placable in the editor. It is divided into three fields: the ID (object id, which is necessary to tell what an object is),
+/// general properties - which are common properties that every object has (e.g. position, rotation), and object-specific properties (in the `properties` field).
 #[derive(Clone, PartialEq)]
 #[must_use]
 pub struct GDObject {
-    /// The object's ID.
+    /// The object's ID. here: [Map of object IDs to names here](crate::cclocallevels::properties::OBJECT_NAMES), [Object ID consts here](ids::objects).
     pub id: i32,
     /// General properties, such as position and scale.
     pub config: GDObjConfig,
@@ -342,7 +324,7 @@ impl GDObject {
         format!("1,{}{config_str}{properties_string};", self.id)
     }
 
-    /// Returns this object's name
+    /// Returns this object's name if it was defined in [`crate::cclocallevels::properties::OBJECT_NAMES`], otherwise returns "Object {id}"
     #[inline]
     #[must_use]
     pub fn get_name(&self) -> String {
@@ -354,7 +336,7 @@ impl GDObject {
             .to_string()
     }
 
-    /// Creates a new GDObject from ID, config, and extra proerties
+    /// Default constructor for this object.
     #[inline]
     pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
         GDObject {
@@ -365,7 +347,7 @@ impl GDObject {
     }
 
     #[inline]
-    /// Creates a default object from the specified ID
+    /// Creates a default object from the specified ID. Internally calls [`defaults::default_object`].
     pub fn default_from_id(id: i32) -> Self {
         defaults::default_object(id)
     }
@@ -391,8 +373,8 @@ impl GDObject {
             129 => Some(GDValue::Float(self.config.scale.1)),
             20 => Some(GDValue::Short(self.config.editor_layers.0)),
             61 => Some(GDValue::Short(self.config.editor_layers.1)),
-            21 => Some(GDValue::Short(self.config.colour_channels.0.into())),
-            22 => Some(GDValue::Short(self.config.colour_channels.1.into())),
+            21 => Some(GDValue::ColourChannel(self.config.colour_channels.0)),
+            22 => Some(GDValue::ColourChannel(self.config.colour_channels.1)),
             24 => Some(GDValue::ZLayer(self.config.z_layer)),
             25 => Some(GDValue::Int(self.config.z_order)),
             343 => Some(GDValue::Short(self.config.enter_effect_channel)),
@@ -431,6 +413,66 @@ impl GDObject {
         }
     }
 
+    /// Returns `true` if this object has as a set property at index `p`. If this function returns `true` for a given `p`, then `GDObject::get_property` is guaranteed to return a `Some`.
+    pub fn has_property(&self, p: u16) -> bool {
+        match p {
+            // all of the below are intrinsic properties of an object that are either set or filled in with a default value (by GD) if left unset.
+            1 | 2 | 3 | 6 | 11 | 57 | 62 | 87 | 128 | 129 | 20 | 61 | 21 | 22 | 24 | 25 | 343
+            | 446 | 534 => true,
+            64 => self.config.get_attribute_flag(GDObjAttributes::dont_fade),
+            67 => self.config.get_attribute_flag(GDObjAttributes::dont_enter),
+            116 => self.config.get_attribute_flag(GDObjAttributes::no_effects),
+            34 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::is_group_parent),
+            279 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::is_area_parent),
+            509 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::dont_boost_x),
+            496 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::dont_boost_y),
+            103 => self.config.get_attribute_flag(GDObjAttributes::high_detail),
+            121 => self.config.get_attribute_flag(GDObjAttributes::no_touch),
+            134 => self.config.get_attribute_flag(GDObjAttributes::passable),
+            135 => self.config.get_attribute_flag(GDObjAttributes::hidden),
+            136 => self.config.get_attribute_flag(GDObjAttributes::non_stick_x),
+            289 => self.config.get_attribute_flag(GDObjAttributes::non_stick_y),
+            495 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::extra_sticky),
+            511 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::extended_collision),
+            137 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::is_ice_block),
+            193 => self.config.get_attribute_flag(GDObjAttributes::grip_slope),
+            96 => self.config.get_attribute_flag(GDObjAttributes::no_glow),
+            507 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::no_particles),
+            356 => self.config.get_attribute_flag(GDObjAttributes::scale_stick),
+            372 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::no_audio_scale),
+            284 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::single_ptouch),
+            369 => self
+                .config
+                .get_attribute_flag(GDObjAttributes::center_effect),
+            117 => self.config.get_attribute_flag(GDObjAttributes::reverse),
+
+            _ => self
+                .properties
+                .binary_search_by_key(&p, |(key, _)| *key)
+                .is_ok(),
+        }
+    }
+
     /// Set this object's internal config
     pub fn set_config(&mut self, config: GDObjConfig) {
         self.config = config;
@@ -447,7 +489,12 @@ impl GDObject {
 }
 
 /// Returns the objects in the iterator as a string.
-pub fn serialise_objects<I: IntoIterator<Item = GDObject>>(objects: I) {}
+pub fn serialise_objects<I: IntoIterator<Item = GDObject>>(objects: I) -> String {
+    objects
+        .into_iter()
+        .map(|obj| obj.serialise_to_string())
+        .collect::<String>() // concats all strings
+}
 
 /// Trait for structs that encode configuration for a GD object. This trait is used in [`GDObject::from_config`].
 ///
@@ -472,6 +519,13 @@ pub trait ObjectProperties {
 }
 
 macro_rules! prop_value {
+    // This arm should not exist because there is a GDValue variant for every type - except for two.
+    // RobTop uses property 88 to enconde both `PickupTriggerMode` and `InstantCountComparison`, which are two different enums whose variant correspond to different things.
+    // This macro is primarily used in the `object_descriptor`, which automatically creates both the desrialization and serialization of objects.
+    // If a variant were created for either type in GDValue, it would cause the other one, which is not implemented, to be incorrectly parsed as the implemented one, which may cause confusion.
+    // As a result, I have opted to leave this arm in specifically for those two fields.
+    //
+    // Note: **DO NOT** use this for any other field, unless it is bound to a property that also has a conflicting type situation.
     (as_i32, $field:expr) => {
         GDValue::Int($field as i32)
     };
@@ -577,11 +631,9 @@ macro_rules! object_descriptor {
 
                 $(
                     // here, try to assign each field the value from the object
-                    this.$field = match obj.get_property($prop_id) {
+                    if let Some(p) = obj.get_property($prop_id) {
                         // field exists, try to parse it. return None if you get bad data.
-                        Some(p) => crate::cclocallevels::gdobj::object_field_match!($prop_t, $ftype, p),
-                        // field doesn't exist, use default parameter
-                        None => <$ftype>::default(),
+                        this.$field = crate::cclocallevels::gdobj::object_field_match!($prop_t, $ftype, p)
                     };
                 )*
 
@@ -590,26 +642,6 @@ macro_rules! object_descriptor {
         }
     };
 }
-
-/*
-pub fn from_trigger(trigger: &GDObject) -> Option<Self> {
-    if trigger.id != TRIGGER_ADVANCED_RANDOM {
-        return None;
-    }
-
-    let mut this = Self::default();
-    this.probabilities = match trigger.get_property(RANDOM_PROBABILITIES_LIST) {
-        Some(p) => match p {
-            GDValue::ProbabilitiesList(l) => l.into_vec(),
-            _ => return None,
-        },
-        None => vec![],
-    };
-
-    return Some(this);
-}
-
-*/
 
 pub(crate) use from_obj_value;
 pub(crate) use object_descriptor;

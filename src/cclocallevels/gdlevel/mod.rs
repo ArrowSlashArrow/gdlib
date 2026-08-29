@@ -588,7 +588,7 @@ pub struct GDLevelEditorState {
     // STORE: enumerate arary elements and pack into: {idx: val, idx: val}
     // note: this array is usually 14 elements long. sometimes it is not. not known why.
     /// A list of indices for each editor tab that describes where the user is currently.
-    /// For example, build_tab_pages[0] is the page of the first tab that the user was last in.
+    /// For example, `build_tab_pages[0]` is the page of the first tab that the user was last in.
     ///
     /// Internal key: `kI6`
     pub build_tab_pages: smallvec::SmallVec<[i32; 16]>,

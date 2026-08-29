@@ -122,7 +122,7 @@ pub static OBJECT_DEFAULTS_UNIQUE: phf::Map<i32, &'static str> = phf::phf_map! {
 };
 
 /// Returns the default [`GDObject`] for the given object ID.
-/// If the ID has a known entry in [`OBJECT_DEFAULTS`], it is parsed from that string
+/// If the ID has a known entry in [`OBJECT_DEFAULTS_UNIQUE`], it is parsed from that string
 pub fn default_object(id: i32) -> GDObject {
     match OBJECT_DEFAULTS_UNIQUE.get(&id) {
         Some(s) => GDObject::parse_str(s),

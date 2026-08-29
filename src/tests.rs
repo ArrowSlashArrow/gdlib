@@ -52,8 +52,8 @@ fn move_constructor() {
         GDObjConfig::default().pos(45.0, 45.0),
         MoveTrigger {
             move_config: MoveMode::Default(DefaultMove {
-                dx: 45.0,
-                dy: 54.0,
+                dx: 45,
+                dy: 54,
                 x_lock: None,
                 y_lock: None,
             }),

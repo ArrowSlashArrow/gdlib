@@ -129,7 +129,7 @@ pub struct GDList {
     ///
     /// Internal key: `k114`
     pub required_levels: i32,
-    /// This value is always [`KCEKValue::GDLevelList`]. See [`KCEKValue`]
+    /// This value is always [`KCEKValue::GJLevelList`]. See [`KCEKValue`]
     ///
     /// Internal key: `kCEK`
     pub kcek: KCEKValue,
@@ -340,7 +340,7 @@ impl GDList {
         d
     }
 
-    /// Parses a .gmd file to a `Self` object
+    /// Parses a .gmdl file to a `Self` object
     pub fn from_gmdl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
         let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
@@ -352,7 +352,7 @@ impl GDList {
         )
     }
 
-    /// Exports the level to a .gmd file
+    /// Exports the level to a .gmdl file
     pub fn export_to_gmdl<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         let export_str = format!(
             "{PLIST_HEADER}{}{PLIST_FOOTER}",

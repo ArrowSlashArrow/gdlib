@@ -1,20 +1,13 @@
-- make a level header string parser
-- add features: 
-    - `shorthand`: shorthand constructors
-        - on by default
 - add proper benchmarks
-- all trigger constructors
-- add all gd obj property types
-    - then remove unknown property type
 - have full api coverage of both savefiles
 - big massive documentation update
     - cover all enums and struct fields
     - also cover all the known edgecases/anomalies
-- big massive test overhaul
-    - tests for parsing all gdvalues
-    - tests for creating all gd structs
-    - tests for this, that, and the other thing
-    - everything in core thoroughly
+
+fns todo
+- `ItemEditTrigger::eval_result(item1_value, item2_value, attempts, points, maintime)`
+- `CompareOperand::eval_operand(item_value)`
+- `ItemCompareTrigger::eval_comparison(item1_value, item2_value)`
 
 ## cclocallevels
 - gdlevel
@@ -33,8 +26,17 @@
 - tbh idk what's in there because i have not explored that file
 
 
-## api-payloads
+## api-payloads (feature: `api`)
 - only for formatting request payloads and for parsing them
 
-## api-client
+## api-client (feature: `api`)
 - uses api-payloads feature but also includes functions to help with sending and receiving requests
+
+## tests todo
+- structs in `crate::cclocallevels::gdobj::constructors::triggers`
+    - `from_object` against raw object strings
+- big massive test overhaul
+    - tests for parsing all gdvalues
+    - tests for creating all gd structs
+    - tests for this, that, and the other thing
+    - everything in core thoroughly

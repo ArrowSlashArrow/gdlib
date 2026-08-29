@@ -69,7 +69,14 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
             let const_name = to_const_name(desc);
             let prop_type = tuple_split.next().unwrap_or_default();
 
-            writeln!(out_str, "    pub const {const_name}: u16 = {id};").unwrap();
+            writeln!(
+                out_str,
+                "
+///
+/// Property type: {prop_type}
+pub const {const_name}: u16 = {id};"
+            )
+            .unwrap();
 
             if prop_type.contains("GDObjPropType::Group") {
                 gpi.push(id.to_string());

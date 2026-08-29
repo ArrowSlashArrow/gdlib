@@ -1,6 +1,6 @@
 //! This file contains constructors for trigger objects.
 //!
-//! Since most triggers have paramters, structs are defined for most triggers which implement [`ObjectProperties`].
+//! Since most triggers have parameters, structs are defined for most triggers which implement [`ObjectProperties`].
 //! This allows the programmer to construct a Trigger struct and easily create an object from it by using [`GDObject::from_config`].
 //!
 //! The few triggers that do not have any parameters can be created by calling their respective function to get a GDObject directly. There are 6 of these:
@@ -20,6 +20,26 @@ use crate::cclocallevels::gdobj::{
     object_descriptor,
     structs::*,
 };
+
+// convenience functions for manually implementing `from_object` for ObjectProperties.
+macro_rules! get_property {
+    ($obj:expr, $prop:expr => $t:ident) => {
+        <$t>::try_from(match $obj.get_property($prop) {
+            Some(GDValue::$t(v)) => v,
+            _ => return None,
+        })
+        .ok()
+        .unwrap_or_default()
+    };
+    ($obj:expr, $prop:expr => $a:ident => $b:ty) => {
+        <$b>::try_from(match $obj.get_property($prop) {
+            Some(GDValue::$a(v)) => v,
+            _ => return None,
+        })
+        .ok()
+        .unwrap_or_default()
+    };
+}
 
 #[derive(Debug, Clone, PartialEq)]
 /// Moves objects
@@ -64,10 +84,10 @@ impl ObjectProperties for MoveTrigger {
                             },
                             GDValue::Int(1),
                         ),
-                        (X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)),
+                        (X_MOVEMENT_MULTIPLIER, GDValue::Int(config.dx)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
+                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx)));
                 }
 
                 if let Some(lock) = config.y_lock {
@@ -79,10 +99,10 @@ impl ObjectProperties for MoveTrigger {
                             },
                             GDValue::Int(1),
                         ),
-                        (Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)),
+                        (Y_MOVEMENT_MULTIPLIER, GDValue::Int(config.dy)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
+                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy)));
                 }
             }
             MoveMode::Targeting(config) => {
@@ -92,7 +112,7 @@ impl ObjectProperties for MoveTrigger {
                 }
 
                 if let Some(axis) = config.axis_only {
-                    properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::Int(axis as i32)));
+                    properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::AxisOnlyMove(axis)));
                 }
 
                 match config.target_group_id {
@@ -146,15 +166,11 @@ pub struct StartposConfig {
     pub disabled: bool,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for StartposConfig {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (STARTING_SPEED, GDValue::Int(self.start_speed as i32)),
-            (
-                STARTING_GAMEMODE,
-                GDValue::Int(self.starting_gamemode as i32),
-            ),
+            (STARTING_SPEED, GDValue::Speed(self.start_speed)),
+            (STARTING_GAMEMODE, GDValue::Gamemode(self.starting_gamemode)),
             (STARTING_IN_MINI_MODE, GDValue::Bool(self.starting_as_mini)),
             (STARTING_IN_DUAL_MODE, GDValue::Bool(self.starting_as_dual)),
             (IS_DISABLED, GDValue::Bool(self.disabled)),
@@ -198,8 +214,46 @@ impl ObjectProperties for StartposConfig {
     fn object_id(&self) -> i32 {
         TRIGGER_START_POS
     }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TRIGGER_START_POS {
+            return None;
+        }
+
+        let start_speed = get_property!(obj, STARTING_SPEED => Speed);
+        let starting_gamemode = get_property!(obj, STARTING_GAMEMODE => Gamemode);
+        let starting_as_mini = get_property!(obj, STARTING_IN_MINI_MODE => Bool => bool);
+        let starting_as_dual = get_property!(obj, STARTING_IN_DUAL_MODE => Bool => bool);
+        let disabled = get_property!(obj, IS_DISABLED => Bool => bool);
+        let starting_mirrored = get_property!(obj, STARTING_IN_MIRROR_MODE => Bool => bool);
+        let rotate_gameplay = get_property!(obj, ROTATE_GAMEPLAY => Bool => bool);
+        let reverse_gameplay = get_property!(obj, REVERSE_GAMEPLAY => Bool => bool);
+        let target_order = get_property!(obj, TARGET_ORDER => Int => i32);
+        let target_channel = get_property!(obj, TARGET_CHANNEL => Int => i32);
+        let reset_camera = get_property!(obj, RESET_CAMERA => Bool => bool);
+
+        // the rest of the properties that are required to serialize this object correctly will be filled in in `self.serialize`
+        // since they are all unknown, they are not parsed
+
+        Some(Self {
+            start_speed,
+            starting_gamemode,
+            starting_as_mini,
+            starting_as_dual,
+            starting_mirrored,
+            reset_camera,
+            rotate_gameplay,
+            reverse_gameplay,
+            target_order,
+            target_channel,
+            disabled,
+        })
+    }
 }
 
+// TODO: implement ObjectProperties
 /// Returns a colour trigger
 ///
 /// # Arguments
@@ -247,6 +301,7 @@ pub fn colour_trigger(
     GDObject::new(TRIGGER_COLOUR, config, properties)
 }
 
+// TODO: implement ObjectProperties
 /// Returns a pulse trigger
 ///
 /// # Arguments
@@ -314,7 +369,7 @@ object_descriptor!(
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Stop mode (see [`StopMode`] struct)
-        stop_mode: StopMode => as_i32 STOP_MODE,
+        stop_mode: StopMode => StopMode STOP_MODE,
         /// Only stops certain triggers within a group if enabled.
         use_control_id: bool => Bool USE_CONTROL_ID
     }
@@ -343,6 +398,7 @@ object_descriptor!(
 );
 
 /// Sets a transition mode for objects on an edge of the screen.
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TransitionTrigger {
     /// Type of transition
     pub transition: TransitionType,
@@ -352,16 +408,28 @@ pub struct TransitionTrigger {
     pub channel: i32,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for TransitionTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (ENTEREXIT_TRANSITION_CONFIG, GDValue::Int(self.mode as i32)),
+            (
+                ENTEREXIT_TRANSITION_CONFIG,
+                GDValue::TransitionMode(self.mode),
+            ),
             (TARGET_TRANSITION_CHANNEL, GDValue::Int(self.channel)),
         ]
     }
     fn object_id(&self) -> i32 {
         self.transition as i32
+    }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        Some(Self {
+            transition: TransitionType::try_from(obj.id).ok()?,
+            mode: get_property!(obj, ENTEREXIT_TRANSITION_CONFIG => TransitionMode),
+            channel: get_property!(obj, TARGET_TRANSITION_CHANNEL => Int => i32),
+        })
     }
 }
 
@@ -419,7 +487,7 @@ pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
 
 /// Returns a trigger that hides the player trail
 /// # Arguments
-/// * `config`: General object options, such as position and scale\
+/// * `config`: General object options, such as position and scale
 #[inline]
 pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
     GDObject::new(TRIGGER_DISABLE_PLAYER_TRAIL, config, vec![])
@@ -507,7 +575,6 @@ pub struct GravityTrigger {
     pub target_player: Option<TargetPlayer>,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for GravityTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![(GRAVITY, GDValue::Float(self.gravity))];
@@ -519,6 +586,29 @@ impl ObjectProperties for GravityTrigger {
     }
     fn object_id(&self) -> i32 {
         TRIGGER_GRAVITY
+    }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TRIGGER_GRAVITY {
+            return None;
+        }
+
+        let target_player = if obj.has_property(TargetPlayer::Player1 as u16) {
+            Some(TargetPlayer::Player1)
+        } else if obj.has_property(TargetPlayer::Player2 as u16) {
+            Some(TargetPlayer::Player2)
+        } else if obj.has_property(TargetPlayer::PlayerTarget as u16) {
+            Some(TargetPlayer::PlayerTarget)
+        } else {
+            None
+        };
+
+        Some(Self {
+            gravity: get_property!(obj, GRAVITY => Float => f64),
+            target_player: target_player,
+        })
     }
 }
 
@@ -574,12 +664,11 @@ pub struct CounterLabel {
     pub seconds_only: bool,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for CounterLabel {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
             (SECONDS_ONLY, GDValue::Bool(self.seconds_only)),
-            (COUNTER_ALIGNMENT, GDValue::Int(self.align as i32)),
+            (COUNTER_ALIGNMENT, GDValue::ItemAlign(self.align)),
         ];
 
         match self.item {
@@ -605,6 +694,35 @@ impl ObjectProperties for CounterLabel {
     fn object_id(&self) -> i32 {
         COUNTER
     }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id == COUNTER {
+            return None;
+        }
+
+        let item = if let Some(GDValue::CounterMode(c)) = obj.get_property(SPECIAL_COUNTER_MODE) {
+            Item::from_counter_mode(c)
+        } else {
+            let id = match obj.get_property(INPUT_ITEM_1) {
+                Some(GDValue::Item(c)) => c,
+                _ => 0,
+            };
+
+            match obj.get_property(IS_TIMER) {
+                Some(GDValue::Bool(b)) if b => Item::Timer(id),
+                _ => Item::Counter(id),
+            }
+        };
+
+        Some(Self {
+            seconds_only: get_property!(obj, SECONDS_ONLY => Bool => bool),
+            align: get_property!(obj, COUNTER_ALIGNMENT => Int => ItemAlign),
+            item,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -623,9 +741,9 @@ impl ObjectProperties for CounterLabel {
 /// 5. The operand result is rounded again according to `result_rounding` and then its sign is modified according to `result_sign`.
 /// 6. Finally, the value of the target item is set to the operand result.
 pub struct ItemEditTrigger {
-    /// First operand
+    /// Left-hand operand
     pub operand1: Option<Item>,
-    /// Second operand
+    /// Right-hand operand
     pub operand2: Option<Item>,
     /// Item that will be assigned to when the trigger finishes executing
     pub target: Item,
@@ -669,31 +787,34 @@ impl ObjectProperties for ItemEditTrigger {
 
         let mut properties = vec![
             (TARGET_ITEM, GDValue::Item(self.target.id())),
-            (
-                TARGET_ITEM_TYPE,
-                GDValue::Int(self.target.get_type_as_i32()),
-            ),
+            (TARGET_ITEM_TYPE, GDValue::ItemType(self.target.get_type())),
             (MODIFIER, GDValue::Float(self.modifier)),
-            (LEFT_OPERATOR, GDValue::Int(self.assign_op as i32)),
-            (RIGHT_OPERATOR, GDValue::Int(id_op as i32)),
-            (COMPARE_OPERATOR, GDValue::Int(mod_op as i32)),
-            (LEFT_ROUND_MODE, GDValue::Int(self.id_rounding as i32)),
-            (RIGHT_ROUND_MODE, GDValue::Int(self.result_rounding as i32)),
-            (LEFT_SIGN_MODE, GDValue::Int(self.id_sign as i32)),
-            (RIGHT_SIGN_MODE, GDValue::Int(self.result_sign as i32)),
+            (LEFT_OPERATOR, GDValue::ItemEditOperator(self.assign_op)),
+            (RIGHT_OPERATOR, GDValue::ItemEditOperator(id_op)),
+            (COMPARE_OPERATOR, GDValue::ItemEditOperator(mod_op)),
+            (
+                LEFT_ROUND_MODE,
+                GDValue::ItemEditRoundMode(self.id_rounding),
+            ),
+            (
+                RIGHT_ROUND_MODE,
+                GDValue::ItemEditRoundMode(self.result_rounding),
+            ),
+            (LEFT_SIGN_MODE, GDValue::ItemEditSignMode(self.id_sign)),
+            (RIGHT_SIGN_MODE, GDValue::ItemEditSignMode(self.result_sign)),
         ];
 
         if let Some(item) = self.operand1 {
             properties.extend_from_slice(&[
                 (INPUT_ITEM_1, GDValue::Item(item.id())),
-                (FIRST_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+                (FIRST_ITEM_TYPE, GDValue::ItemType(item.get_type())),
             ]);
         }
 
         if let Some(item) = self.operand2 {
             properties.extend_from_slice(&[
                 (INPUT_ITEM_2, GDValue::Item(item.id())),
-                (SECOND_ITEM_TYPE, GDValue::Int(item.get_type_as_i32())),
+                (SECOND_ITEM_TYPE, GDValue::ItemType(item.get_type())),
             ]);
         }
         properties
@@ -729,39 +850,88 @@ pub struct ItemCompareTrigger {
 impl ObjectProperties for ItemCompareTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (TARGET_ITEM, GDValue::Item(self.true_id)),
-            (TARGET_ITEM_2, GDValue::Item(self.false_id)),
-            // ids
+            (TARGET_ITEM, GDValue::Group(self.true_id)),
+            (TARGET_ITEM_2, GDValue::Group(self.false_id)),
             (INPUT_ITEM_1, GDValue::Item(self.lhs.operand_item.id())),
             (INPUT_ITEM_2, GDValue::Item(self.rhs.operand_item.id())),
-            // types
             (
                 FIRST_ITEM_TYPE,
-                GDValue::Int(self.lhs.operand_item.get_type_as_i32()),
+                GDValue::ItemType(self.lhs.operand_item.get_type()),
             ),
             (
                 SECOND_ITEM_TYPE,
-                GDValue::Int(self.rhs.operand_item.get_type_as_i32()),
+                GDValue::ItemType(self.rhs.operand_item.get_type()),
             ),
-            // modifiers
             (MODIFIER, GDValue::Float(self.lhs.modifier)),
             (SECOND_MODIFIER, GDValue::Float(self.rhs.modifier)),
-            // modifiers ops
-            (LEFT_OPERATOR, GDValue::Int(self.lhs.mod_op as i32)),
-            (RIGHT_OPERATOR, GDValue::Int(self.rhs.mod_op as i32)),
-            (COMPARE_OPERATOR, GDValue::Int(self.compare_op as i32)),
+            (LEFT_OPERATOR, GDValue::ItemEditOperator(self.lhs.mod_op)),
+            (RIGHT_OPERATOR, GDValue::ItemEditOperator(self.rhs.mod_op)),
+            (
+                COMPARE_OPERATOR,
+                GDValue::ItemCompareOperator(self.compare_op),
+            ),
             (TOLERANCE, GDValue::Float(self.tolerance)),
-            // round modes
-            (LEFT_ROUND_MODE, GDValue::Int(self.lhs.rounding as i32)),
-            (RIGHT_ROUND_MODE, GDValue::Int(self.rhs.rounding as i32)),
-            // sign modes
-            (LEFT_SIGN_MODE, GDValue::Int(self.lhs.sign as i32)),
-            (RIGHT_SIGN_MODE, GDValue::Int(self.rhs.sign as i32)),
+            (
+                LEFT_ROUND_MODE,
+                GDValue::ItemEditRoundMode(self.lhs.rounding),
+            ),
+            (
+                RIGHT_ROUND_MODE,
+                GDValue::ItemEditRoundMode(self.rhs.rounding),
+            ),
+            (LEFT_SIGN_MODE, GDValue::ItemEditSignMode(self.lhs.sign)),
+            (RIGHT_SIGN_MODE, GDValue::ItemEditSignMode(self.rhs.sign)),
         ]
     }
 
     fn object_id(&self) -> i32 {
         TRIGGER_ITEM_COMPARE
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TRIGGER_ITEM_COMPARE {
+            return None;
+        }
+
+        let lhs = CompareOperand {
+            operand_item: Item::from_id_type(
+                get_property!(obj, INPUT_ITEM_1 => Item => i16),
+                get_property!(obj, FIRST_ITEM_TYPE => ItemType),
+            ),
+            modifier: get_property!(obj, MODIFIER => Float => f64),
+            mod_op: get_property!(obj, LEFT_OPERATOR => ItemEditOperator => Op),
+            rounding: get_property!(obj, LEFT_ROUND_MODE => ItemEditRoundMode => RoundMode),
+            sign: get_property!(obj, LEFT_SIGN_MODE => ItemEditSignMode => SignMode),
+        };
+
+        let rhs = CompareOperand {
+            operand_item: Item::from_id_type(
+                get_property!(obj, INPUT_ITEM_2 => Item => i16),
+                get_property!(obj, SECOND_ITEM_TYPE => ItemType),
+            ),
+            modifier: get_property!(obj, SECOND_MODIFIER => Float => f64),
+            mod_op: get_property!(obj, RIGHT_OPERATOR => ItemEditOperator => Op),
+            rounding: get_property!(obj, RIGHT_ROUND_MODE => ItemEditRoundMode => RoundMode),
+            sign: get_property!(obj, RIGHT_SIGN_MODE => ItemEditSignMode => SignMode),
+        };
+
+        let true_id = get_property!(obj, TARGET_ITEM => Group => i16);
+        let false_id = get_property!(obj, TARGET_ITEM_2 => Group => i16);
+
+        let compare_op = get_property!(obj, COMPARE_OPERATOR => ItemCompareOperator => CompareOp);
+        let tolerance = get_property!(obj, TOLERANCE => Float => f64);
+
+        Some(Self {
+            true_id,
+            false_id,
+            lhs,
+            rhs,
+            compare_op,
+            tolerance,
+        })
     }
 }
 
@@ -1063,7 +1233,6 @@ pub struct CameraZoomTrigger {
     pub easing: Easing,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for CameraZoomTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1076,6 +1245,28 @@ impl ObjectProperties for CameraZoomTrigger {
     }
     fn object_id(&self) -> i32 {
         TRIGGER_CAMERA_ZOOM
+    }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TRIGGER_CAMERA_ZOOM {
+            return None;
+        }
+
+        let mut easing = Easing::default();
+
+        let time = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f64);
+        let zoom = get_property!(obj, CAMERA_ZOOM => Float => f64);
+
+        if let Some(GDValue::Easing(e)) = obj.get_property(MOVE_EASING) {
+            easing.easing = e;
+        }
+        if let Some(GDValue::Float(rate)) = obj.get_property(EASING_RATE) {
+            easing.easing_rate = rate;
+        }
+
+        Some(Self { time, zoom, easing })
     }
 }
 
@@ -1176,7 +1367,7 @@ object_descriptor!(
         /// Group with a single object that is a reference for the center of the camera.
         ui_reference_obj: i16 => Group TARGET_ITEM_2,
         /// Reference position for the element on the X-axis
-        x_reference: UIReferencePos => as_i32 X_REFERENCE_POSITION,
+        x_reference: UIReferencePos => UIReferencePos X_REFERENCE_POSITION,
         /// Reference position for the element on the Y-axis
         // y_reference: UIReferencePos => Y_REFERENCE_POSITION - special case, value is `y_reference as i32 + 4`, not a plain cast, could not convert
         /// Whether or not the x-axis position scales with aspect ratio
@@ -1312,7 +1503,6 @@ pub struct ScaleTrigger {
     pub duration: f64,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for ScaleTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1346,6 +1536,51 @@ impl ObjectProperties for ScaleTrigger {
 
     fn object_id(&self) -> i32 {
         TRIGGER_SCALE
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TRIGGER_SCALE {
+            return None;
+        }
+
+        let x_scale = get_property!(obj, NEW_X_SCALE => Float => f64);
+        let y_scale = get_property!(obj, NEW_Y_SCALE => Float => f64);
+        let div_by_value_x = get_property!(obj, DIV_BY_VALUE_X => Bool => bool);
+        let div_by_value_y = get_property!(obj, DIV_BY_VALUE_Y => Bool => bool);
+        let target_group = get_property!(obj, TARGET_ITEM => Group => i16);
+        let center_group_id = get_property!(obj, TARGET_ITEM_2 => Group => i16);
+        let duration = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f64);
+        let only_move = get_property!(obj, ONLY_MOVE => Bool => bool);
+        let relative_scale = get_property!(obj, RELATIVE_SCALE => Bool => bool);
+        let relative_rotation = get_property!(obj, RELATIVE_ROTATION => Bool => bool);
+
+        let mut easing = Easing::default();
+
+        if let Some(GDValue::Easing(e)) = obj.get_property(MOVE_EASING) {
+            easing.easing = e;
+        }
+        if let Some(GDValue::Float(rate)) = obj.get_property(EASING_RATE) {
+            easing.easing_rate = rate;
+        }
+
+        Some(Self {
+            scale_config: ScaleConfig {
+                x_scale,
+                y_scale,
+                div_by_value_x,
+                div_by_value_y,
+                only_move,
+                relative_scale,
+                relative_rotation,
+            },
+            easing,
+            center_group_id: center_group_id,
+            target_group: target_group,
+            duration,
+        })
     }
 }
 
@@ -1397,8 +1632,7 @@ object_descriptor!(
         /// If this ID is set, blocks with other material IDs will not cause the group to activate
         extra_id: i16 => Group EVENT_EXTRA_ID,
         /// Applies to a specific player. See [`ExtraID2`]
-        extra_id2: ExtraID2 => as_i32 EVENT_EXTRA_ID_2
-        // (IS_INTERACTABLE, GDValue::Bool(true)) - hardcoded constant, not parameter-driven, could not convert
+        extra_id2: ExtraID2 => ExtraID2 EVENT_EXTRA_ID_2
     }
 );
 
@@ -1420,9 +1654,9 @@ object_descriptor!(
         /// Blocks 2nd player's clicks. Deprecated in favour of [`OptionalPlayerTarget::Player1`]
         dual_mode: bool => Bool TOUCH_DUAL_MODE,
         /// Toggles a specific activation mode. See [`TouchToggle`]
-        toggle: TouchToggle => as_i32 TOUCH_TOGGLE_ONOFF,
+        toggle: TouchToggle => TouchToggle TOUCH_TOGGLE_ONOFF,
         /// Only registers clicks from one player. See [`OptionalPlayerTarget`]
-        target_player: OptionalPlayerTarget => as_i32 TOUCH_PLAYER_ONLY
+        target_player: OptionalPlayerTarget => PlayerTarget TOUCH_PLAYER_ONLY
     }
 );
 
@@ -1442,7 +1676,7 @@ object_descriptor!(
         /// How many seconds forward to show the guide
         duration: i32 => Int DURATION_GROUP_TRIGGER_CHANCE,
         /// Speed at which to show the bpm guide
-        speed: BPMSpeed => as_i32 BPM_GUIDE_SPEED,
+        speed: BPMSpeed => BPMSpeed BPM_GUIDE_SPEED,
         /// Disables the guide
         disabled: bool => Bool BPM_GUIDE_DISABLED
     }
