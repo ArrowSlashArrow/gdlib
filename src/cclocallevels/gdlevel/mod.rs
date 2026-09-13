@@ -299,7 +299,7 @@ impl GDLevel {
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
     pub fn new(game_version: GDVersion) -> Self {
         let mut this = GDLevel::default();
-        this.identity.binary_version = game_version.to_binary_version_id().unwrap_or_default();
+        this.identity.binary_version = game_version;
         this
     }
 }
@@ -337,10 +337,11 @@ pub struct GDLevelIdentity {
     pub game_version: i32,
     /// Internal key: `k40`
     pub build_version: i32,
-    /// Hardcoded value. LLM_02 is also hardcoded to this value.
+    // PARSE: `GDVersion::from_binary_version`
+    /// Hardcoded value. LLM_02 is also hardcoded to this value. This value is required for GD to open the level.
     ///
     /// Internal key: `k50`
-    pub binary_version: i32,
+    pub binary_version: GDVersion,
     /// Type of this level: [`GDLevelType`]
     ///
     /// Internal key: `k21`
@@ -857,7 +858,10 @@ impl GDLevel {
                     47 => level.flags.has_been_modified = v.as_boolean()?,
                     48 => level.content.object_count = v.as_signed_integer()? as i32,
                     /* 49 is unused */
-                    50 => level.identity.binary_version = v.as_signed_integer()? as i32,
+                    50 => {
+                        level.identity.binary_version =
+                            GDVersion::from_binary_version(v.as_signed_integer()? as i32)
+                    }
                     51 => level.meta.capacity_001 = v.as_signed_integer()? as i32,
                     52 => level.meta.capacity_002 = v.as_signed_integer()? as i32,
                     53 => level.meta.capacity_003 = v.as_signed_integer()? as i32,
@@ -1007,7 +1011,6 @@ impl GDLevel {
                 ("k39", self.meta.level_size),
                 ("k40", self.identity.build_version),
                 ("k48", self.content.object_count),
-                ("k50", self.identity.binary_version),
                 ("k51", self.meta.capacity_001),
                 ("k52", self.meta.capacity_002),
                 ("k53", self.meta.capacity_003),
@@ -1119,6 +1122,15 @@ impl GDLevel {
         );
 
         d.insert("kCEK".into(), Value::from(self.meta.kcek.to_num()));
+        d.insert(
+            "k50".into(),
+            Value::from(
+                self.identity
+                    .binary_version
+                    .to_binary_version_id()
+                    .unwrap_or_default(),
+            ),
+        );
 
         if let Some(dtype) = self.ratings.demon_type {
             d.insert("k76".into(), Value::from(dtype.to_num()));
