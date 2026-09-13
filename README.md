@@ -4,12 +4,6 @@ A typesafe, rust library to interface with GD savefiles. It is intended to enabl
 Documentation can be found on [docs.rs](https://docs.rs/gdlib/latest/gdlib/).  
 As of v0.4.1, GDLib is in active development.
 
-## Repository structure
-- `.github`: workflows for GitHub.
-- `test_gmds`: .gmd files for tests.
-- `src`: source code of library
-- `examples`: example usages of GDLib.
-
 ## Overview
 GDLib is an API that is designed to parse the Geometry Dash savefile format. It can parse levels and objects from the savefile (CCLocalLevels.dat) and from .gmd files. 
 
@@ -23,6 +17,13 @@ Features
 This crate is intended to have provide full coverage of both GD savefiles and full support for editing each individual component within.  
 As of v0.4.1, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 
 **Note: Gamesaves from spinoff games are NOT tested. GDLib is not guaranteed to be able to parse savefiles from any of those games which include: GD Meltdown, GD Subzero, GD World, GD Lite**.
+
+## Repository structure
+- `.github`: workflows for GitHub.
+- `test_gmds`: .gmd files for tests.
+- `src`: source code of library
+- `examples`: example usages of GDLib.
+- `scripts`: one-shot scripts used to generate some files in this project.
 
 ## Usage instructions
 This crate can be added to a project by running `cargo add gdlib`.
@@ -54,10 +55,12 @@ fn main() -> Result<(), GDError> {
 ```
 
 # Acknowledgements
-This project was made with the generous assistance of existing documentation of GD:
+This project was made with the use of existing documentation of GD:
 * [Wyliemaster's docs](https://wyliemaster.github.io/gddocs/#/)
 * [HDanke's GMDkit](https://github.com/UHDanke/gmdkit)
 * [Flowvix's property lists](https://flowvix.github.io/gd-info-explorer/)
+* [boomlings.dev](https://boomlings.dev)
+* [Library of Geometria](https://a-zalt.github.io/gdknowledge/)
 
 # License
 GDLib is distributed under the [MIT License](LICENSE).

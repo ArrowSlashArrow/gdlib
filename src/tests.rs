@@ -6,17 +6,21 @@ use plist::Value::{Array, Dictionary, String};
 use crate::{
     ccgamemanager::CCGameManager,
     cclocallevels::{
-        gdlevel::{CCLocalLevels, GDLevel, leveldata::HeaderValue},
+        gdlevel::{
+            CCLocalLevels, GDLevel,
+            leveldata::{GDLevelHeaderKey, GDLevelHeaderValue},
+            version::GDVersion,
+        },
         gdobj::{
             self, GDObject,
             constructors::{
                 misc::default_block,
-                triggers::{AdvancedRandomTrigger, EventTrigger, MoveTrigger},
+                triggers::{AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger},
             },
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
-                ColourChannel, DefaultMove, Easing, Event, ExtraID2, Group, MoveEasing, MoveMode,
-                ZLayer,
+                ColourChannel, CompareOp, CompareOperand, DefaultMove, Easing, Event, ExtraID2,
+                Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
         },
     },
@@ -216,6 +220,40 @@ fn advanced_random_predict() {
 }
 
 #[test]
+fn item_compare() {
+    benchmark("create level", || {
+        let mut level = GDLevel::new(GDVersion::GD22082);
+
+        level.add_object(GDObject::from_config(
+            GDObjConfig::new().pos(45.0, 45.0),
+            ItemCompareTrigger {
+                true_id: 11,
+                false_id: 22,
+                lhs: CompareOperand {
+                    operand_item: Item::Counter(1),
+                    modifier: 1.0,
+                    mod_op: Op::Mul,
+                    rounding: RoundMode::None,
+                    sign: SignMode::None,
+                },
+                rhs: CompareOperand {
+                    operand_item: Item::Counter(0),
+                    modifier: 2.0,
+                    mod_op: Op::Mul,
+                    rounding: RoundMode::None,
+                    sign: SignMode::None,
+                },
+                compare_op: CompareOp::LessOrEquals,
+                tolerance: 0.0,
+            },
+        ));
+        level
+            .export_to_gmd("test_gmds/generated_itemcompare.gmd")
+            .unwrap();
+    });
+}
+
+#[test]
 #[ignore]
 fn print_list_info() {
     let cc = CCLocalLevels::from_local().unwrap();
@@ -257,10 +295,12 @@ fn _temp_level_header() -> anyhow::Result<()> {
     let data = level.get_decrypted_data().unwrap();
     let colour_string = data
         .headers
-        .get_property(gdobj::ids::level_header::COLOURS)
+        .get(&GDLevelHeaderKey::from_id(
+            gdobj::ids::level_header::COLOURS,
+        ))
         .unwrap();
 
-    if let HeaderValue::ColourString(cs) = colour_string {
+    if let GDLevelHeaderValue::ColourString(cs) = colour_string {
         for c in cs {
             println!("{:?}", c);
         }

@@ -17,4 +17,6 @@ pub mod consts {
     pub const SPEED_4X: f64 = 1.6 * 6.000002 * 60.0;
     /// How many units per second a spawn trigger moves
     pub const SPAWN_ORDER: f64 = 311.5801086425781;
+
+    pub(crate) const LEVEL_HEADER_PROP_ID_OFFSET: u16 = 1000;
 }

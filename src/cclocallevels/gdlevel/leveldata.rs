@@ -1,14 +1,18 @@
 //! This module conatins methods and structs for operations with individual levels
 
-use std::fmt::{Display, Write};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Write},
+};
 
 use crate::{
     cclocallevels::{
+        consts::LEVEL_HEADER_PROP_ID_OFFSET,
+        gdlevel::leveldata::GDLevelHeaderKey::{A, S},
         gdobj::{
             GDObject,
             ids::metadata::GROUP_PROPERTY_IDS,
-            structs::{Colour, Gamemode, HSVColour, Speed},
-            structs::{GDValue, Group},
+            structs::{Colour, GDValue, Gamemode, Group, HSVColour, Speed},
         },
         properties::get_level_header_property_type,
     },
@@ -21,10 +25,7 @@ use rayon::prelude::*;
 /// Default level header string for GD levels.
 ///
 /// This is the state of the level header immediately after initializing new level data.
-pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0";
-
-const KA_SIZE: usize = 64;
-const KS_SIZE: usize = 48;
+pub const DEFAULT_LEVEL_HEADERS: &str = "kS38,1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_0_2_102_3_255_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_40_2_125_3_255_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_0_2_125_3_255_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_0_2_200_3_255_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|,kA13,0,kA15,0,kA16,0,kA14,,kA6,0,kA7,0,kA25,0,kA17,0,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0,kA47,0,kA48,1";
 
 /// This struct contains level data that has not yet been decrypted
 #[derive(Clone, Debug, PartialEq)]
@@ -36,9 +37,9 @@ pub struct GDEncryptedLevelData {
 /// This struct contains the objects of a level and its headers
 #[derive(Clone, Debug, PartialEq)]
 pub struct GDLevelData {
-    /// Level header string
-    pub headers: GDLevelHeader,
-    /// Level objects
+    /// Headers for a GD level. This field stores all metadata about the level data itself (such as starting colour info and physics options).
+    pub headers: HashMap<GDLevelHeaderKey, GDLevelHeaderValue>,
+    /// All objects in this level
     pub objects: Vec<GDObject>,
 }
 
@@ -51,18 +52,9 @@ pub enum GDLevelState {
     Decrypted(GDLevelData),
 }
 
-/// Contains the properties of the level header string.
-#[derive(Clone, Debug, PartialEq)]
-pub struct GDLevelHeader {
-    /// All properties that are in kAxx format. There are at least 50 kA properties.
-    pub ka: [Option<HeaderValue>; KA_SIZE],
-    /// All properties that are in kSxx format. There are 39 known kS properties.
-    pub ks: [Option<HeaderValue>; KS_SIZE],
-}
-
 #[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
-pub enum HeaderValue {
+pub enum GDLevelHeaderValue {
     Int(i32),
     Float(f32),
     Bool(bool),
@@ -82,11 +74,11 @@ pub enum GuidelineColour {
     Transparent,
 }
 
-/// Descriptor struct for the guildeine string
+/// Descriptor struct for the guildline string
 #[derive(Clone, Debug, PartialEq)]
 pub struct GuidelineString {
     /// The guidelines themselves as (time, colour) tuples
-    pub guidelines: Vec<(f32, GuidelineColour)>,
+    pub guidelines: Vec<(String, GuidelineColour)>,
 }
 
 /// Descriptor struct for the colour string.
@@ -138,7 +130,7 @@ pub enum PlayerColour {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 /// Type enum for header values
-pub enum HeaderValueType {
+pub enum GDLevelHeaderValType {
     Int,
     Float,
     Bool,
@@ -148,10 +140,45 @@ pub enum HeaderValueType {
     ColourString,
 }
 
+/// Parses a raw level header string to a map of parsed header keys and values.
+pub fn parse_raw_level_headers(headers: &str) -> HashMap<GDLevelHeaderKey, GDLevelHeaderValue> {
+    let mut headers_kv = headers.split(",");
+    let mut map = HashMap::new();
+    while let (Some(k), Some(v)) = (headers_kv.next(), headers_kv.next()) {
+        let key = GDLevelHeaderKey::parse(k);
+        let ptype = if let Some(id) = key.to_id() {
+            if let Some(t) = get_level_header_property_type(id as u16) {
+                t
+            } else {
+                // assume int
+                GDLevelHeaderValType::Int
+            }
+        } else {
+            // assume int
+            GDLevelHeaderValType::Int
+        };
+        map.insert(
+            key,
+            match GDLevelHeaderValue::parse(v, ptype) {
+                Some(v) => v,
+                None => continue,
+            },
+        );
+    }
+
+    map
+}
+
 impl GDLevelData {
-    /// Serialises this object to a string by serialising each subsequent component.
+    /// Serializes the level data to an ecnrypted payload ready to be inserted into the level file. The returned payload is encrypted with [`encrypt_level_str`].
     #[must_use]
     pub fn serialise_to_string(&self) -> String {
+        vec_as_str(&encrypt_level_str(&self.serialise_to_raw_string()))
+    }
+
+    /// Serialises this object to a raw unencrypted string.
+    #[must_use]
+    pub fn serialise_to_raw_string(&self) -> String {
         #[cfg(feature = "parallel")]
         let object_data = self
             .objects
@@ -161,7 +188,7 @@ impl GDLevelData {
             .join("");
 
         #[cfg(not(feature = "parallel"))]
-        let object_data = {
+        let object_data: String = {
             // the average size of an object is assumed to be 64 bytes. this value is not optimized in any way.
             // a value too small would cause a lot of resizing that could have been prevented,
             // and a value too large would allocate an unnecessarily large amount of space.
@@ -172,14 +199,37 @@ impl GDLevelData {
             data
         };
 
-        let header_str = self.headers.to_string();
+        let header_str = self.serialise_level_headers();
 
-        let mut unencrypted = String::with_capacity(header_str.len() + object_data.len() + 1);
+        let mut unencrypted = String::with_capacity(header_str.len() + object_data.len());
         unencrypted.push_str(&header_str);
-        unencrypted.push(';');
         unencrypted.push_str(&object_data);
 
-        vec_as_str(&encrypt_level_str(&unencrypted))
+        unencrypted
+    }
+
+    /// Returns the headers of this level in serialized from. Assuming that level headers are properly serialized,
+    /// the string returned from this function is readable by GD and ready to be serialized into a GD level.
+    pub fn serialise_level_headers(&self) -> String {
+        // serialize kS38 first
+        let mut out_str = if let Some(ks38) = self.headers.get(&GDLevelHeaderKey::S(38)) {
+            format!("kS38,{ks38},")
+        } else {
+            String::new()
+        };
+
+        out_str += &self
+            .headers
+            .iter()
+            .filter_map(|(k, v)| match k {
+                GDLevelHeaderKey::S(38) => None, // key was already serialised
+                _ => Some(format!("{k},{v}")),
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        out_str += ";";
+
+        out_str
     }
 
     /// Returns a list of all the groups that contain at least one object
@@ -295,7 +345,7 @@ impl GDLevelData {
 
         // level start string
         let headers = split.first().unwrap_or(&"").to_string();
-        let level_headers = GDLevelHeader::parse(&headers)?;
+        let level_headers = parse_raw_level_headers(&headers);
 
         let object_slice = split.get(1..).unwrap_or(&[]);
 
@@ -344,28 +394,36 @@ pub fn parse_objects(s: &str) -> Vec<GDObject> {
     objects
 }
 
-impl HeaderValue {
+impl GDLevelHeaderValue {
     /// Parses an input string with a given type to this object
-    pub fn parse(val: &str, ptype: HeaderValueType) -> Option<Self> {
+    pub fn parse(val: &str, ptype: GDLevelHeaderValType) -> Option<Self> {
         match ptype {
-            HeaderValueType::Int => Some(Self::Int(val.parse::<i32>().ok()?)),
-            HeaderValueType::Float => Some(Self::Float(val.parse::<f32>().ok()?)),
-            HeaderValueType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? != 0)),
-            HeaderValueType::Gamemode => Some(Self::Gamemode(
+            GDLevelHeaderValType::Int => Some(Self::Int(val.parse::<i32>().ok()?)),
+            GDLevelHeaderValType::Float => Some(Self::Float(val.parse::<f32>().ok()?)),
+            GDLevelHeaderValType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? != 0)),
+            GDLevelHeaderValType::Gamemode => Some(Self::Gamemode(
                 Gamemode::try_from(val.parse::<i32>().ok()?).ok()?,
             )),
-            HeaderValueType::Speed => {
+            GDLevelHeaderValType::Speed => {
                 Some(Self::Speed(Speed::try_from(val.parse::<i32>().ok()?).ok()?))
             }
-            HeaderValueType::ColourString => Some(Self::ColourString({
+            GDLevelHeaderValType::ColourString => Some(Self::ColourString({
                 // there's usually 14 segments
-                let mut segments = Vec::with_capacity(14);
-                for segment in val.split("|").into_iter() {
-                    segments.push(ColourString::parse(segment)?)
-                }
-                segments
+                let split = val.split("|").collect::<Vec<_>>();
+                split
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(idx, segment)| {
+                        // this avoids parsing the last element of the split which is an empty string
+                        if idx != split.len() - 1 {
+                            ColourString::parse(segment)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
             })),
-            HeaderValueType::GuidelineString => {
+            GDLevelHeaderValType::GuidelineString => {
                 Some(Self::GuidelineString(GuidelineString::parse(val)?))
             }
         }
@@ -402,15 +460,16 @@ impl GuidelineColour {
 impl GuidelineString {
     /// Parses an input string to this object
     pub fn parse(s: &str) -> Option<Self> {
-        let mut guidelines = vec![];
-        for g in s.split(".") {
-            let mut split_iter = g.split('~');
-            guidelines.push((
-                split_iter.next()?.parse::<f32>().ok()?,
-                GuidelineColour::from_f32(split_iter.next()?.parse::<f32>().ok()?),
-            ));
-        }
-
+        let guidelines = s
+            .split(".")
+            .filter_map(|g| {
+                let mut split_iter = g.split('~');
+                Some((
+                    split_iter.next()?.to_owned(),
+                    GuidelineColour::from_f32(split_iter.next()?.parse::<f32>().ok()?),
+                ))
+            })
+            .collect::<Vec<_>>();
         Some(Self { guidelines })
     }
 
@@ -486,7 +545,7 @@ impl ColourString {
                 15 => new.to_opacity = parse!(v => f32),
                 16 => new.duration = parse!(v => f32),
                 17 => new.copy_opacity = parse!(v),
-                18 => new.unknown_property18 = parse!(v),
+                18 => new.unknown_property18 = parse!(v) as bool,
                 _ => {}
             }
         }
@@ -508,7 +567,7 @@ impl ColourString {
             (5, self.blending as i32 as f32, false),
             (6, self.colour_ch_idx as f32, false),
             (7, self.from_opacity, false),
-            (8, self.opacity_toggled as i32 as f32, false),
+            (8, self.opacity_toggled as i32 as f32, true),
             (9, self.inherited_col_ch_idx as f32, false),
             /* Serialise property 10 later */
             (11, self.to.red as f32, true),
@@ -518,7 +577,7 @@ impl ColourString {
             (15, self.to_opacity, false),
             (16, self.duration, false),
             (17, self.copy_opacity as i32 as f32, false),
-            (18, self.unknown_property18 as i32 as f32, false),
+            (18, self.unknown_property18 as i32 as f32, true),
         ];
 
         let mut i_buf = itoa::Buffer::new();
@@ -556,18 +615,14 @@ impl ColourString {
     }
 }
 
-impl Display for HeaderValue {
+impl Display for GDLevelHeaderValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
                 Self::Bool(b) => {
-                    if *b {
-                        "true".to_owned()
-                    } else {
-                        "false".to_owned()
-                    }
+                    if *b { "1".to_owned() } else { "0".to_owned() }
                 }
                 Self::Float(f) => f.to_string(),
                 Self::Int(i) => i.to_string(),
@@ -575,111 +630,69 @@ impl Display for HeaderValue {
                 Self::Gamemode(g) => (*g as i32).to_string(),
                 Self::ColourString(c) => c
                     .iter()
-                    .map(ColourString::to_string)
-                    .collect::<Vec<_>>()
-                    .join("|"),
+                    .map(|cl| format!("{}|", cl.to_string()))
+                    .collect::<String>(),
                 Self::GuidelineString(g) => g.to_string(),
             },
         )
     }
 }
 
-// serialiser for `GDLevelHeader`
-impl Display for GDLevelHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let kas = self
-            .ka
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, v)| {
-                if let Some(val) = v {
-                    Some(format!("kA{idx},{val}"))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(",");
-        let kss = self
-            .ks
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, v)| {
-                if let Some(val) = v {
-                    Some(format!(",kS{idx},{val}"))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("");
-        write!(f, "{kas},{kss}")
+/// Enum for keys in a level header dictionary.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GDLevelHeaderKey {
+    /// kSxx key
+    S(u16),
+    /// kAxx key
+    A(u16),
+    /// Unrecognized value (unaltered)
+    Unknown(String),
+}
+
+impl GDLevelHeaderKey {
+    /// Parses a raw header identifier to a header. This function checks for these three forms:
+    ///     - `kAxx` where `xx` is an integer: becomes [`Self::A`]
+    ///     - `kSxx` where `xx` is an integer: becomes [`Self::S`]
+    ///     - anything else: becomes [`Self::Unknown`]
+    pub fn parse(s: &str) -> Self {
+        match s {
+            a if a.starts_with("kA") && s.len() > 2 && a[2..].parse::<u16>().is_ok() => {
+                Self::A(a[2..].parse::<u16>().unwrap())
+            }
+            s if s.starts_with("kS") && s.len() > 2 && s[2..].parse::<u16>().is_ok() => {
+                Self::S(s[2..].parse::<u16>().unwrap())
+            }
+            unknown => Self::Unknown(unknown.to_string()),
+        }
+    }
+
+    /// Returns the ID of this key that corresponds to this key's value type. This ID is used to look up this header key's type in [`crate::cclocallevels::properties::LEVEL_HEADER_PROPERTIES`]
+    pub fn to_id(&self) -> Option<u16> {
+        match self {
+            A(n) => Some(*n),
+            S(n) => Some(*n + LEVEL_HEADER_PROP_ID_OFFSET),
+            _ => None,
+        }
+    }
+
+    /// Converts an integer ID to this object. All results returned by this function are guaranteed to return the input value when `to_id` is called.
+    ///
+    /// Please use values defined in [`crate::cclocallevels::gdobj::ids::level_header`] to create instances of this object.
+    pub fn from_id(id: u16) -> Self {
+        if id > LEVEL_HEADER_PROP_ID_OFFSET {
+            Self::S(id - LEVEL_HEADER_PROP_ID_OFFSET)
+        } else {
+            Self::A(id)
+        }
     }
 }
 
-impl GDLevelHeader {
-    /// Parses the input string to this object
-    pub fn parse(s: &str) -> Option<Self> {
-        let mut headers_kv = s.split(",");
-        let mut ka_props: [Option<HeaderValue>; KA_SIZE] = [const { None }; KA_SIZE];
-        let mut ks_props: [Option<HeaderValue>; KS_SIZE] = [const { None }; KS_SIZE];
-
-        while let (Some(k), Some(v)) = (headers_kv.next(), headers_kv.next()) {
-            // assume that all properties start with either kA or kS
-            let is_ks = k.starts_with("kS");
-            let prop_idx = match k[2..].parse::<u16>() {
-                Ok(n) => n,
-                Err(_) => {
-                    continue;
-                }
-            };
-
-            let ptype = if let Some(t) =
-                get_level_header_property_type(1000u16 * (is_ks as u16) + prop_idx)
-            {
-                t
-            } else {
-                // assume int
-                HeaderValueType::Int
-            };
-            match is_ks {
-                true => ks_props[prop_idx as usize] = HeaderValue::parse(v, ptype),
-                false => ka_props[prop_idx as usize] = HeaderValue::parse(v, ptype),
-            }
-        }
-
-        Some(Self {
-            ka: ka_props,
-            ks: ks_props,
-        })
-    }
-
-    /// Gets a property based on the index. The index must be obtained from `gdobj::ids::level_header`.
-    pub fn get_property(&self, property: u16) -> Option<&HeaderValue> {
-        if property > 1000 {
-            self.ks
-                .get((property - 1000) as usize)
-                .map(|o| o.as_ref())
-                .flatten()
-        } else {
-            self.ka.get(property as usize).map(|o| o.as_ref()).flatten()
-        }
-    }
-    /// Sets a property based on the index. The index must be obtained from `gdobj::ids::level_header`.
-    pub fn set_property(&mut self, property: u16, value: HeaderValue) {
-        if property > 1000 {
-            self.ks[(property - 1000) as usize] = Some(value);
-        } else {
-            self.ka[property as usize] = Some(value);
-        }
-    }
-
-    /// Removes a property based on the index. The index must be obtained from `gdobj::ids::level_header`.
-    pub fn del_property(&mut self, property: u16) {
-        if property > 1000 {
-            self.ks[(property - 1000) as usize] = None;
-        } else {
-            self.ka[property as usize] = None;
+impl Display for GDLevelHeaderKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::A(n) => write!(f, "kA{n}"),
+            Self::S(n) => write!(f, "kS{n}"),
+            Self::Unknown(n) => write!(f, "{n}"),
         }
     }
 }

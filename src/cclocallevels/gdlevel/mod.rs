@@ -16,14 +16,18 @@ use crate::{
     cclocallevels::{
         gdlevel::{
             enums::{DemonType, DifficultyRating, EpicRating, GDLevelType, Length, OfficialSong},
-            leveldata::{GDEncryptedLevelData, GDLevelData, GDLevelState},
+            leveldata::{
+                DEFAULT_LEVEL_HEADERS, GDEncryptedLevelData, GDLevelData, GDLevelState,
+                parse_raw_level_headers,
+            },
+            version::GDVersion,
         },
         gdlist::GDList,
         gdobj::GDObject,
     },
     core::{
         GDError, b64_decode, b64_encode, get_cclocallevels_path,
-        io::{decrypt_file, encrypt_savefile_str, stringify_xml, vec_as_str},
+        io::{decompress, decrypt_file, encrypt_savefile_str, stringify_xml, vec_as_str},
         proper_plist_tags,
         structs::KCEKValue,
     },
@@ -34,6 +38,7 @@ use rayon::prelude::*;
 
 pub mod enums;
 pub mod leveldata;
+pub mod version;
 
 /// Standard header of a GD plist.
 pub const PLIST_HEADER: &str = "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">";
@@ -46,7 +51,7 @@ pub struct CCLocalLevels {
     /// All levels in the savefile in order from newest to oldest.
     pub levels: Vec<GDLevel>,
     /// Headers of the level file. This struct contains other data that is present in the savefile but that is not used or parsable by this crate.
-    pub binary_version: Value,
+    pub binary_version: GDVersion,
     /// All lists in the savefile in order from newest to oldest.
     pub lists: Vec<GDList>,
 }
@@ -79,9 +84,15 @@ impl CCLocalLevels {
             .into_dictionary()
             .ok_or(GDError::CorruptedSavefile("LLM_01 is not a dict".into()))?;
 
-        let llm_02 = xmltree.remove("LLM_02").ok_or(GDError::CorruptedSavefile(
-            "No LLM_02 (binary version)".into(),
-        ))?;
+        let llm_02 = xmltree
+            .remove("LLM_02")
+            .ok_or(GDError::CorruptedSavefile(
+                "No LLM_02 (binary version)".into(),
+            ))?
+            .as_signed_integer()
+            .ok_or(GDError::CorruptedSavefile(
+                "GDVersion is not an integer.".into(),
+            ))? as i32;
         let llm_03 = xmltree
             .remove("LLM_03")
             .ok_or(GDError::CorruptedSavefile("No LLM_03 (lists)".into()))?;
@@ -114,7 +125,7 @@ impl CCLocalLevels {
 
         let levels = CCLocalLevels {
             levels: levels_parsed,
-            binary_version: llm_02,
+            binary_version: GDVersion::from_binary_version(llm_02),
             lists,
         };
 
@@ -148,7 +159,9 @@ impl CCLocalLevels {
         self.levels.insert(0, level);
     }
 
-    /// Exports this struct as XML to a String
+    /// Serialises this object to a formatted .plist structure.
+    ///
+    /// **NOTE:** The caller *MUST* ensure that `self.binary_version` is a value that will return
     pub fn export_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
 
@@ -199,7 +212,14 @@ impl CCLocalLevels {
         lists_dict.extend(list_dict_entries.into_iter());
 
         dict.insert("LLM_01".to_string(), Value::Dictionary(levels_dict));
-        dict.insert("LLM_02".to_string(), self.binary_version.clone());
+        dict.insert(
+            "LLM_02".to_string(),
+            Value::from(
+                self.binary_version
+                    .to_binary_version_id()
+                    .unwrap_or_default(), // danger! binaryVersion 0 may cause side effects on newer versions!
+            ),
+        );
         dict.insert("LLM_03".to_string(), Value::Dictionary(lists_dict));
 
         format!("{PLIST_HEADER}{}{PLIST_FOOTER}", stringify_xml(&dict, true))
@@ -273,6 +293,17 @@ pub struct GDLevel {
     pub unknowns: GDLevelUnknowns,
 }
 
+impl GDLevel {
+    /// Creates a new instance of this object that is set with values necessary for the level to open in GD.
+    ///
+    /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
+    pub fn new(game_version: GDVersion) -> Self {
+        let mut this = GDLevel::default();
+        this.identity.binary_version = game_version.to_binary_version_id().unwrap_or_default();
+        this
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 /// Identity of the level and data surrounding it. Notably, the level name, id, and creator (among others).
 pub struct GDLevelIdentity {
@@ -328,7 +359,7 @@ pub struct GDLevelIdentity {
     pub password: Option<i32>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 /// Values to do with the level data / gameplay. Notably, the level data itself, object count, length, etc.
 pub struct GDLevelContents {
     /// The data of the level. See [`GDLevelState`]
@@ -363,6 +394,31 @@ pub struct GDLevelContents {
     pub two_player_mode: bool,
     /// Internal key: `k94`
     pub is_platformer: bool,
+}
+
+/// Returns a default decrypted `GDLevelState` ready for being written to. The value returned is of the same type as the `data` field in [`GDLevelContents`].
+pub fn default_level_data() -> Option<GDLevelState> {
+    Some(GDLevelState::Decrypted(GDLevelData {
+        headers: parse_raw_level_headers(DEFAULT_LEVEL_HEADERS),
+        objects: vec![],
+    }))
+}
+
+impl Default for GDLevelContents {
+    fn default() -> Self {
+        Self {
+            data: default_level_data(),
+            object_count: 0,
+            high_object_count: false,
+            song_list: vec![],
+            sfx_list: None,
+            official_song_id: None,
+            custom_song_id: None,
+            length: Length::default(),
+            two_player_mode: false,
+            is_platformer: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -633,7 +689,13 @@ pub struct GDLevelUnknowns {
 }
 
 impl GDLevel {
-    /// Parses a .gmd file to a `Self` object
+    /// Parses a .gmd file to a GDLevel. This function will fail if:
+    /// 1. The file could not be read
+    /// 2. There was an AhoCorasick error
+    /// 3. The file is not valid XML
+    /// 4. The level file itself is not a valid level.
+    ///
+    /// **NOTE:** Levels modified by Geode mods may be parsed **incorrectly** or may fail to be parsed at all!
     pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
         let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
@@ -651,6 +713,14 @@ impl GDLevel {
             "{PLIST_HEADER}{}{PLIST_FOOTER}",
             stringify_xml(&self.to_dict(), true)
         );
+
+        write(path.into(), export_str)?;
+        Ok(())
+    }
+
+    /// Exports raw level data to a .gmd file.
+    pub fn export_raw_to_gmd<T: Into<PathBuf>>(path: T, raw_data: &str) -> Result<(), GDError> {
+        let export_str = format!("{PLIST_HEADER}{raw_data}{PLIST_FOOTER}");
 
         write(path.into(), export_str)?;
         Ok(())
@@ -1128,6 +1198,22 @@ impl GDLevel {
         }
     }
 
+    /// Returns a copy of the raw decrypted data. `self.content.data` must be `GDLevelState::Encrypted`.
+    pub fn get_raw_decrypted_data(&self) -> Option<String> {
+        match self.content.data.clone() {
+            Some(data) => match data {
+                GDLevelState::Encrypted(ref encrypted) => {
+                    // parse level data
+                    let raw_data = decompress(encrypted.data.as_bytes().to_vec()).ok()?;
+                    let decrypted = std::str::from_utf8(&raw_data[..]).ok()?;
+                    Some(decrypted.to_owned())
+                }
+                GDLevelState::Decrypted(_) => None, // already decrypted
+            },
+            None => None, // no level data
+        }
+    }
+
     /// Returns a mutable reference to the decrypted level data as a `GDLevelContents` object if there is data.
     /// This method calls [`Self::decrypt_level_data`] before attempt to return the decrypted level data.
     pub fn get_decrypted_data_ref(&mut self) -> Option<&mut GDLevelData> {
@@ -1144,8 +1230,11 @@ impl GDLevel {
         }
     }
 
-    /// Adds a `GDObject` to `self.objects` only if self.content.data is already decrypted, otherwise nothing happens.
-    /// To decrypt the level data, see [`Self::decrypt_level_data`] or [`Self::get_decrypted_data_ref`]
+    /// Adds a `GDObject` to `self.content.data` only if self.content.data is already decrypted or empty, otherwise nothing happens.
+    /// To decrypt the level data, see [`Self::decrypt_level_data`] or [`Self::get_decrypted_data_ref`].
+    ///
+    /// If `self.content.data` is `Some(GDLevelState::Decrypted)` it's `objects` field will be mutated.
+    /// If `self.content.data` is `None`, a new object will be instantiated via [`default_level_data`] and this method is called on the new level data with the same parameter.
     pub fn add_object(&mut self, object: GDObject) {
         if let Some(data) = &mut self.content.data {
             match data {
@@ -1154,10 +1243,17 @@ impl GDLevel {
                 }
                 GDLevelState::Encrypted(_) => {}
             }
+        } else {
+            self.content.data = default_level_data();
+            self.add_object(object);
         }
     }
 
-    /// Adds an iterator of GDObjects to `self.objects`
+    /// Adds an iterator of GDObjects to `self.content.data` only if self.content.data is already decrypted or empty, otherwise nothing happens.
+    /// To decrypt the level data, see [`Self::decrypt_level_data`] or [`Self::get_decrypted_data_ref`].
+    ///
+    /// If `self.content.data` is `Some(GDLevelState::Decrypted)` it's `objects` field will be mutated.
+    /// If `self.content.data` is `None`, a new object will be instantiated via [`default_level_data`] and this method is called on the new level data with the same parameter.
     pub fn add_objects<I: IntoIterator<Item = GDObject>>(&mut self, objects: I) {
         if let Some(data) = &mut self.content.data {
             match data {
@@ -1166,6 +1262,9 @@ impl GDLevel {
                 }
                 GDLevelState::Encrypted(_) => (),
             };
+        } else {
+            self.content.data = default_level_data();
+            self.add_objects(objects);
         }
     }
 
@@ -1234,21 +1333,11 @@ impl Display for GDLevel {
 impl Default for GDLevel {
     fn default() -> Self {
         Self {
-            identity: GDLevelIdentity {
-                ..Default::default()
-            },
-            content: GDLevelContents {
-                ..Default::default()
-            },
-            ratings: GDLevelRatings {
-                ..Default::default()
-            },
-            coins: GDLevelCoins {
-                ..Default::default()
-            },
-            player_stats: GDLevelPlayerStats {
-                ..Default::default()
-            },
+            identity: GDLevelIdentity::default(),
+            content: GDLevelContents::default(),
+            ratings: GDLevelRatings::default(),
+            coins: GDLevelCoins::default(),
+            player_stats: GDLevelPlayerStats::default(),
             flags: GDLevelFlags {
                 is_editable: true,
                 ..Default::default()
@@ -1261,9 +1350,7 @@ impl Default for GDLevel {
                 ..Default::default()
             },
             meta: GDLevelMeta::default(),
-            integrity: GDLevelIntegrity {
-                ..Default::default()
-            },
+            integrity: GDLevelIntegrity::default(),
             unknowns: GDLevelUnknowns {
                 k101: Some("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0".into()),
                 ..Default::default()

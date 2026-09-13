@@ -73,7 +73,7 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
                 out_str,
                 "
 ///
-/// Property type: {prop_type}
+/// Property type: `{prop_type}`
 pub const {const_name}: u16 = {id};"
             )
             .unwrap();
@@ -115,7 +115,7 @@ fn main() {
     );
     let level_header_props = get_map_from_line(
         &file,
-        "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = phf_map!",
+        "pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType)> = phf_map!",
         &mut group_property_ids,
     );
 
@@ -138,6 +138,7 @@ pub mod level_header {{
 
 /// Property metadata submodule
 pub mod metadata {{
+    /// All property IDs whose values are groups.
     pub static GROUP_PROPERTY_IDS: &[u16; {gids_len}] = &[{group_ids_literal}];
 }}
     "

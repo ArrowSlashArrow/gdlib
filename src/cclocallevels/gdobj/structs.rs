@@ -929,7 +929,7 @@ pub struct CompareOperand {
     pub operand_item: Item,
     /// Multiplier
     pub modifier: f64,
-    /// Operator between the item's value and modifier. Can only be `Op::Mul` or `Op::Div`
+    /// Operator between the item's value and modifier. Can be any operator except for `Op::Set`. Default is `Op::Mul` in item compare triggers.
     pub mod_op: Op,
     /// Forces a specific rounding on the resulting value: See [`RoundMode`]
     pub rounding: RoundMode,

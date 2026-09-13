@@ -612,6 +612,7 @@ macro_rules! object_descriptor {
         impl ObjectProperties for $descriptor {
             fn serialise(&self) -> Vec<(u16, GDValue)> {
                 vec![
+                    (155, GDValue::Int(1)), // for good measure
                     $(
                         ($prop_id, crate::cclocallevels::gdobj::prop_value!($prop_t, self.$field)),
                     )*

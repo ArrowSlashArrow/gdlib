@@ -1,7 +1,9 @@
 //! Properties lookup table
 use phf::{Map, phf_map};
 
-use crate::cclocallevels::{gdlevel::leveldata::HeaderValueType, gdobj::structs::GDObjPropType};
+use crate::cclocallevels::{
+    gdlevel::leveldata::GDLevelHeaderValType, gdobj::structs::GDObjPropType,
+};
 
 // note: if it;s a number but not specifically an int, don't say it's an int.
 /// A map of object property IDs to their identifier and type.   
@@ -269,54 +271,54 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
-/// while kSxx properties' indices are shifted 1000 upwards.
+/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`GDLevelHeaderKey::to_id`]
 ///
 /// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level-components/level-start>
-pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, HeaderValueType)> = phf_map! {
-    1u16 => ("Audio track", HeaderValueType::Int),
-    2u16 => ("Gamemode", HeaderValueType::Gamemode),
-    3u16 => ("Mini mode", HeaderValueType::Bool),
-    4u16 => ("Speed", HeaderValueType::Speed),
-    5u16 => ("Obj2 blending", HeaderValueType::Bool),
-    6u16 => ("Background texture ID", HeaderValueType::Int),
-    7u16 => ("Ground texture ID", HeaderValueType::Int),
-    8u16 => ("Dual mode", HeaderValueType::Bool),
-    9u16 => ("Level or Startpos object", HeaderValueType::Bool),
-    10u16 => ("Two player mode", HeaderValueType::Bool),
-    11u16 => ("Flip gravity", HeaderValueType::Bool),
-    12u16 => ("Colour3 blending", HeaderValueType::Bool),
-    13u16 => ("Song offset seconds", HeaderValueType::Float),
-    14u16 => ("Guidelines", HeaderValueType::GuidelineString),
-    15u16 => ("Fade in", HeaderValueType::Bool),
-    16u16 => ("Fade out", HeaderValueType::Bool),
-    17u16 => ("Ground line ID", HeaderValueType::Int),
-    18u16 => ("Font ID", HeaderValueType::Int),
-    19u16 => ("Startpos target order", HeaderValueType::Int),
-    20u16 => ("Reverse gameplay", HeaderValueType::Bool),
-    21u16 => ("Startpos disabled", HeaderValueType::Bool),
-    22u16 => ("Plaformer mode", HeaderValueType::Bool),
-    25u16 => ("Middleground texture ID", HeaderValueType::Int),
-    26u16 => ("Startpos target channel", HeaderValueType::Int),
-    27u16 => ("Allow multi-rotation", HeaderValueType::Bool),
-    28u16 => ("Mirror mode", HeaderValueType::Bool),
-    29u16 => ("Rotate gameplay", HeaderValueType::Bool),
-    31u16 => ("Enable player squeeze", HeaderValueType::Bool),
-    32u16 => ("Fix gravity bug", HeaderValueType::Bool),
-    33u16 => ("Fix negative scale", HeaderValueType::Bool),
-    34u16 => ("Fix robot jump", HeaderValueType::Bool),
-    35u16 => ("Startpos reset camera", HeaderValueType::Bool),
-    36u16 => ("Spawn group", HeaderValueType::Int),
-    37u16 => ("Dynamic level height", HeaderValueType::Bool),
-    38u16 => ("Sort groups", HeaderValueType::Bool),
-    39u16 => ("Fix radius collision", HeaderValueType::Bool),
-    40u16 => ("Enable 2.2 changes", HeaderValueType::Bool),
-    41u16 => ("Allow static rotate", HeaderValueType::Bool),
-    42u16 => ("Reverse sync", HeaderValueType::Bool),
-    43u16 => ("No time penalty", HeaderValueType::Bool),
-    44u16 => ("Decrease boost slide", HeaderValueType::Bool),
+pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType)> = phf_map! {
+    1u16 => ("Audio track", GDLevelHeaderValType::Int),
+    2u16 => ("Gamemode", GDLevelHeaderValType::Gamemode),
+    3u16 => ("Mini mode", GDLevelHeaderValType::Bool),
+    4u16 => ("Speed", GDLevelHeaderValType::Speed),
+    5u16 => ("Obj2 blending", GDLevelHeaderValType::Bool),
+    6u16 => ("Background texture ID", GDLevelHeaderValType::Int),
+    7u16 => ("Ground texture ID", GDLevelHeaderValType::Int),
+    8u16 => ("Dual mode", GDLevelHeaderValType::Bool),
+    9u16 => ("Level or Startpos object", GDLevelHeaderValType::Bool),
+    10u16 => ("Two player mode", GDLevelHeaderValType::Bool),
+    11u16 => ("Flip gravity", GDLevelHeaderValType::Bool),
+    12u16 => ("Colour3 blending", GDLevelHeaderValType::Bool),
+    13u16 => ("Song offset seconds", GDLevelHeaderValType::Float),
+    14u16 => ("Guidelines", GDLevelHeaderValType::GuidelineString),
+    15u16 => ("Fade in", GDLevelHeaderValType::Bool),
+    16u16 => ("Fade out", GDLevelHeaderValType::Bool),
+    17u16 => ("Ground line ID", GDLevelHeaderValType::Int),
+    18u16 => ("Font ID", GDLevelHeaderValType::Int),
+    19u16 => ("Startpos target order", GDLevelHeaderValType::Int),
+    20u16 => ("Reverse gameplay", GDLevelHeaderValType::Bool),
+    21u16 => ("Startpos disabled", GDLevelHeaderValType::Bool),
+    22u16 => ("Plaformer mode", GDLevelHeaderValType::Bool),
+    25u16 => ("Middleground texture ID", GDLevelHeaderValType::Int),
+    26u16 => ("Startpos target channel", GDLevelHeaderValType::Int),
+    27u16 => ("Allow multi-rotation", GDLevelHeaderValType::Bool),
+    28u16 => ("Mirror mode", GDLevelHeaderValType::Bool),
+    29u16 => ("Rotate gameplay", GDLevelHeaderValType::Bool),
+    31u16 => ("Enable player squeeze", GDLevelHeaderValType::Bool),
+    32u16 => ("Fix gravity bug", GDLevelHeaderValType::Bool),
+    33u16 => ("Fix negative scale", GDLevelHeaderValType::Bool),
+    34u16 => ("Fix robot jump", GDLevelHeaderValType::Bool),
+    35u16 => ("Startpos reset camera", GDLevelHeaderValType::Bool),
+    36u16 => ("Spawn group", GDLevelHeaderValType::Int),
+    37u16 => ("Dynamic level height", GDLevelHeaderValType::Bool),
+    38u16 => ("Sort groups", GDLevelHeaderValType::Bool),
+    39u16 => ("Fix radius collision", GDLevelHeaderValType::Bool),
+    40u16 => ("Enable 2.2 changes", GDLevelHeaderValType::Bool),
+    41u16 => ("Allow static rotate", GDLevelHeaderValType::Bool),
+    42u16 => ("Reverse sync", GDLevelHeaderValType::Bool),
+    43u16 => ("No time penalty", GDLevelHeaderValType::Bool),
+    44u16 => ("Decrease boost slide", GDLevelHeaderValType::Bool),
     /* Deprecated keys kS1-kS20 and kS29-kS37 are not included */
-    1038u16 => ("Colours", HeaderValueType::ColourString),
-    1039u16 => ("Colour page", HeaderValueType::Int),
+    1038u16 => ("Colours", GDLevelHeaderValType::ColourString),
+    1039u16 => ("Colour page", GDLevelHeaderValType::Int),
 };
 
 /// Get type of an object property by ID
@@ -324,7 +326,7 @@ pub fn get_obj_property_type(p: u16) -> Option<GDObjPropType> {
     PROPERTY_TABLE.get(&p).map(|v| v.1)
 }
 /// Get type of a level header property by ID
-pub fn get_level_header_property_type(p: u16) -> Option<HeaderValueType> {
+pub fn get_level_header_property_type(p: u16) -> Option<GDLevelHeaderValType> {
     LEVEL_HEADER_PROPERTIES.get(&p).map(|v| v.1)
 }
 

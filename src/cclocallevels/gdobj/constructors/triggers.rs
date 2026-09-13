@@ -850,6 +850,7 @@ pub struct ItemCompareTrigger {
 impl ObjectProperties for ItemCompareTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
+            (155, GDValue::Int(1)), // for good measure
             (TARGET_ITEM, GDValue::Group(self.true_id)),
             (TARGET_ITEM_2, GDValue::Group(self.false_id)),
             (INPUT_ITEM_1, GDValue::Item(self.lhs.operand_item.id())),
