@@ -143,7 +143,7 @@ impl ObjectProperties for MoveTrigger {
     }
 
     fn object_id(&self) -> i32 {
-        TRIGGER_MOVE
+        MOVE_TRIGGER
     }
 }
 
@@ -212,13 +212,13 @@ impl ObjectProperties for StartposConfig {
     }
 
     fn object_id(&self) -> i32 {
-        TRIGGER_START_POS
+        START_POSITION
     }
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id != TRIGGER_START_POS {
+        if obj.id != START_POSITION {
             return None;
         }
 
@@ -298,7 +298,7 @@ pub fn colour_trigger(
         ));
     }
 
-    GDObject::new(TRIGGER_COLOUR, config, properties)
+    GDObject::new(COLOR_TRIGGER, config, properties)
 }
 
 // TODO: implement ObjectProperties
@@ -360,12 +360,12 @@ pub fn pulse_trigger(
             ]);
         }
     }
-    GDObject::new(TRIGGER_PULSE, config, properties)
+    GDObject::new(PULSE_TRIGGER, config, properties)
 }
 
 object_descriptor!(
     /// Stop trigger
-    StopTrigger: TRIGGER_STOP => {
+    StopTrigger: STOP_TRIGGER => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Stop mode (see [`StopMode`] struct)
@@ -377,7 +377,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Alpha trigger
-    AlphaTrigger: TRIGGER_ALPHA => {
+    AlphaTrigger: ALPHA_TRIGGER => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Opacity to set group at
@@ -389,7 +389,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Toggle trigger
-    ToggleTrigger: TRIGGER_TOGGLE => {
+    ToggleTrigger: TOGGLE_TRIGGER => {
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Active group instead of deactivating?
@@ -437,7 +437,7 @@ impl ObjectProperties for TransitionTrigger {
 
 object_descriptor!(
     /// This object ensures that if any one of the objects in the group is visible, then all are loaded
-    LinkVisibleTrigger: TRIGGER_LINK_VISIBLE => {
+    LinkVisibleTrigger: LINK_VISIBLE_TRIGGER => {
         /// group that is linked visibly
         target_group: i16 => Group TARGET_ITEM
     }
@@ -445,7 +445,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Timewarp trigger
-    TimewarpTrigger: TRIGGER_TIME_WARP => {
+    TimewarpTrigger: TIMEWARP_TRIGGER => {
         /// How much to speed up/slow down time by. 1.0 is the default
         time_scale: f64 => Float TIMEWARP_AMOUNT
     }
@@ -458,7 +458,7 @@ object_descriptor!(
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_REVERSE_GAMEPLAY, config, vec![])
+    GDObject::new(REVERSE_TRIGGER, config, vec![])
 }
 
 /// Returns a trigger that shows the player
@@ -466,7 +466,7 @@ pub fn reverse_gameplay(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn show_player(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_SHOW_PLAYER, config, vec![])
+    GDObject::new(SHOW_PLAYER_TRIGGER, config, vec![])
 }
 
 /// Returns a trigger that hides the player
@@ -474,7 +474,7 @@ pub fn show_player(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn hide_player(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_HIDE_PLAYER, config, vec![])
+    GDObject::new(HIDE_PLAYER_TRIGGER, config, vec![])
 }
 
 /// Returns a trigger that shows the player trail
@@ -482,7 +482,7 @@ pub fn hide_player(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_ENABLE_PLAYER_TRAIL, config, vec![])
+    GDObject::new(ENABLE_GHOST_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that hides the player trail
@@ -490,7 +490,7 @@ pub fn show_player_trail(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_DISABLE_PLAYER_TRAIL, config, vec![])
+    GDObject::new(DISABLE_GHOST_TRAIL, config, vec![])
 }
 
 /// Returns a trigger that enables the background effect
@@ -498,7 +498,7 @@ pub fn hide_player_trail(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_BG_EFFECT_ON, config, vec![])
+    GDObject::new(BACKGROUND_EFFECT_ON_TRIGGER, config, vec![])
 }
 
 /// Returns a trigger that disables the background effect
@@ -506,12 +506,12 @@ pub fn bg_effect_on(config: &GDObjConfig) -> GDObject {
 /// * `config`: General object options, such as position and scale
 #[inline]
 pub fn bg_effect_off(config: &GDObjConfig) -> GDObject {
-    GDObject::new(TRIGGER_BG_EFFECT_OFF, config, vec![])
+    GDObject::new(BACKGROUND_EFFECT_OFF_TRIGGER, config, vec![])
 }
 
 object_descriptor!(
     /// Group reset trigger
-    GroupResetTrigger: TRIGGER_RESET_GROUP => {
+    GroupResetTrigger: RESET_TRIGGER => {
         /// group that is to be reset
         target_group: i16 => Group TARGET_ITEM
     }
@@ -519,7 +519,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Shake trigger
-    ShakeTrigger: TRIGGER_SHAKE => {
+    ShakeTrigger: SHAKE_TRIGGER => {
         /// Strength of shake
         strength: i32 => Int SHAKE_STRENGTH,
         /// Interval in seconds between each shake
@@ -531,7 +531,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Background speed trigger
-    BGSpeedTrigger: TRIGGER_BG_SPEED_CONFIG => {
+    BGSpeedTrigger: BACKGROUND_SPEED_TRIGGER => {
         /// X-axis speed of BG in terms of player speed. Default is 0.3
         mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of BG in terms of player speed. Default is 0.5
@@ -541,7 +541,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Middleground speed trigger
-    MGSpeedTrigger: TRIGGER_MG_SPEED_CONFIG => {
+    MGSpeedTrigger: MIDDLEGROUND_SPEED_TRIGGER => {
         /// X-axis speed of MG in terms of player speed. Default is 0.3
         mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of MG in terms of player speed. Default is 0.5
@@ -551,7 +551,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Controls what the player can and can't do. Useful for suppressing player input.
-    PlayerControlTrigger: TRIGGER_PLAYER_CONTROL => {
+    PlayerControlTrigger: PLAYER_CONTROL_TRIGGER => {
         /// Enables these controls for player 1
         p1: bool => Bool CONTROLLING_PLAYER_1,
         /// Enables these controls for player 2
@@ -585,13 +585,13 @@ impl ObjectProperties for GravityTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_GRAVITY
+        GRAVITY_TRIGGER
     }
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id != TRIGGER_GRAVITY {
+        if obj.id != GRAVITY_TRIGGER {
             return None;
         }
 
@@ -647,7 +647,7 @@ impl ObjectProperties for EndTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_END
+        END_TRIGGER
     }
 }
 
@@ -692,14 +692,14 @@ impl ObjectProperties for CounterLabel {
     }
 
     fn object_id(&self) -> i32 {
-        COUNTER
+        COUNTER_LABEL
     }
 
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id == COUNTER {
+        if obj.id == COUNTER_LABEL {
             return None;
         }
 
@@ -820,7 +820,7 @@ impl ObjectProperties for ItemEditTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_ITEM_EDIT
+        ITEM_EDIT_TRIGGER
     }
 }
 
@@ -886,14 +886,14 @@ impl ObjectProperties for ItemCompareTrigger {
     }
 
     fn object_id(&self) -> i32 {
-        TRIGGER_ITEM_COMPARE
+        ITEM_COMPARE_TRIGGER
     }
 
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id != TRIGGER_ITEM_COMPARE {
+        if obj.id != ITEM_COMPARE_TRIGGER {
             return None;
         }
 
@@ -938,7 +938,7 @@ impl ObjectProperties for ItemCompareTrigger {
 
 object_descriptor!(
     /// Enables the value of items to persist across attempts.
-    PersistentItemTrigger: TRIGGER_PERSISTENT_ITEM => {
+    PersistentItemTrigger: PERSISTENT_ITEM_SETUP_TRIGGER => {
         /// Target item ID
         item_id: i16 => Item TARGET_ITEM,
         /// Targets a timer with the corresponding ID if enabled
@@ -961,7 +961,7 @@ object_descriptor!(
     /// If the chance is 42%, then the first target group has a 42% chance of being spawned. The second target group has a `1 - chance`, or 58% chance in this example of being toggled.
     ///
     /// If it is desirable not to activate a group, use 0 as the ID. This trigger will not activate any group ID 0.
-    RandomTrigger: TRIGGER_RANDOM => {
+    RandomTrigger: RANDOM_TRIGGER => {
         /// Float in the range [0.0, 1.0] to spawn the first target group
         chance: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// Has a `chance` chance to be spawned
@@ -973,7 +973,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Spawns a group
-    SpawnTrigger: TRIGGER_SPAWN => {
+    SpawnTrigger: SPAWN_TRIGGER => {
         /// Spawns this group
         spawn_id: i16 => Group TARGET_ITEM,
         /// Delay between beign triggered and spawning the group
@@ -994,7 +994,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Activates a group on player death
-    OnDeathTrigger: TRIGGER_ON_DEATH => {
+    OnDeathTrigger: ON_DEATH_TRIGGER => {
         /// Spawns this group
         target_group: i16 => Group TARGET_ITEM,
         /// Activate this group instead of toggling it off
@@ -1056,7 +1056,7 @@ impl ObjectProperties for ParticleSpawnTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_SPAWN_PARTICLE
+        SPAWN_PARTICLE_TRIGGER
     }
 }
 
@@ -1074,7 +1074,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Block that detects player input while the player is inside
-    ToggleBlock: TOGGLE_BLOCK => {
+    ToggleBlock: PLAYER_TOUCH_TOGGLE_BLOCK => {
         /// Group to activate/deactivate
         target_group: i16 => Group TARGET_ITEM,
         /// Activate/spawn group instead of deactivating
@@ -1102,7 +1102,7 @@ object_descriptor!(
     /// Triggers a group when it detects a collision between two collision blocks or optionally players.
     ///
     /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
-    CollisionTrigger: TRIGGER_COLLISION => {
+    CollisionTrigger: COLLISION_TRIGGER => {
         /// ID of first collision block
         collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
@@ -1120,7 +1120,7 @@ object_descriptor!(
         activate_group: bool => Bool ACTIVATE_GROUP,
         /// activates group when the two colliders' hitboxes stop overlapping after collision
         ///   instead of when they start colliding.
-        trigger_on_exit: bool => Bool TRIGGER_ON_EXIT
+        on_trigger_exit: bool => Bool TRIGGER_ON_EXIT
     }
 );
 
@@ -1129,7 +1129,7 @@ object_descriptor!(
     ///
     /// Activates a group when the two colliders collide or do not collide.
     /// This condition is only checked once and never again.
-    InstantCollTrigger: TRIGGER_INSTANT_COLLISION => {
+    InstantCollTrigger: INSTANT_COLLISION_TRIGGER => {
         /// ID of first collision block
         collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
@@ -1172,7 +1172,7 @@ impl InstantCollTrigger {
 
 object_descriptor!(
     /// Time trigger
-    TimeTrigger: TRIGGER_TIME => {
+    TimeTrigger: TIME_TRIGGER => {
         /// Starting time of target timer that will be set on activation of the trigger
         start_time: f64 => Float START_TIME,
         /// Time at which to call the target group
@@ -1199,7 +1199,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Time control trigger
-    TimeControlTrigger: TRIGGER_TIME_CONTROL => {
+    TimeControlTrigger: TIME_CONTROL_TRIGGER => {
         /// Timer ID
         id: i16 => Item INPUT_ITEM_1,
         /// If enabled, stops the timer; otherwise, starts the timer.
@@ -1209,7 +1209,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Triggers a group when a given timer reaches a specific time.
-    TimeEventTrigger: TRIGGER_TIME_EVENT => {
+    TimeEventTrigger: TIME_EVENT_TRIGGER => {
         /// Timer ID
         id: i16 => Group INPUT_ITEM_1,
         /// If enabled, stops the timer; otherwise, starts the timer.
@@ -1245,13 +1245,13 @@ impl ObjectProperties for CameraZoomTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_CAMERA_ZOOM
+        ZOOM_CAMERA_TRIGGER
     }
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id != TRIGGER_CAMERA_ZOOM {
+        if obj.id != ZOOM_CAMERA_TRIGGER {
             return None;
         }
 
@@ -1287,7 +1287,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Makes a group of objets follow another group
-    FollowTrigger: TRIGGER_FOLLOW => {
+    FollowTrigger: FOLLOW_TRIGGER => {
         /// Multiplier for x-axis movement of follow group
         x_mod: f64 => Float XAXIS_FOLLOW_MOD,
         /// Multiplier for y-axis movement of follow group
@@ -1303,7 +1303,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Sets animation modes for objects with animations such as (but not limited to) bats and spikeballs.
-    AnimateTrigger: TRIGGER_ANIMATE => {
+    AnimateTrigger: ANIMATE_TRIGGER => {
         /// Objects to animate
         target_group: i16 => Group TARGET_ITEM,
         /// When parsed with [`Self::from_object`], this ID will be cast to [`Anim::Other`]
@@ -1313,7 +1313,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Actiavtes/deactivates a group when an item reaches a specific count. The condition for doing so is checked every tick.
-    CountTrigger: TRIGGER_COUNT => {
+    CountTrigger: COUNT_TRIGGER => {
         /// Checks this item
         item_id: i16 => Item INPUT_ITEM_1,
         /// Target group to activate
@@ -1328,7 +1328,7 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    AdvancedRandomTrigger: TRIGGER_ADVANCED_RANDOM => {
+    AdvancedRandomTrigger: ADVANCED_RANDOM_TRIGGER => {
         /// List of tuples: (target group, chance to trigger this group).
         ///
         /// Chances are considered relative to each other, meaning that they are not
@@ -1343,7 +1343,7 @@ impl AdvancedRandomTrigger {
     /// Converts a `GDobject` to this struct. Fails the object ID doesn't match and if the required values aren't of the right type.
     /// Values that are missing from the original object (usually due to being unset) are filled in with their type's implementation of `Default`.
     pub fn from_trigger(trigger: &GDObject) -> Option<Self> {
-        if trigger.id != TRIGGER_ADVANCED_RANDOM {
+        if trigger.id != ADVANCED_RANDOM_TRIGGER {
             return None;
         }
 
@@ -1362,7 +1362,7 @@ impl AdvancedRandomTrigger {
 
 object_descriptor!(
     /// UI config trigger
-    UIConfigTrigger: TRIGGER_UI_CONFIG => {
+    UIConfigTrigger: UI_TRIGGER => {
         /// the UI objects
         target_group: i16 => Group TARGET_ITEM,
         /// Group with a single object that is a reference for the center of the camera.
@@ -1477,7 +1477,7 @@ impl ObjectProperties for RotateTrigger {
     }
 
     fn object_id(&self) -> i32 {
-        TRIGGER_ROTATION
+        ROTATE_TRIGGER
     }
 }
 
@@ -1536,14 +1536,14 @@ impl ObjectProperties for ScaleTrigger {
     }
 
     fn object_id(&self) -> i32 {
-        TRIGGER_SCALE
+        SCALE_TRIGGER
     }
 
     fn from_object(obj: &GDObject) -> Option<Self>
     where
         Self: Sized,
     {
-        if obj.id != TRIGGER_SCALE {
+        if obj.id != SCALE_TRIGGER {
             return None;
         }
 
@@ -1587,7 +1587,7 @@ impl ObjectProperties for ScaleTrigger {
 
 object_descriptor!(
     /// Makes an object follow the player on the y-axis
-    FollowPlayerYTrigger: TRIGGER_FOLLOW_PLAYER_Y => {
+    FollowPlayerYTrigger: FOLLOW_PLAYER_Y_TRIGGER => {
         /// Follow speed in the range \[0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
         speed: f64 => Float FOLLOW_SPEED,
         /// Delay of the following group
@@ -1619,13 +1619,13 @@ impl ObjectProperties for MiddleGroundConfigTrigger {
         properties
     }
     fn object_id(&self) -> i32 {
-        TRIGGER_MIDDLEGROUND_CONFIG
+        EDIT_MIDDLEGROUND_TRIGGER
     }
 }
 
 object_descriptor!(
     /// Event config trigger
-    EventTrigger: TRIGGER_EVENT => {
+    EventTrigger: EVENT_TRIGGER => {
         /// Group to target
         target_group: i16 => Group TARGET_ITEM,
         events: Vec<Event> => Events EVENT_LISTENERS,
@@ -1639,7 +1639,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Changes the middle ground
-    MiddleGroundTrigger: TRIGGER_MIDDLEGROUND_CHANGE => {
+    MiddleGroundTrigger: CHANGE_MIDDLEGROUND_TRIGGER => {
         /// Change to this middleground
         middleground: MiddleGround => to_i32 MIDDLEGROUND
     }
@@ -1647,7 +1647,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Toggles a group of objects when the player clicks.
-    TouchTrigger: TRIGGER_TOUCH => {
+    TouchTrigger: TOUCH_TRIGGER => {
         /// Group that is activated when the trigger registers a click
         target_group: i16 => Group TARGET_ITEM,
         /// Toggles target group on holding and releasing instead of clicking
@@ -1663,13 +1663,13 @@ object_descriptor!(
 
 object_descriptor!(
     /// Stops an area effect
-    AreaStopTrigger: TRIGGER_AREA_STOP => {
+    AreaStopTrigger: AREA_STOP_TRIGGER => {
         effect_id: i16 => Short TARGET_ITEM
     }
 );
 
 object_descriptor!(
-    BPMGuide: BPM_GUIDE => {
+    BPMGuide: BPM_TRIGGER => {
         /// Beats per minute
         bpm: i32 => Int BEATS_PER_MINUTE,
         /// Beats per bar
@@ -1685,7 +1685,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Rotates the gameplay direction
-    RotateGameplayTrigger: TRIGGER_ROTATE_GAMEPLAY => {
+    RotateGameplayTrigger: GAMEPLAY_ROTATION_TRIGGER => {
         /// Enables the `override_velocity` and `velocity_modifier` paramaters.
         edit_velocity: bool => Bool EDIT_VELOCITY,
         /// Sets the velocity of the player instead of multipling the player's current velocity. Uses `velocity_modifier` for each respective axis of motion.
@@ -1709,7 +1709,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// The poor man's ItemEditTrigger.
-    PickupTrigger: TRIGGER_PICKUP => {
+    PickupTrigger: PICKUP_TRIGGER => {
         /// Item to modify
         item_id: i32 => Int INPUT_ITEM_1,
         count: i32 => Int TARGET_COUNT,
@@ -1724,7 +1724,7 @@ object_descriptor!(
 
 object_descriptor!(
     /// Activates/deactivates objects in the target group when the comparison between the item's value and the target count is true.
-    InstantCountTrigger: TRIGGER_INSTANT_COUNT => {
+    InstantCountTrigger: INSTANT_COUNT_TRIGGER => {
         item_id: i16 => Item INPUT_ITEM_1,
         target_group: i16 => Group TARGET_ITEM,
         /// Number to reach

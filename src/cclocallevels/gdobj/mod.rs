@@ -329,10 +329,8 @@ impl GDObject {
     #[must_use]
     pub fn get_name(&self) -> String {
         OBJECT_NAMES
-            .iter()
-            .find(|&o| o.0 == self.id)
-            .unwrap_or(&(0, format!("Object {}", self.id).as_str()))
-            .1
+            .get(&self.id)
+            .unwrap_or(&format!("Object {}", self.id).as_str())
             .to_string()
     }
 

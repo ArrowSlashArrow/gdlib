@@ -6,7 +6,7 @@ use base64::{Engine, engine::general_purpose};
 use crate::cclocallevels::gdobj::{
     GDObjConfig, GDObject, GDValue,
     ids::{
-        objects::{DEFAULT_BLOCK, TEXT_OBJECT},
+        objects::*,
         properties::{BASE64ENCODED_TEXT, KERNING},
     },
 };
@@ -16,7 +16,7 @@ use crate::cclocallevels::gdobj::{
 /// `config`: Object config
 #[inline]
 pub fn default_block(config: &GDObjConfig) -> GDObject {
-    GDObject::new(DEFAULT_BLOCK, config, vec![])
+    GDObject::new(BLACK_GRADIENT_SQUARE, config, vec![])
 }
 
 /// Returns a text object
@@ -27,7 +27,7 @@ pub fn default_block(config: &GDObjConfig) -> GDObject {
 #[inline]
 pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
     GDObject::new(
-        TEXT_OBJECT,
+        TEXT,
         config,
         vec![
             (

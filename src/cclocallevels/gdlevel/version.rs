@@ -1,7 +1,5 @@
 //! GDVersion.
 
-use std::default;
-
 /// Enum for all released versions of Geometry Dash. The purpose of this enum is to provide a way to get game version id, `binaryVersion`, and manifest version from one object.
 ///
 /// Reference: <https://a-zalt.github.io/gdknowledge/versions.html>
