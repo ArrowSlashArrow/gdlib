@@ -5,7 +5,16 @@ use std::{f64::consts::PI, fmt::Display, str::FromStr};
 use anyhow::anyhow;
 use smallvec::SmallVec;
 
-use crate::repr_t;
+use crate::{
+    cclocallevels::gdobj::ids::properties::{
+        TARGET_ITEM, TELEPORT_EXIT_GRAVITY, TELEPORT_IGNORE_X, TELEPORT_IGNORE_Y,
+        TELEPORT_INSTANT_CAMERA, TELEPORT_REDIRECT_DASH, TELEPORT_REDIRECT_FORCE_MAXIMUM,
+        TELEPORT_REDIRECT_FORCE_MINIMUM, TELEPORT_REDIRECT_FORCE_MOD, TELEPORT_SAVE_OFFSET,
+        TELEPORT_SMOOTH_EASE, TELEPORT_SNAP_GROUND, TELEPORT_STATIC_FORCE_IS_ADDITIVE,
+        TELEPORT_STATIC_FORCE_VALUE, TELEPORT_USE_REDIRECT_FORCE, TELEPORT_USE_STATIC_FORCE,
+    },
+    repr_t,
+};
 
 const LIST_ALLOCSIZE: usize = 5;
 
@@ -1018,11 +1027,15 @@ pub enum MoveLock {
 repr_t!(
     /// Enum for relative UI reference position
     strict UIReferencePos: i32 {
-        Auto = 1,
-        Center = 2,
+        XAuto = 1,
+        XCenter = 2,
         Left = 3,
         Right = 4,
-    } default Auto
+        YAuto = 5,
+        YCenter = 6,
+        Bottom = 7,
+        Top = 8,
+    } default XAuto
 );
 
 /// Config struct for default movement
@@ -1519,5 +1532,106 @@ repr_t!(
         On = 1,
         Unset = 0,
         Off = -1
+    } default Unset
+);
+
+/// Settings for teleporting the player. Used in the teleport orb, trigger and portals.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct TeleportConfig {
+    /// Teleports player to this group
+    pub target_group_id: i16,
+    /// Sets the player's gravity to this gravity after the teleport
+    pub gravity: TeleportGravity,
+    /// Gives the player some force after the teleport
+    pub force: TeleportForce,
+    /// Enable smooth camera transition
+    pub smooth_ease: bool,
+    /// Do not change camera offset between teleport
+    pub save_offset: bool,
+    /// @nodoc
+    pub ignore_x: bool,
+    /// @nodoc
+    pub ignore_y: bool,
+    /// Instant camera transition
+    pub instant_camera: bool,
+    /// @nodoc
+    pub snap_ground: bool,
+    /// Redirect dash from dash orb
+    pub redirect_dash: bool,
+}
+
+impl TeleportConfig {
+    /// Convert this struct to a list of GDValues
+    pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (TARGET_ITEM, GDValue::Group(self.target_group_id)),
+            (TELEPORT_EXIT_GRAVITY, GDValue::Int(self.gravity as i32)),
+            (TELEPORT_SMOOTH_EASE, GDValue::Bool(self.smooth_ease)),
+            (TELEPORT_SAVE_OFFSET, GDValue::Bool(self.save_offset)),
+            (TELEPORT_IGNORE_X, GDValue::Bool(self.ignore_x)),
+            (TELEPORT_IGNORE_Y, GDValue::Bool(self.ignore_y)),
+            (TELEPORT_INSTANT_CAMERA, GDValue::Bool(self.instant_camera)),
+            (TELEPORT_SNAP_GROUND, GDValue::Bool(self.snap_ground)),
+            (TELEPORT_REDIRECT_DASH, GDValue::Bool(self.redirect_dash)),
+        ];
+
+        match self.force {
+            TeleportForce::None => {}
+            TeleportForce::Static { force, is_additive } => {
+                properties.extend_from_slice(&[
+                    (TELEPORT_USE_STATIC_FORCE, GDValue::Bool(true)),
+                    (TELEPORT_STATIC_FORCE_VALUE, GDValue::Float(force)),
+                    (
+                        TELEPORT_STATIC_FORCE_IS_ADDITIVE,
+                        GDValue::Bool(is_additive),
+                    ),
+                ]);
+            }
+            TeleportForce::Redirect { min, max, modifier } => {
+                properties.extend_from_slice(&[
+                    (TELEPORT_USE_REDIRECT_FORCE, GDValue::Bool(true)),
+                    (TELEPORT_REDIRECT_FORCE_MINIMUM, GDValue::Float(min)),
+                    (TELEPORT_REDIRECT_FORCE_MAXIMUM, GDValue::Float(max)),
+                    (TELEPORT_REDIRECT_FORCE_MOD, GDValue::Float(modifier)),
+                ]);
+            }
+        }
+
+        properties
+    }
+}
+
+/// Force given to the player after a teleport.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum TeleportForce {
+    /// no extra force
+    #[default]
+    None,
+    /// force applied to player after teleport
+    Static {
+        /// @nodoc
+        force: f64,
+        /// @nodoc
+        is_additive: bool,
+    },
+    /// exits based on input
+    Redirect {
+        /// @nodoc
+        min: f64,
+        /// @nodoc
+        max: f64,
+        /// default: 1.0
+        modifier: f64,
+    },
+}
+
+repr_t!(
+    /// Gravity setting for teleports
+    strict TeleportGravity: i32 {
+        Unset = 0,
+        Normal = 1,
+        Flipped = 2,
+        /// Gives the player the opposite gravity after the teleport.
+        Toggle = 3
     } default Unset
 );

@@ -14,11 +14,14 @@
 //!
 //! All other triggers have a configuration struct that should be used instead.
 
-use crate::cclocallevels::gdobj::{
-    Event, GDObjConfig, GDObject, GDValue, ObjectProperties,
-    ids::{objects::*, properties::*},
-    object_descriptor,
-    structs::*,
+use crate::{
+    cclocallevels::gdobj::{
+        Event, GDObjConfig, GDObject, GDValue, ObjectProperties,
+        ids::{objects::*, properties::*},
+        object_descriptor,
+        structs::*,
+    },
+    core::rand::check_seed_advanced_random,
 };
 
 // convenience functions for manually implementing `from_object` for ObjectProperties.
@@ -169,20 +172,23 @@ pub struct StartposConfig {
 impl ObjectProperties for StartposConfig {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (STARTING_SPEED, GDValue::Speed(self.start_speed)),
-            (STARTING_GAMEMODE, GDValue::Gamemode(self.starting_gamemode)),
-            (STARTING_IN_MINI_MODE, GDValue::Bool(self.starting_as_mini)),
-            (STARTING_IN_DUAL_MODE, GDValue::Bool(self.starting_as_dual)),
-            (IS_DISABLED, GDValue::Bool(self.disabled)),
+            (STARTPOS_SPEED, GDValue::Speed(self.start_speed)),
+            (STARTPOS_GAMEMODE, GDValue::Gamemode(self.starting_gamemode)),
+            (STARTPOS_MINI_MODE, GDValue::Bool(self.starting_as_mini)),
+            (STARTPOS_DUAL_MODE, GDValue::Bool(self.starting_as_dual)),
+            (STARTPOS_IS_DISABLED, GDValue::Bool(self.disabled)),
+            (STARTPOS_MIRROR_MODE, GDValue::Bool(self.starting_mirrored)),
             (
-                STARTING_IN_MIRROR_MODE,
-                GDValue::Bool(self.starting_mirrored),
+                STARTPOS_ROTATE_GAMEPLAY,
+                GDValue::Bool(self.rotate_gameplay),
             ),
-            (ROTATE_GAMEPLAY, GDValue::Bool(self.rotate_gameplay)),
-            (REVERSE_GAMEPLAY, GDValue::Bool(self.reverse_gameplay)),
-            (TARGET_ORDER, GDValue::Int(self.target_order)),
-            (TARGET_CHANNEL, GDValue::Int(self.target_channel)),
-            (RESET_CAMERA, GDValue::Bool(self.reset_camera)),
+            (
+                STARTPOS_REVERSE_GAMEPLAY,
+                GDValue::Bool(self.reverse_gameplay),
+            ),
+            (STARTPOS_TARGET_ORDER, GDValue::Int(self.target_order)),
+            (STARTPOS_TARGET_CHANNEL, GDValue::Int(self.target_channel)),
+            (STARTPOS_RESET_CAMERA, GDValue::Bool(self.reset_camera)),
             // not sure what these properties do but they are required for the trigger to work
             // 10000 + x => `kAx`
             // i suspect that these might be related to the level start string somehow
@@ -222,17 +228,17 @@ impl ObjectProperties for StartposConfig {
             return None;
         }
 
-        let start_speed = get_property!(obj, STARTING_SPEED => Speed);
-        let starting_gamemode = get_property!(obj, STARTING_GAMEMODE => Gamemode);
-        let starting_as_mini = get_property!(obj, STARTING_IN_MINI_MODE => Bool => bool);
-        let starting_as_dual = get_property!(obj, STARTING_IN_DUAL_MODE => Bool => bool);
-        let disabled = get_property!(obj, IS_DISABLED => Bool => bool);
-        let starting_mirrored = get_property!(obj, STARTING_IN_MIRROR_MODE => Bool => bool);
-        let rotate_gameplay = get_property!(obj, ROTATE_GAMEPLAY => Bool => bool);
-        let reverse_gameplay = get_property!(obj, REVERSE_GAMEPLAY => Bool => bool);
-        let target_order = get_property!(obj, TARGET_ORDER => Int => i32);
-        let target_channel = get_property!(obj, TARGET_CHANNEL => Int => i32);
-        let reset_camera = get_property!(obj, RESET_CAMERA => Bool => bool);
+        let start_speed = get_property!(obj, STARTPOS_SPEED => Speed);
+        let starting_gamemode = get_property!(obj, STARTPOS_GAMEMODE => Gamemode);
+        let starting_as_mini = get_property!(obj, STARTPOS_MINI_MODE => Bool => bool);
+        let starting_as_dual = get_property!(obj, STARTPOS_DUAL_MODE => Bool => bool);
+        let disabled = get_property!(obj, STARTPOS_IS_DISABLED => Bool => bool);
+        let starting_mirrored = get_property!(obj, STARTPOS_MIRROR_MODE => Bool => bool);
+        let rotate_gameplay = get_property!(obj, STARTPOS_ROTATE_GAMEPLAY => Bool => bool);
+        let reverse_gameplay = get_property!(obj, STARTPOS_REVERSE_GAMEPLAY => Bool => bool);
+        let target_order = get_property!(obj, STARTPOS_TARGET_ORDER => Int => i32);
+        let target_channel = get_property!(obj, STARTPOS_TARGET_CHANNEL => Int => i32);
+        let reset_camera = get_property!(obj, STARTPOS_RESET_CAMERA => Bool => bool);
 
         // the rest of the properties that are required to serialize this object correctly will be filled in in `self.serialize`
         // since they are all unknown, they are not parsed
@@ -1066,7 +1072,7 @@ object_descriptor!(
     /// Collision block object
     CollisionBlock: COLLISION_BLOCK => {
         /// Collision block ID
-        id: i16 => Item INPUT_ITEM_1,
+        id: i16 => Short INPUT_ITEM_1,
         /// Whether this block registers collisions with other collision blocks
         dynamic: bool => Bool DYNAMIC_BLOCK
     }
@@ -1104,11 +1110,11 @@ object_descriptor!(
     /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
     CollisionTrigger: COLLISION_TRIGGER => {
         /// ID of first collision block
-        collider1: i16 => Item INPUT_ITEM_1,
+        collider1: i16 => Short INPUT_ITEM_1,
         /// ID of second collision block
-        collider2: i16 => Item INPUT_ITEM_2,
+        collider2: i16 => Short INPUT_ITEM_2,
         /// ID of group that is activated when the two colliders collide
-        target_id: i16 => Item TARGET_ITEM,
+        target_id: i16 => Group TARGET_ITEM,
         /// Whether to check for collision with player 1 instead of collider 1
         collide_player1: bool => Bool CONTROLLING_PLAYER_1,
         /// Whether to check for collision with player 2 instead of collider 1.
@@ -1127,17 +1133,17 @@ object_descriptor!(
 object_descriptor!(
     /// Instant collision trigger
     ///
-    /// Activates a group when the two colliders collide or do not collide.
-    /// This condition is only checked once and never again.
+    /// Checks for the collision between two colliders at one instant.
+    /// This trigger must be called to detect collision
     InstantCollTrigger: INSTANT_COLLISION_TRIGGER => {
         /// ID of first collision block
-        collider1: i16 => Item INPUT_ITEM_1,
+        collider1: i16 => Short INPUT_ITEM_1,
         /// ID of second collision block
-        collider2: i16 => Item INPUT_ITEM_2,
-        /// ID of group that is activated if the two colliders collide
-        true_id: i16 => Item TARGET_ITEM,
-        /// ID of group that is activated if the two colliders do not collide
-        false_id: i16 => Item TARGET_ITEM_2,
+        collider2: i16 => Short INPUT_ITEM_2,
+        /// ID of group that is activated if the two colliders are currently colliding
+        true_id: i16 => Group TARGET_ITEM,
+        /// ID of group that is activated if the two colliders are not currently colliding
+        false_id: i16 => Group TARGET_ITEM_2,
         /// Whether to check for collision with player 1 instead of collider 1
         collide_player1: bool => Bool CONTROLLING_PLAYER_1,
         /// Whether to check for collision with player 2 instead of collider 1.
@@ -1339,24 +1345,11 @@ object_descriptor!(
 );
 
 impl AdvancedRandomTrigger {
-    // maybe we can put this into the ObjectProperties trait
-    /// Converts a `GDobject` to this struct. Fails the object ID doesn't match and if the required values aren't of the right type.
-    /// Values that are missing from the original object (usually due to being unset) are filled in with their type's implementation of `Default`.
-    pub fn from_trigger(trigger: &GDObject) -> Option<Self> {
-        if trigger.id != ADVANCED_RANDOM_TRIGGER {
-            return None;
-        }
-
-        let mut this = Self::default();
-        this.probabilities = match trigger.get_property(RANDOM_PROBABILITIES_LIST) {
-            Some(p) => match p {
-                GDValue::ProbabilitiesList(l) => l.into_vec(),
-                _ => return None,
-            },
-            None => vec![],
-        };
-
-        return Some(this);
+    /// Returns what group will be called when this trigger is spawned, given a seed.
+    ///
+    /// This function uses [`check_seed_advanced_random`] internally.
+    pub fn determine_spawn_from_seed(&self, seed: u64) -> Option<Group> {
+        check_seed_advanced_random(seed, &self.probabilities)
     }
 }
 
@@ -1367,10 +1360,10 @@ object_descriptor!(
         target_group: i16 => Group TARGET_ITEM,
         /// Group with a single object that is a reference for the center of the camera.
         ui_reference_obj: i16 => Group TARGET_ITEM_2,
-        /// Reference position for the element on the X-axis
+        /// Reference position for the element on the X-axis. To ensure that this object serializes correctly, only use one of these variants: `XAuto`, `XCenter`, `Left`, `Right`
         x_reference: UIReferencePos => UIReferencePos X_REFERENCE_POSITION,
-        /// Reference position for the element on the Y-axis
-        // y_reference: UIReferencePos => Y_REFERENCE_POSITION - special case, value is `y_reference as i32 + 4`, not a plain cast, could not convert
+        /// Reference position for the element on the Y-axis. To ensure that this object serializes correctly, only use one of these variants: `YAuto`, `YCenter`, `Bottom`, `Top`
+        y_reference: UIReferencePos => UIReferencePos Y_REFERENCE_POSITION,
         /// Whether or not the x-axis position scales with aspect ratio
         x_ref_relative: bool => Bool X_REFERENCE_IS_RELATIVE,
         /// Whether or not the y-axis position scales with aspect ratio
@@ -1699,7 +1692,7 @@ object_descriptor!(
         /// Change to the channel without rotating gameplay
         channel_only: bool => Bool CHANNEL_ONLY,
         /// Channel to change to
-        target_channel: i32 => Int TARGET_CHANNEL,
+        target_channel: i32 => Int ROTATE_GAMEPLAY_TARGET_CHANNEL,
         /// Don't slide (???)
         dont_slide: bool => Bool DONT_SLIDE,
         /// Instantly rotates the camera to reflect gameplay rotation
@@ -1723,11 +1716,10 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// Activates/deactivates objects in the target group when the comparison between the item's value and the target count is true.
+    /// Activates/deactivates objects in the target group if the comparison between the item's value and the target count is true at the time this trigger is called.
     InstantCountTrigger: INSTANT_COUNT_TRIGGER => {
         item_id: i16 => Item INPUT_ITEM_1,
         target_group: i16 => Group TARGET_ITEM,
-        /// Number to reach
         target_count: i32 => Int TARGET_COUNT,
         /// Spawns objects in the group instead of deactivating them
         activate_group: bool => Bool ACTIVATE_GROUP,
@@ -1735,6 +1727,14 @@ object_descriptor!(
         comparison: InstantCountComparison => as_i32 PICKUP_COUNT_MODE
     }
 );
+
+/// Teleports the player somewhere far, far away.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TeleportTrigger {
+    // this one is pretty self-explanatory
+    /// @nodoc
+    pub teleport_config: TeleportConfig,
+}
 
 /* TODO: trigger constructors
  * Animation triggers

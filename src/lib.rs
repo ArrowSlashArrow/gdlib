@@ -27,7 +27,7 @@ macro_rules! repr_t {
         impl From<$t> for $name {
             fn from(value: $t) -> Self {
                 match value {
-                    $($val => Self::$variant,)*
+                    $(x if x == $val => Self::$variant,)*
                     _ => Self::Unrecognized(value),
                 }
             }
@@ -63,7 +63,7 @@ macro_rules! repr_t {
         impl From<$t> for $name {
             fn from(value: $t) -> Self {
                 match value {
-                    $($val => Self::$variant,)*
+                    $(x if x == $val => Self::$variant,)*
                     _ => Self::Unrecognized(value),
                 }
             }
@@ -104,7 +104,7 @@ macro_rules! repr_t {
             type Error = $t;
             fn try_from(value: $t) -> Result<Self, Self::Error> {
                 match value {
-                    $($val => Ok(Self::$variant),)*
+                    $(x if x == $val => Ok(Self::$variant),)*
                     _ => Err(value),
                 }
             }
@@ -127,7 +127,7 @@ macro_rules! repr_t {
             type Error = $t;
             fn try_from(value: $t) -> Result<Self, Self::Error> {
                 match value {
-                    $($val => Ok(Self::$variant),)*
+                    $(x if x == $val => Ok(Self::$variant),)*
                     _ => Err(value),
                 }
             }
@@ -141,3 +141,10 @@ macro_rules! repr_t {
     };
 }
 pub(crate) use repr_t;
+
+/// Common types and traits
+pub mod prelude {
+    pub use crate::cclocallevels::gdlevel::GDLevel;
+    pub use crate::cclocallevels::gdobj::ObjectProperties;
+    pub use crate::cclocallevels::gdobj::structs::GDValue;
+}

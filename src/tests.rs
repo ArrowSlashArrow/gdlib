@@ -12,7 +12,7 @@ use crate::{
             version::GDVersion,
         },
         gdobj::{
-            self, GDObject,
+            self, GDObject, ObjectProperties,
             constructors::{
                 misc::default_block,
                 triggers::{AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger},
@@ -24,7 +24,6 @@ use crate::{
             },
         },
     },
-    core::rand::check_seed_advanced_random,
 };
 
 fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
@@ -207,13 +206,11 @@ fn advanced_random_predict() {
     ];
 
     for &(obj_str, seed, expected) in tests {
-        let adv_rand = GDObject::parse_str(obj_str);
         assert_eq!(
-            check_seed_advanced_random(
-                seed,
-                &AdvancedRandomTrigger::from_trigger(&adv_rand).unwrap()
-            )
-            .unwrap(),
+            AdvancedRandomTrigger::from_object(&GDObject::parse_str(obj_str))
+                .unwrap()
+                .determine_spawn_from_seed(seed)
+                .unwrap(),
             Group::Regular(expected)
         );
     }

@@ -45,8 +45,22 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     48u16 => ("HSV is enabled", GDObjPropType::Bool),
     49u16 => ("Copy colour specs", GDObjPropType::Text),
     50u16 => ("Copy colour from channel", GDObjPropType::Bool),
+    /// This property is used for any of the following:
+    /// - Primarily, the target group in a trigger; for example, the group which is being moved in a move trigger
+    /// - In the pulse trigger, it can also refer to a colour channel
+    /// - In the edit area trigger, it can also refer to the effect ID
+    /// - In the stop area trigger, it refers only to the effect ID
+    /// - In the SFX and Edit Song triggers, it refers to the first group ID only
+    /// - In the time trigger, it refers to the target timer.
+    /// - In the item edit trigger, it refers to the item ID (counter or timer) being assigned to.
+    /// - In the item compare and instantion comparison trigger, it refers to the group that will be activated if the comparison is true at the time the trigger is called.
+    /// - In the random trigger, it refers to the parameter labelled `Group 1`
+    /// - In the spawn particle trigger, it refers to the group with the particles
+    /// - In the instant collision trigger, it refers to the group that will be activate if the two colliders are colliding at the time the trigger is called.
+    /// - In shader triggers with the parameter, it refers to the group around which the effect is centered.
     51u16 => ("Target item", GDObjPropType::Group),
     52u16 => ("Pulse group?", GDObjPropType::Bool),
+    55u16 => ("Teleport smooth ease", GDObjPropType::Bool),
     56u16 => ("Activate group", GDObjPropType::Bool),
     57u16 => ("Groups", GDObjPropType::GroupList),
     58u16 => ("Follow player's x movement", GDObjPropType::Bool),
@@ -141,6 +155,16 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     289u16 => ("Non-stick Y", GDObjPropType::Bool),
     343u16 => ("Enter effect channel", GDObjPropType::Int),
     344u16 => ("Target transition channel", GDObjPropType::Int),
+    345u16 => ("Teleport use static force", GDObjPropType::Bool),
+    346u16 => ("Teleport static force value", GDObjPropType::Float),
+    347u16 => ("Teleport use redirect force", GDObjPropType::Bool),
+    348u16 => ("Teleport redirect force minimum", GDObjPropType::Float),
+    349u16 => ("Teleport redirect force maximum", GDObjPropType::Float),
+    350u16 => ("Teleport redirect force mod", GDObjPropType::Float),
+    351u16 => ("Teleport save offset", GDObjPropType::Bool),
+    352u16 => ("Teleport ignore X", GDObjPropType::Bool),
+    353u16 => ("Teleport ignore Y", GDObjPropType::Bool),
+    354u16 => ("Teleport exit gravity", GDObjPropType::Unknown),
     356u16 => ("Scale stick", GDObjPropType::Bool),
     368u16 => ("Instant offset", GDObjPropType::Bool),
     369u16 => ("Center effect", GDObjPropType::Bool),
@@ -176,6 +200,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     432u16 => ("Song channel", GDObjPropType::Int),
     441u16 => ("Spawn ordered", GDObjPropType::Bool),
     442u16 => ("Spawn ID remaps", GDObjPropType::SpawnRemapsList),
+    443u16 => ("Teleport static force is additive", GDObjPropType::Bool),
     /// Special "no multi-activate" option for platformer mode mainly on orbs, pads and portals
     444u16 => ("No multiactivate platformer", GDObjPropType::Bool),
     445u16 => ("Claim touch?", GDObjPropType::Bool),
@@ -185,6 +210,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     452u16 => ("Relative rotation", GDObjPropType::Bool),
     460u16 => ("No end effects?", GDObjPropType::Bool),
     461u16 => ("No end sound effects?", GDObjPropType::Bool),
+    464u16 => ("Teleport instant camera", GDObjPropType::Bool),
     466u16 => ("Is Timer?", GDObjPropType::Bool),
     467u16 => ("Start time", GDObjPropType::Bool),
     468u16 => ("Don't override", GDObjPropType::Bool),
@@ -221,7 +247,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     504u16 => ("Spawn only", GDObjPropType::Bool),
     506u16 => ("Camera guide preview opacity", GDObjPropType::Float),
     507u16 => ("No particles", GDObjPropType::Bool),
-    509u16 => ("Don't boost X?", GDObjPropType::Bool),
+    509u16 => ("Don't boost X", GDObjPropType::Bool),
+    510u16 => ("Teleport snap ground", GDObjPropType::Bool),
     511u16 => ("Has extended collision", GDObjPropType::Bool),
     516u16 => ("MinX ID", GDObjPropType::Group),
     517u16 => ("MinY ID", GDObjPropType::Group),
@@ -240,7 +267,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     548u16 => ("Y offset of spawned particles", GDObjPropType::Int),
     549u16 => ("X offset variation of spawned particles", GDObjPropType::Int),
     550u16 => ("Y offset variation of spawned particles", GDObjPropType::Int),
-    551u16 => ("Match rotation of spawned particles?", GDObjPropType::Bool),
+    551u16 => ("Match rotation of spawned particles", GDObjPropType::Bool),
     552u16 => ("Rotation of spawned particles", GDObjPropType::Int),
     553u16 => ("Rotation variation of spawned particles", GDObjPropType::Int),
     554u16 => ("Scale of spawned particles", GDObjPropType::Float),
@@ -256,18 +283,24 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     583u16 => ("Y velocity modifier", GDObjPropType::Float),
     584u16 => ("Override velocity", GDObjPropType::Bool),
     585u16 => ("Don't slide", GDObjPropType::Bool),
+    586u16 => ("Dash orb speed", GDObjPropType::Float),
+    587u16 => ("Dash orb allow collide", GDObjPropType::Bool),
+    588u16 => ("Dash orb end boost", GDObjPropType::Float),
+    589u16 => ("Dash orb stop slide", GDObjPropType::Bool),
+    590u16 => ("Dash orb maximal duration", GDObjPropType::Float),
+    591u16 => ("Teleport redirect dash", GDObjPropType::Float),
     595u16 => ("Don't stop song on death", GDObjPropType::Bool),
-    10002u16 => ("Starting gamemode", GDObjPropType::Gamemode),
-    10003u16 => ("Starting in mini mode?", GDObjPropType::Bool),
-    10004u16 => ("Starting speed", GDObjPropType::Speed),
-    10008u16 => ("Starting in dual mode?", GDObjPropType::Bool),
-    10019u16 => ("Target order", GDObjPropType::Int),
-    10020u16 => ("Reverse gameplay?", GDObjPropType::Bool),
-    10021u16 => ("Is disabled?", GDObjPropType::Bool),
-    10026u16 => ("Target channel", GDObjPropType::Int),
-    10028u16 => ("Starting in mirror mode?", GDObjPropType::Bool),
-    10029u16 => ("Rotate gameplay?", GDObjPropType::Bool),
-    10035u16 => ("Reset camera?", GDObjPropType::Bool),
+    10002u16 => ("Startpos gamemode", GDObjPropType::Gamemode),
+    10003u16 => ("Startpos mini mode", GDObjPropType::Bool),
+    10004u16 => ("Startpos speed", GDObjPropType::Speed),
+    10008u16 => ("Startpos dual mode", GDObjPropType::Bool),
+    10019u16 => ("Startpos Target order", GDObjPropType::Int),
+    10020u16 => ("Startpos reverse gameplay", GDObjPropType::Bool),
+    10021u16 => ("Startpos is disabled", GDObjPropType::Bool),
+    10026u16 => ("Startpos Target channel", GDObjPropType::Int),
+    10028u16 => ("Startpos mirror mode", GDObjPropType::Bool),
+    10029u16 => ("Startpos Rotate gameplay", GDObjPropType::Bool),
+    10035u16 => ("Startpos Reset camera", GDObjPropType::Bool),
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
@@ -931,7 +964,8 @@ pub static OBJECT_NAMES: Map<i32, &'static str> = phf_map! {
     742i32 => "Small Invisible Blade",
     744i32 => "Color Trigger 3DL 1.9",
     745i32 => "Robot Portal",
-    747i32 => "Linked Teleport Portals",
+    747i32 => "Linked Blue Teleport Portal",
+    749i32 => "Linked Orange Teleport Portal",
     752i32 => "Grass Block Top",
     753i32 => "Grass Block Outer Corner",
     754i32 => "Grass Block Inner Corner",

@@ -26,6 +26,8 @@ pub mod constructors;
 pub mod meta;
 pub mod structs;
 
+pub use constructors::{gameplay::*, misc::*, triggers::*, *};
+
 macro_rules! parse {
     ($v:expr => $t:ty) => {
         $v.parse::<$t>().unwrap_or_default()
@@ -497,7 +499,7 @@ pub fn serialise_objects<I: IntoIterator<Item = GDObject>>(objects: I) -> String
 /// Trait for structs that encode configuration for a GD object. This trait is used in [`GDObject::from_config`].
 ///
 /// Structs that implement this trait cannot be treated as or directly converted into `GDValue` since this trait lacks a definition for an object configuration function -
-/// specifically one that returns [`GDObjConfig`] - because this trait is intended to encode only the properties specific to one object. Of course, it is trivial to convert
+/// specifically one that returns `GDObjConfig` - because this trait is intended to encode only the properties specific to one object. Of course, it is trivial to convert
 /// any struct that implements this trait if you also have a `GDObjConfig`, which is exactly what [`GDObject::from_config`] does.
 pub trait ObjectProperties {
     /// Serialise this object to a list of properties in the form of tuples: (id, value)
@@ -622,7 +624,7 @@ macro_rules! object_descriptor {
             }
 
             fn from_object(obj: &GDObject) -> Option<Self> {
-                if obj.id == $object {
+                if obj.id != $object {
                     return None;
                 }
 

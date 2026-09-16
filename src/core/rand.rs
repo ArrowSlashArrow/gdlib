@@ -1,6 +1,6 @@
 //! Implementations and uses of Pseudo-RNG in Geometry Dash.
 
-use crate::cclocallevels::gdobj::{constructors::triggers::AdvancedRandomTrigger, structs::Group};
+use crate::cclocallevels::gdobj::structs::Group;
 
 const LCG_MULTIPLIER: u64 = 214_013;
 const LCG_CONSTANT: u64 = 2_531_011;
@@ -54,27 +54,26 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 /// If the given list of probabilities is empty, this method will return `None`.
 ///
 /// For accuracy, please do not sort or prune the list in any way.
-/// Doing so may and likely will affect the results of the check.
+/// Doing so will likely affect the results of the check.
 ///
 /// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`] or [`next_seed_mut`].
 ///
 /// This algorithm was sourced from the Andriod APK for GD and is verified to work as of GD 2.2801.
 #[must_use]
-pub fn check_seed_advanced_random(seed: u64, trigger: &AdvancedRandomTrigger) -> Option<Group> {
-    let prob_list = &trigger.probabilities;
-    let total_chance: i32 = prob_list.iter().map(|(_, chance)| chance).sum();
+pub fn check_seed_advanced_random(seed: u64, probabilities: &Vec<(i16, i32)>) -> Option<Group> {
+    let total_chance: i32 = probabilities.iter().map(|(_, chance)| chance).sum();
     let accumulated_chance_threshold =
         (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;
     let mut buf_ptr = 0;
 
-    if !prob_list.is_empty() {
-        let mut accumulated_chance = prob_list[buf_ptr].1; // chance
+    if !probabilities.is_empty() {
+        let mut accumulated_chance = probabilities[buf_ptr].1; // chance
 
         while !(accumulated_chance_threshold <= accumulated_chance) {
             buf_ptr += 1;
-            accumulated_chance = accumulated_chance + prob_list[buf_ptr].1;
+            accumulated_chance = accumulated_chance + probabilities[buf_ptr].1;
         }
-        Some(Group::Regular(prob_list[buf_ptr].0))
+        Some(Group::Regular(probabilities[buf_ptr].0))
     } else {
         None
     }

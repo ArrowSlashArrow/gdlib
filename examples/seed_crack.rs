@@ -2,8 +2,8 @@ use gdlib::{
     cclocallevels::{
         gdlevel::GDLevel,
         gdobj::{
-            constructors::triggers::AdvancedRandomTrigger, ids::objects::TRIGGER_ADVANCED_RANDOM,
-            structs::Group,
+            ObjectProperties, constructors::triggers::AdvancedRandomTrigger,
+            ids::objects::ADVANCED_RANDOM_TRIGGER, structs::Group,
         },
     },
     core::rand::{check_seed_advanced_random, next_seed_mut},
@@ -14,11 +14,11 @@ fn main() {
     let mut objects = level.get_decrypted_data().unwrap().objects;
 
     // filter out all objects that are not advanced random triggers
-    objects.retain(|o| o.id == TRIGGER_ADVANCED_RANDOM && o.config.pos.0 > 0.0);
+    objects.retain(|o| o.id == ADVANCED_RANDOM_TRIGGER && o.config.pos.0 > 0.0);
     objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
     let configs = objects
         .iter()
-        .filter_map(|obj| AdvancedRandomTrigger::from_trigger(obj))
+        .filter_map(|obj| AdvancedRandomTrigger::from_object(obj))
         .collect::<Vec<_>>();
 
     // the group we want spawned for each trigger
@@ -64,7 +64,7 @@ fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<AdvancedRandomTrigger>)
 }
 
 fn check_object(seed: u64, object: &AdvancedRandomTrigger, expected_group: i16) -> bool {
-    match check_seed_advanced_random(seed, object) {
+    match object.determine_spawn_from_seed(seed) {
         Some(Group::Regular(g)) => g == expected_group,
         _ => false, // this should never be hit since all of the triggers have set groups
     }
