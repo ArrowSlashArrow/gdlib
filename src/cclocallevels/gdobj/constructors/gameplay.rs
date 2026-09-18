@@ -1,10 +1,13 @@
 //! Constructors for all parameterized gameplay objects: pads, orbs, portals, and force blocks.
 
-use crate::cclocallevels::gdobj::{
-    GDOrbType::{GreenDash, PinkDash},
-    ObjectProperties, ToggleBlock,
-    ids::{objects::*, properties::*},
-    structs::{GDValue, TeleportConfig},
+use crate::cclocallevels::{
+    consts::*,
+    gdobj::{
+        GDOrbType::{GreenDash, PinkDash},
+        ObjectProperties, ToggleBlock,
+        ids::{objects::*, properties::*},
+        structs::{GDValue, TeleportConfig},
+    },
 };
 use crate::repr_t;
 
@@ -265,3 +268,69 @@ pub enum Force {
 // 1. speed portal - just has `allow multi` (both classic and platformer)
 // 2. gameplay portal - camera settings
 // 3. teleportals (linked teleportals are one object)
+
+repr_t!(
+    /// Type of speed portal in GD. The variant corresponds to each speed portal by its color.
+    ///
+    /// Casting a variant of this enum to an integer yields its object ID.
+    strict SpeedPortal: i32 {
+        Yellow = YELLOW_SLOW_SPEED_PORTAL,
+        Blue = BLUE_NORMAL_SPEED_PORTAL,
+        Green = GREEN_FAST_SPEED_PORTAL,
+        Pink = PINK_FAST_SPEED_PORTAL,
+        Red = RED_FAST_SPEED_PORTAL
+    }
+);
+
+impl SpeedPortal {
+    /// Returns the speed that this portal will apply to the player in units per second.
+    ///
+    /// In classic mode, this is how fast the player will travel in the forward direction when this portal is hit.
+    /// In platformer mode, this is the upper limit of the player's speed either forwards or backwards.
+    pub fn get_speed(&self) -> f64 {
+        match self {
+            Self::Yellow => SPEED_05X,
+            Self::Blue => SPEED_1X,
+            Self::Green => SPEED_2X,
+            Self::Pink => SPEED_3X,
+            Self::Red => SPEED_4X,
+        }
+    }
+}
+
+/// Settings for a speed portal
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SpeedPortalConfig {
+    /// What kind of speed portal this object is
+    pub portal: SpeedPortal,
+    /// Allow this portal to be hit multiple times
+    pub multi_activate: bool,
+}
+
+impl ObjectProperties for SpeedPortalConfig {
+    fn object_id(&self) -> i32 {
+        self.portal as i32
+    }
+
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        vec![(MULTITRIGGERABLE, GDValue::Bool(self.multi_activate))]
+    }
+
+    fn from_object(obj: &crate::cclocallevels::gdobj::GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let kind = SpeedPortal::try_from(obj.id).ok()?;
+        let multi_activate = match obj
+            .get_property(MULTITRIGGERABLE)
+            .unwrap_or(GDValue::Bool(false))
+        {
+            GDValue::Bool(b) => b,
+            _ => false,
+        };
+        Some(Self {
+            portal: kind,
+            multi_activate,
+        })
+    }
+}
