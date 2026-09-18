@@ -1,18 +1,10 @@
-//! Constructors for all parameterized gameplay objects: pads, orbs, portals, force blocks, and the checkpoint.
+//! Constructors for all parameterized gameplay objects: pads, orbs, portals, and force blocks.
 
-use crate::cclocallevels::gdobj::ids::objects::{
-    BLACK_DROP_ORB, BLUE_GRAVITY_PAD, GREEN_DASH_ORB, GREEN_GRAVITY_ORB, PINK_GRAVITY_DASH_ORB,
-    PINK_JUMP_ORB, PINK_JUMP_PAD, RED_JUMP_ORB, RED_JUMP_PAD, SPIDER_ORB, SPIDER_PAD, TELEPORT_ORB,
-    TOGGLE_ORB, YELLOW_JUMP_ORB, YELLOW_JUMP_PAD,
-};
-use crate::cclocallevels::gdobj::ids::properties::{
-    DASH_ORB_ALLOW_COLLIDE, DASH_ORB_END_BOOST, DASH_ORB_MAXIMAL_DURATION, DASH_ORB_SPEED,
-    DASH_ORB_STOP_SLIDE, MULTI_ACTIVATE, NO_MULTIACTIVATE_PLATFORMER,
-};
-use crate::cclocallevels::gdobj::structs::{GDValue, TeleportConfig};
 use crate::cclocallevels::gdobj::{
     GDOrbType::{GreenDash, PinkDash},
     ObjectProperties, ToggleBlock,
+    ids::{objects::*, properties::*},
+    structs::{GDValue, TeleportConfig},
 };
 use crate::repr_t;
 
@@ -61,6 +53,7 @@ impl ObjectProperties for GDPad {
                 NO_MULTIACTIVATE_PLATFORMER,
                 GDValue::Bool(self.no_plat_multi_activate),
             ),
+            (IS_INTERACTABLE, GDValue::Bool(true)),
         ]
     }
 
@@ -163,6 +156,7 @@ impl ObjectProperties for GDOrb {
         match self.extra_orb_config {
             OrbOptions::None => {}
             OrbOptions::DashOrb(d) => properties.extend_from_slice(&[
+                (IS_INTERACTABLE, GDValue::Bool(true)),
                 (DASH_ORB_SPEED, GDValue::Float(d.speed)),
                 (DASH_ORB_ALLOW_COLLIDE, GDValue::Bool(d.allow_collide)),
                 (DASH_ORB_END_BOOST, GDValue::Float(d.end_boost)),
@@ -206,3 +200,68 @@ impl Default for DashOrbSettings {
         }
     }
 }
+
+repr_t!(
+    /// Type of force object.
+    ///
+    /// Casting a variant of this enum to an integer yields this object's ID
+    strict ForceObject: i32 {
+        Block = FORCE_BLOCK,
+        Circle = FORCE_CIRCLE
+    }
+);
+
+/// Configuration for an object that applies a force to the player when their hitboxes intersect.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ForceObjectConfig {
+    /// What kind of force object to configure
+    pub force_object: ForceObject,
+    /// Force that is applied to player
+    pub force: Force,
+    /// Makes force direction based on the player's direction relative to the force block.
+    /// Negative relative force pulls the player towards the block and positive relative force repels the player away from the block.
+    pub is_relative: bool,
+    /// Identifier for this specific force (can be 0). Blocks with the same force do not stack their force output.
+    pub force_id: i32,
+}
+
+impl ObjectProperties for ForceObjectConfig {
+    fn object_id(&self) -> i32 {
+        self.force_object as i32
+    }
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (IS_INTERACTABLE, GDValue::Bool(true)),
+            (FORCE_ID, GDValue::Int(self.force_id)),
+            (RELATIVE_FORCE, GDValue::Bool(self.is_relative)),
+        ];
+        match self.force {
+            Force::Scalar(s) => properties.push((FORCE_MAGNITUDE, GDValue::Float(s))),
+            Force::Range { minimum, maximum } => properties.extend_from_slice(&[
+                (FORCE_RANGE_MINIMUM, GDValue::Float(minimum)),
+                (FORCE_RANGE_MAXIMUM, GDValue::Float(maximum)),
+            ]),
+        }
+
+        properties
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// Force that is applied to a player in a force object
+pub enum Force {
+    /// Applies a fixed amount of force in the direction that the force block is pointing - 0 degrees = up, 90 degrees = right, 180 degrees = down, -90 degrees = left
+    Scalar(f64),
+    /// Applies force based on player position.
+    Range {
+        /// @nodoc
+        minimum: f64,
+        /// @nodoc
+        maximum: f64,
+    },
+}
+
+// three different portals:
+// 1. speed portal - just has `allow multi` (both classic and platformer)
+// 2. gameplay portal - camera settings
+// 3. teleportals (linked teleportals are one object)
