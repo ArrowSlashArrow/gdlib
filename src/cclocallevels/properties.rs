@@ -1,11 +1,9 @@
 //! Properties lookup table
 use phf::{Map, phf_map};
 
-use crate::cclocallevels::{
-    gdlevel::leveldata::GDLevelHeaderValType, gdobj::structs::GDObjPropType,
-};
+use crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderValType;
+use crate::cclocallevels::gdobj::structs::GDObjPropType;
 
-// note: if it;s a number but not specifically an int, don't say it's an int.
 /// A map of object property IDs to their identifier and type.   
 ///
 /// Reference: <https://flowvix.github.io/gd-info-explorer/props>
@@ -60,6 +58,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     /// - In shader triggers with the parameter, it refers to the group around which the effect is centered.
     51u16 => ("Target item", GDObjPropType::Group),
     52u16 => ("Pulse group?", GDObjPropType::Bool),
+    54u16 => ("Linked orange teleportal y-offset", GDObjPropType::Float),
     55u16 => ("Teleport smooth ease", GDObjPropType::Bool),
     56u16 => ("Activate group", GDObjPropType::Bool),
     57u16 => ("Groups", GDObjPropType::GroupList),
@@ -113,6 +112,10 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     103u16 => ("Is high detail?", GDObjPropType::Bool),
     104u16 => ("count trigger Multi activate", GDObjPropType::Bool),
     105u16 => ("Max follow speed", GDObjPropType::Float),
+    111u16 => ("Portal free mode", GDObjPropType::Bool),
+    112u16 => ("Portal edit camera settings", GDObjPropType::Bool),
+    113u16 => ("Portal camera easing", GDObjPropType::Int),
+    114u16 => ("Portal camera padding", GDObjPropType::Float),
     116u16 => ("No object effects", GDObjPropType::Bool),
     117u16 => ("Reverses gameplay", GDObjPropType::Bool),
     120u16 => ("Timewarp amount", GDObjPropType::Float),
@@ -139,6 +142,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     152u16 => ("Random probabilities list", GDObjPropType::ProbabilitiesList),
     153u16 => ("Div by value X", GDObjPropType::Bool),
     154u16 => ("Div by value Y", GDObjPropType::Bool),
+    /* we have yet to figure out this elusive property 155 */
     166u16 => ("Gravity direction", GDObjPropType::ArrowDirection),
     /// Direction of rotate gameplay trigger
     167u16 => ("Arrow direction", GDObjPropType::ArrowDirection),
@@ -171,6 +175,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     356u16 => ("Scale stick", GDObjPropType::Bool),
     368u16 => ("Instant offset", GDObjPropType::Bool),
     369u16 => ("Center effect", GDObjPropType::Bool),
+    370u16 => ("Disable gridsnap", GDObjPropType::Bool),
     371u16 => ("Camera zoom", GDObjPropType::Float),
     372u16 => ("No audio scale", GDObjPropType::Bool),
     385u16 => ("X reference position", GDObjPropType::UIReferencePos),

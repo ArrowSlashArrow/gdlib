@@ -334,3 +334,138 @@ impl ObjectProperties for SpeedPortalConfig {
         })
     }
 }
+
+repr_t!(
+    /// All gameplay portals in GD: gravity portals, mirror portals, size portals, gamemode portals, dual portals, and teleportals.
+    ///
+    /// Casting a variant of this enum to an integer yields the object ID.
+    strict GameplayPortal: i32 {
+        BlueGravity = BLUE_GRAVITY_PORTAL,
+        YellowGravity = YELLOW_GRAVITY_PORTAL,
+        GreenGravity = GREEN_GRAVITY_PORTAL,
+        BlueMirror = BLUE_MIRROR_PORTAL,
+        OrangeMirror = ORANGE_MIRROR_PORTAL,
+        NormalSize = GREEN_SIZE_PORTAL,
+        SmallSize = PINK_SIZE_PORTAL,
+        EnterDual = DUAL_PORTAL,
+        ExitDual = EXIT_DUAL_PORTAL,
+        CubeGamemode = CUBE_PORTAL,
+        ShipGamemode = SHIP_PORTAL,
+        BallGamemode = BALL_PORTAL,
+        UFOGamemode = UFO_PORTAL,
+        WaveGamemode = WAVE_PORTAL,
+        RobotGamemode = ROBOT_PORTAL,
+        SpiderGamemode = SPIDER_PORTAL,
+        SwingGamemode = SWING_PORTAL,
+        /// This teleportal uses a [`TeleportConfig`] to specify the object to teleport to. It is effectively the portal equivalent of `TeleportTrigger`.
+        /// Unlike the blue linked teleportal, this object does not store an orange counterpart or need one at all.
+        UnlinkedBlueTeleportal = UNLINKED_BLUE_TELEPORT_PORTAL,
+        UnlinkedOrangeTeleportal = UNLINKED_ORANGE_TELEPORT_PORTAL,
+        /// This variant represents the blue of the two linked portals, as that is the object that is available to the player to place in the level.
+        /// When said object is placed, another object is created on the same y-position as the blue portal (object 749, [`LINKED_ORANGE_TELEPORT_PORTAL`]).
+        ///
+        /// Normally, the game tries to keep these two objects linked as much as possible - it won't let you delete just the orange portal or move it away from the blue one on the x-axis.
+        /// If the blue portal is deleted, so is the orange one. Part of this effort is revealed in how the game serializes this object. For each pair of linked teleportals,
+        /// the y-position of the orange portal relative to the blue one is stored *in this object* (specifically in property 54, [`LINKED_ORANGE_TELEPORTAL_YOFFSET`])
+        ///
+        /// **TL;DR** - This is only one of two linked teleportal objects (the blue one), however, this object also stores the position of the orange counterpart.
+        /// You *DO NOT* need to use `LinkedOrangeTeleportal` to ensure that the teleportation works.
+        ///
+        /// Note: This object also supports `TeleportConfig`.
+        LinkedTeleportals = LINKED_BLUE_TELEPORT_PORTAL,
+        /// This object will not do anything by itself as it exists as an internal counterpart to `LinkedTeleportals`.
+        /// This object is also not available to be placed in the editor and exists only when playing the level.
+        LinkedOrangeTeleportal = LINKED_ORANGE_TELEPORT_PORTAL
+    }
+);
+
+/// Configuration of a gameplay portal object - any of the portals [here](GameplayPortal).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GameplayPortalConfig {
+    /// What kind of portal this is.
+    pub portal: GameplayPortal,
+    /// Whether this portal can be activated multiple times in classic mode. Off by default.
+    pub multi_activate: bool,
+    /// Whether this portal can be activated multiple times in platformer mode. On by default (false here since enabling this option would disable the default behaviour).
+    pub no_plat_multi_activate: bool,
+    /// Extra options for portals that have them.
+    pub extra_config: PortalOptions,
+}
+/// Extra options for portals that have them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PortalOptions {
+    /// For portals that don't have any options other than multi-activate - speed, mirror, size portals.
+    None,
+    /// For `UnlinkedBlueTeleportal` only.
+    Teleportal(TeleportConfig),
+    /// For `LinkedTeleportals` only. The second item specifies the y-position of the orange teleportal in units relative to the blue one (default = 100).
+    LinkedTeleportal((TeleportConfig, f64)),
+    /// For gameplay portals and dual portals.
+    Camera(PortalCameraOptions), // todo: type
+}
+
+/// Options for camera motion in gameplay portals
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PortalCameraOptions {
+    /// Disables the default behaviour of the camera snapping onto the nearest grid space when a portal is activated.
+    ///
+    /// If this setting is left disabled, the camera will center on the nearest block on the y-axis when the portal is hit.
+    pub disable_gridsnap: bool,
+    /// Removes borders for some gamemodes like ball and spider
+    pub free_mode: bool,
+    /// Tuple of two items - (easing, padding)
+    /// * Easing: smoothness of camera motion
+    /// * Padding: how close the player has to be to the edge of the screen for the camera to move
+    pub edit_camera_settings: Option<(i32, f64)>,
+}
+
+// 1,1933,2,2295,3,855,155,9,36,1                                      ;    nothing
+// 1,1933,2,2355,3,855,155,9,36,1                                ,370,1;    + disable gridsnap
+// 1,1933,2,2415,3,855,155,9,36,1,111,1                          ,370,1;    + free mode
+// 1,1933,2,2475,3,855,155,9,36,1,111,1,112,1,113,26,114,0.306667,370,1;    + edit camera settings
+
+impl PortalCameraOptions {
+    /// Serializes this object to a list of GDValues
+    pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (DISABLE_GRIDSNAP, GDValue::Bool(self.disable_gridsnap)),
+            (PORTAL_FREE_MODE, GDValue::Bool(self.free_mode)),
+        ];
+        if let Some((easing, padding)) = self.edit_camera_settings {
+            properties.extend_from_slice(&[
+                (PORTAL_EDIT_CAMERA_SETTINGS, GDValue::Bool(true)),
+                (PORTAL_CAMERA_EASING, GDValue::Int(easing)),
+                (PORTAL_CAMERA_PADDING, GDValue::Float(padding)),
+            ]);
+        }
+        properties
+    }
+}
+
+impl ObjectProperties for GameplayPortalConfig {
+    fn object_id(&self) -> i32 {
+        self.portal as i32
+    }
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (MULTI_ACTIVATE, GDValue::Bool(self.multi_activate)),
+            (
+                NO_MULTIACTIVATE_PLATFORMER,
+                GDValue::Bool(self.no_plat_multi_activate),
+            ),
+        ];
+
+        match self.extra_config {
+            PortalOptions::None => {}
+            PortalOptions::Teleportal(tp) => properties.extend_from_slice(&tp.to_properties()),
+            PortalOptions::LinkedTeleportal((tp, y_offset)) => {
+                properties.extend_from_slice(&tp.to_properties());
+                properties.push((LINKED_ORANGE_TELEPORTAL_YOFFSET, GDValue::Float(y_offset)))
+            }
+            PortalOptions::Camera(c) => properties.extend_from_slice(&c.to_properties()),
+        }
+
+        properties
+    }
+    /* TODO: implement from_object */
+}
