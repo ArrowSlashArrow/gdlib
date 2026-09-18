@@ -13,9 +13,8 @@ use crate::{
         },
         gdobj::{
             self, GDObject, ObjectProperties,
-            constructors::{
-                misc::default_block,
-                triggers::{AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger},
+            constructors::triggers::{
+                AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
@@ -34,6 +33,10 @@ fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
         start.elapsed().as_micros() as f64 / 1000.0
     );
     result
+}
+
+fn default_block(cfg: &GDObjConfig) -> GDObject {
+    GDObject::new(1, cfg, vec![])
 }
 
 #[test]

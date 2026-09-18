@@ -839,7 +839,7 @@ repr_t!(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
 pub enum MoveTarget {
-    // Targets this group's parent object
+    /// Targets this group's parent object
     Group(i16),
     Player1,
     Player2,
@@ -1058,7 +1058,7 @@ pub struct TargetMove {
     pub target_group_id: MoveTarget,
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
-    /// Optional axis restriction. Use constants `MOVE_X_ONLY` and `MOVE_Y_ONLY` to specify axis.
+    /// Optional axis restriction.
     pub axis_only: Option<AxisOnlyMove>,
 }
 
@@ -1516,7 +1516,11 @@ repr_t!(
 );
 
 repr_t!(
-    // todo: check this
+    // ArrowDirection is property 167
+    // 1,2900,2,1065,3,315,13,1,36,1,582,1,583,1,166,2,167,4;   // facing right (default)
+    // 1,2900,2,1095,3,315,13,1,36,1,582,1,583,1,166,3,167,2;   // facing down
+    // 1,2900,2,1125,3,315,13,1,36,1,582,1,583,1,166,1,167,3;   // facing left
+    // 1,2900,2,1155,3,315,13,1,36,1,582,1,583,1,166,4,167,1;   // facing up
     /// The `Default` implementation for this enum is `Self::Right`. When this object is placed in the editor normally, it assumes this orientation to start with.
     strict ArrowDirection: i32 {
         Up = 1,

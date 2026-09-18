@@ -14,6 +14,8 @@
 //!
 //! All other triggers have a configuration struct that should be used instead.
 
+use std::ops::Neg;
+
 use crate::{
     cclocallevels::gdobj::{
         Event, GDObjConfig, GDObject, GDValue, ObjectProperties,
@@ -768,7 +770,7 @@ pub struct ItemEditTrigger {
     /// Maybe one day RobTop will regain his senses and finally add support for this.
     pub multiply_mod: bool,
     /// Operator that determines the result of the first step. Accepts all values of [`Op`] except for `Op::Set`.
-    pub id_op: Option<Op>,
+    pub id_op: Op,
     /// How the result from the second step is rounded. See [`RoundMode`].
     pub id_rounding: RoundMode,
     /// How the result from the fourth step is rounded. See [`RoundMode`].
@@ -786,17 +788,13 @@ impl ObjectProperties for ItemEditTrigger {
             true => Op::Mul,
             false => Op::Div,
         };
-        let id_op = match self.id_op {
-            Some(op) => op,
-            None => Op::Add,
-        };
 
         let mut properties = vec![
             (TARGET_ITEM, GDValue::Item(self.target.id())),
             (TARGET_ITEM_TYPE, GDValue::ItemType(self.target.get_type())),
             (MODIFIER, GDValue::Float(self.modifier)),
             (LEFT_OPERATOR, GDValue::ItemEditOperator(self.assign_op)),
-            (RIGHT_OPERATOR, GDValue::ItemEditOperator(id_op)),
+            (RIGHT_OPERATOR, GDValue::ItemEditOperator(self.id_op)),
             (COMPARE_OPERATOR, GDValue::ItemEditOperator(mod_op)),
             (
                 LEFT_ROUND_MODE,
@@ -827,6 +825,73 @@ impl ObjectProperties for ItemEditTrigger {
     }
     fn object_id(&self) -> i32 {
         ITEM_EDIT_TRIGGER
+    }
+}
+
+impl ItemEditTrigger {
+    // TODO: write tests for this function
+    /// Evaluates the result between two given items according to the configuration of this object. The first two parameters correspond to the values of `self.operand1` and `self.operand2` respectively.
+    /// The returned result is what would be written to the target item had this been in a real item edit trigger.
+    ///
+    /// The parameters are typed `f64`, which is a type that stores both `f32` and `i32` at full precision. Please cast your counter/timer value with this in mind.
+    ///
+    /// Depending on the configuration of this object, the two parameters don't always get used (for example, if `self.operand2` is `None`). In the case that a parameter is not used, it can have any value.
+    pub fn eval_result(&self, operand1: f64, operand2: f64, current_value_at_target: f64) -> f64 {
+        let apply_op = |a: f64, b: f64, op: Op| -> f64 {
+            match op {
+                Op::Set => b,
+                Op::Add => a + b,
+                Op::Sub => a - b,
+                Op::Mul => a * b,
+                Op::Div => a / b,
+            }
+        };
+
+        let apply_round = |a: f64, round: RoundMode| -> f64 {
+            match round {
+                RoundMode::None => a,
+                RoundMode::Nearest => a.round(),
+                RoundMode::Floor => a.floor(),
+                RoundMode::Ceiling => a.ceil(),
+            }
+        };
+
+        let apply_sign = |a: f64, sign: SignMode| -> f64 {
+            match sign {
+                SignMode::None => a,
+                SignMode::Absolute => a.abs(),
+                SignMode::Negative => a.neg(),
+            }
+        };
+
+        let mut id_result = if self.operand1.is_none() && self.operand2.is_none() {
+            self.modifier
+        } else if self.operand1.is_some() && self.operand2.is_none() {
+            operand1
+        } else if self.operand1.is_none() && self.operand2.is_some() {
+            operand2
+        } else {
+            apply_op(operand1, operand2, self.id_op)
+        };
+
+        if !(self.operand1.is_none() && self.operand2.is_none()) {
+            id_result = apply_op(
+                id_result,
+                self.modifier,
+                if self.multiply_mod { Op::Mul } else { Op::Div },
+            );
+        }
+
+        id_result = apply_sign(apply_round(id_result, self.id_rounding), self.id_sign);
+        if self.assign_op != Op::Set {
+            id_result = apply_op(id_result, current_value_at_target, self.assign_op);
+            id_result = apply_sign(
+                apply_round(id_result, self.result_rounding),
+                self.result_sign,
+            );
+        }
+
+        id_result
     }
 }
 
