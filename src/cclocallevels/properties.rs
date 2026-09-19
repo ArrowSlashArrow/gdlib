@@ -4,6 +4,10 @@ use phf::{Map, phf_map};
 use crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderValType;
 use crate::cclocallevels::gdobj::structs::GDObjPropType;
 
+// -- NOTE FOR MAINTAINERS --
+// DO NOT use doc comments!!! Using a doc comment above an entry in a phf_map will cause that entry to NOT COMPILE (silently).
+// The build script will convert any regular comments (that is, comments prefixed with // ) into doc comments.
+// Use /* block comments */ to add comments that are not included in the docs
 /// A map of object property IDs to their identifier and type.   
 ///
 /// Reference: <https://flowvix.github.io/gd-info-explorer/props>
@@ -43,19 +47,19 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     48u16 => ("HSV is enabled", GDObjPropType::Bool),
     49u16 => ("Copy colour specs", GDObjPropType::Text),
     50u16 => ("Copy colour from channel", GDObjPropType::Bool),
-    /// This property is used for any of the following:
-    /// - Primarily, the target group in a trigger; for example, the group which is being moved in a move trigger
-    /// - In the pulse trigger, it can also refer to a colour channel
-    /// - In the edit area trigger, it can also refer to the effect ID
-    /// - In the stop area trigger, it refers only to the effect ID
-    /// - In the SFX and Edit Song triggers, it refers to the first group ID only
-    /// - In the time trigger, it refers to the target timer.
-    /// - In the item edit trigger, it refers to the item ID (counter or timer) being assigned to.
-    /// - In the item compare and instantion comparison trigger, it refers to the group that will be activated if the comparison is true at the time the trigger is called.
-    /// - In the random trigger, it refers to the parameter labelled `Group 1`
-    /// - In the spawn particle trigger, it refers to the group with the particles
-    /// - In the instant collision trigger, it refers to the group that will be activate if the two colliders are colliding at the time the trigger is called.
-    /// - In shader triggers with the parameter, it refers to the group around which the effect is centered.
+    // This property is used for any of the following:
+    // - Primarily, the target group in a trigger; for example, the group which is being moved in a move trigger
+    // - In the pulse trigger, it can also refer to a colour channel
+    // - In the edit area trigger, it can also refer to the effect ID
+    // - In the stop area trigger, it refers only to the effect ID
+    // - In the SFX and Edit Song triggers, it refers to the first group ID only
+    // - In the time trigger, it refers to the target timer.
+    // - In the item edit trigger, it refers to the item ID (counter or timer) being assigned to.
+    // - In the item compare and instantion comparison trigger, it refers to the group that will be activated if the comparison is true at the time the trigger is called.
+    // - In the random trigger, it refers to the parameter labelled `Group 1`
+    // - In the spawn particle trigger, it refers to the group with the particles
+    // - In the instant collision trigger, it refers to the group that will be activate if the two colliders are colliding at the time the trigger is called.
+    // - In shader triggers with the parameter, it refers to the group around which the effect is centered.
     51u16 => ("Target item", GDObjPropType::Group),
     52u16 => ("Pulse group?", GDObjPropType::Bool),
     54u16 => ("Linked orange teleportal y-offset", GDObjPropType::Float),
@@ -88,18 +92,18 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     85u16 => ("Easing rate", GDObjPropType::Float),
     86u16 => ("Exclusive pulse mode", GDObjPropType::Bool),
     87u16 => ("Multitriggerable", GDObjPropType::Bool),
-    /// Operator used in pickup and count triggers.
-    /// * Pickup trigger: See [`crate::cclocallevels::gdobj::structs::PickupTriggerMode`]
-    /// * Count trigger: See [`crate::cclocallevels::gdobj::structs::InstantCountComparison`]
-    ///
-    /// When interacting with this property, please keep in mind the context in which it is used.
+    // Operator used in pickup and count triggers.
+    // * Pickup trigger: See [`crate::cclocallevels::gdobj::structs::PickupTriggerMode`]
+    // * Count trigger: See [`crate::cclocallevels::gdobj::structs::InstantCountComparison`]
+    //
+    // When interacting with this property, please keep in mind the context in which it is used.
     88u16 => ("Pickup / count mode", GDObjPropType::Int),
     89u16 => ("Touch dual mode", GDObjPropType::Bool),
     90u16 => ("Follow speed", GDObjPropType::Float),
     91u16 => ("Follow delay", GDObjPropType::Float),
     92u16 => ("Follow offset", GDObjPropType::Int),
     93u16 => ("Trigger on exit", GDObjPropType::Bool),
-    /// Whether the collision block will register collisions via a collision trigger.
+    // Whether the collision block will register collisions via a collision trigger.
     94u16 => ("Dynamic block", GDObjPropType::Bool),
     95u16 => ("Input item 2", GDObjPropType::Item),
     96u16 => ("No glow", GDObjPropType::Bool),
@@ -144,7 +148,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     154u16 => ("Div by value Y", GDObjPropType::Bool),
     /* we have yet to figure out this elusive property 155 */
     166u16 => ("Gravity direction", GDObjPropType::ArrowDirection),
-    /// Direction of rotate gameplay trigger
+    // Direction of rotate gameplay trigger
     167u16 => ("Arrow direction", GDObjPropType::ArrowDirection),
     169u16 => ("Edit velocity", GDObjPropType::Bool),
     171u16 => ("Change channel", GDObjPropType::Bool),
@@ -183,7 +187,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     387u16 => ("X reference is relative", GDObjPropType::Bool),
     388u16 => ("Y reference is relative", GDObjPropType::Bool),
     389u16 => ("Seconds only", GDObjPropType::Bool),
-    /// Specifies if the counter label shows either Attempts, MainTime or Points
+    // Specifies if the counter label shows either Attempts, MainTime or Points
     390u16 => ("Special counter mode", GDObjPropType::CounterMode),
     391u16 => ("Counter alignment", GDObjPropType::ItemAlign),
     392u16 => ("Song ID", GDObjPropType::Int),
@@ -209,7 +213,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     441u16 => ("Spawn ordered", GDObjPropType::Bool),
     442u16 => ("Spawn ID remaps", GDObjPropType::SpawnRemapsList),
     443u16 => ("Teleport static force is additive", GDObjPropType::Bool),
-    /// Special "no multi-activate" option for platformer mode mainly on orbs, pads and portals
+    // Special "no multi-activate" option for platformer mode mainly on orbs, pads and portals
     444u16 => ("No multiactivate platformer", GDObjPropType::Bool),
     445u16 => ("Claim touch?", GDObjPropType::Bool),
     446u16 => ("Object material", GDObjPropType::Int),

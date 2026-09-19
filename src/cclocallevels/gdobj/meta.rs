@@ -64,6 +64,17 @@ impl Default for GDObjConfig {
     }
 }
 
+macro_rules! config_fn {
+    (setter $fn_ident:ident, $param:expr, $t:ty) => {
+        #[inline]
+        #[doc = concat!("Sets this object's ", $fn_ident, " field.")]
+        pub fn $fn_ident(mut self, $fn_ident: $t) -> Self {
+            self.$param = $fn_ident;
+            self
+        }
+    };
+}
+
 impl GDObjConfig {
     /// Alias for default
     #[inline]

@@ -28,21 +28,43 @@ use crate::{
 
 // convenience functions for manually implementing `from_object` for ObjectProperties.
 macro_rules! get_property {
-    ($obj:expr, $prop:expr => $t:ident) => {
-        <$t>::try_from(match $obj.get_property($prop) {
-            Some(GDValue::$t(v)) => v,
-            _ => return None,
-        })
-        .ok()
-        .unwrap_or_default()
-    };
+    // get gdvalue intermediate then cast to type (b implements try_from)
     ($obj:expr, $prop:expr => $a:ident => $b:ty) => {
-        <$b>::try_from(match $obj.get_property($prop) {
-            Some(GDValue::$a(v)) => v,
-            _ => return None,
+        match $obj.get_property($prop) {
+            Some(GDValue::$a(v)) => <$b>::try_from(v).unwrap_or_default(),
+            _ => <$b>::default(),
+        }
+    };
+    // get gdvalue intermediate then cast to type (b implements from) - for to_i32
+    ($obj:expr, $prop:expr => $a:ident => into $b:ty) => {
+        match $obj.get_property($prop) {
+            Some(GDValue::$a(v)) => <$b>::from(v),
+            _ => <$b>::default(),
+        }
+    };
+    // get gdvalue intermediate then cast to type (b is a vector type)
+    ($obj:expr, $prop:expr => $a:ident => vec $b:ty) => {
+        match $obj.get_property($prop) {
+            Some(GDValue::$a(v)) => <$b>::try_from(v.into_vec()).unwrap_or_default(),
+            _ => <$b>::default(),
+        }
+    };
+    // special case for `Event`
+    ($obj:expr, $prop:expr => Events => $b:ty) => {
+        match $obj.get_property($prop) {
+            Some(GDValue::Events(v)) => <$b>::try_from(v.into()).unwrap_or_default(),
+            _ => <$b>::default(),
+        }
+    };
+    // get gdvalue intermediate then cast to type (optional)
+    ($obj:expr, $prop:expr => $a:ident => opt $b:ty) => {
+        $obj.get_property($prop).map(|maybe_val| match maybe_val {
+            GDValue::$a(v) => <$b>::try_from(v).unwrap_or_default(),
+            _ => {
+                println!("{maybe_val:#?}");
+                <$b>::default()
+            }
         })
-        .ok()
-        .unwrap_or_default()
     };
 }
 
@@ -230,8 +252,8 @@ impl ObjectProperties for StartposConfig {
             return None;
         }
 
-        let start_speed = get_property!(obj, STARTPOS_SPEED => Speed);
-        let starting_gamemode = get_property!(obj, STARTPOS_GAMEMODE => Gamemode);
+        let start_speed = get_property!(obj, STARTPOS_SPEED => Speed => Speed);
+        let starting_gamemode = get_property!(obj, STARTPOS_GAMEMODE => Gamemode => Gamemode);
         let starting_as_mini = get_property!(obj, STARTPOS_MINI_MODE => Bool => bool);
         let starting_as_dual = get_property!(obj, STARTPOS_DUAL_MODE => Bool => bool);
         let disabled = get_property!(obj, STARTPOS_IS_DISABLED => Bool => bool);
@@ -435,7 +457,7 @@ impl ObjectProperties for TransitionTrigger {
     {
         Some(Self {
             transition: TransitionType::try_from(obj.id).ok()?,
-            mode: get_property!(obj, ENTEREXIT_TRANSITION_CONFIG => TransitionMode),
+            mode: get_property!(obj, ENTEREXIT_TRANSITION_CONFIG => TransitionMode => TransitionMode),
             channel: get_property!(obj, TARGET_TRANSITION_CHANNEL => Int => i32),
         })
     }
@@ -620,44 +642,21 @@ impl ObjectProperties for GravityTrigger {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-/// Initiates level ending
-pub struct EndTrigger {
-    /// Optional group to spawn once the end trigger is activated
-    pub spawn_id: Option<i16>,
-    /// Optional group for the player to grabitate to upon finishing
-    pub target_pos: Option<i16>,
-    /// Disables visual end effects
-    pub no_effects: bool,
-    /// Instantly finishes the level when triggered
-    pub instant: bool,
-    /// Disable end sound effects
-    pub no_sfx: bool,
-}
-
-// TODO: implement `from_object`
-impl ObjectProperties for EndTrigger {
-    fn serialise(&self) -> Vec<(u16, GDValue)> {
-        let mut properties = vec![
-            (NO_END_EFFECTS, GDValue::Bool(self.no_effects)),
-            (INSTANT_END, GDValue::Bool(self.instant)),
-            (NO_END_SOUND_EFFECTS, GDValue::Bool(self.no_sfx)),
-        ];
-
-        if let Some(id) = self.spawn_id {
-            properties.push((TARGET_ITEM, GDValue::Group(id)));
-        }
-
-        if let Some(pos) = self.target_pos {
-            properties.push((TARGET_ITEM_2, GDValue::Group(pos)));
-        }
-
-        properties
+object_descriptor!(
+    /// Initiates level ending
+    EndTrigger: END_TRIGGER => {
+        /// Optional group to spawn once the end trigger is activated
+        "opt" spawn_id: i16 => Group TARGET_ITEM,
+        /// Optional group for the player to grabitate to upon finishing
+        "opt" target_pos: i16 => Group TARGET_ITEM_2,
+        /// Disables visual end effects
+        no_effects: bool => Bool NO_END_EFFECTS,
+        /// Instantly finishes the level when triggered
+        instant: bool => Bool INSTANT_END,
+        /// Disable end sound effects
+        no_sfx: bool => Bool NO_END_SOUND_EFFECTS,
     }
-    fn object_id(&self) -> i32 {
-        END_TRIGGER
-    }
-}
+);
 
 // items and counters
 
@@ -971,7 +970,7 @@ impl ObjectProperties for ItemCompareTrigger {
         let lhs = CompareOperand {
             operand_item: Item::from_id_type(
                 get_property!(obj, INPUT_ITEM_1 => Item => i16),
-                get_property!(obj, FIRST_ITEM_TYPE => ItemType),
+                get_property!(obj, FIRST_ITEM_TYPE => ItemType => ItemType),
             ),
             modifier: get_property!(obj, MODIFIER => Float => f64),
             mod_op: get_property!(obj, LEFT_OPERATOR => ItemEditOperator => Op),
@@ -982,7 +981,7 @@ impl ObjectProperties for ItemCompareTrigger {
         let rhs = CompareOperand {
             operand_item: Item::from_id_type(
                 get_property!(obj, INPUT_ITEM_2 => Item => i16),
-                get_property!(obj, SECOND_ITEM_TYPE => ItemType),
+                get_property!(obj, SECOND_ITEM_TYPE => ItemType => ItemType),
             ),
             modifier: get_property!(obj, SECOND_MODIFIER => Float => f64),
             mod_op: get_property!(obj, RIGHT_OPERATOR => ItemEditOperator => Op),
@@ -1800,6 +1799,17 @@ pub struct TeleportTrigger {
     /// @nodoc
     pub teleport_config: TeleportConfig,
 }
+
+impl ObjectProperties for TeleportTrigger {
+    fn object_id(&self) -> i32 {
+        TELEPORT_TRIGGER
+    }
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        self.teleport_config.to_properties()
+    }
+}
+
+pub(crate) use get_property;
 
 /* TODO: trigger constructors
  * Animation triggers

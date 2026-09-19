@@ -12,7 +12,7 @@ use crate::{
             version::GDVersion,
         },
         gdobj::{
-            self, GDObject, ObjectProperties,
+            self, EndTrigger, GDObject, ObjectProperties,
             constructors::triggers::{
                 AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
@@ -22,6 +22,7 @@ use crate::{
                 Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
         },
+        properties::PROPERTY_TABLE,
     },
 };
 
@@ -251,6 +252,22 @@ fn item_compare() {
             .export_to_gmd("test_gmds/generated_itemcompare.gmd")
             .unwrap();
     });
+}
+
+#[test]
+fn end_trigger_from_object() {
+    let obj_str = GDObject::parse_str("1,3600,2,2925,3,795,36,1,51,321,461,1,487,1;");
+
+    assert_eq!(
+        EndTrigger::from_object(&obj_str).unwrap(),
+        EndTrigger {
+            spawn_id: Some(321),
+            target_pos: None,
+            no_effects: false,
+            instant: true,
+            no_sfx: true
+        }
+    );
 }
 
 #[test]

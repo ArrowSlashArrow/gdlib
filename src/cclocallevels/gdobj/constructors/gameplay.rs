@@ -3,10 +3,10 @@
 use crate::cclocallevels::{
     consts::*,
     gdobj::{
-        GDOrbType::{GreenDash, PinkDash},
-        ObjectProperties, ToggleBlock,
         ids::{objects::*, properties::*},
         structs::{GDValue, TeleportConfig},
+        GDOrbType::{GreenDash, PinkDash},
+        ObjectProperties, ToggleBlock,
     },
 };
 use crate::repr_t;
@@ -401,7 +401,7 @@ pub enum PortalOptions {
     /// For `LinkedTeleportals` only. The second item specifies the y-position of the orange teleportal in units relative to the blue one (default = 100).
     LinkedTeleportal((TeleportConfig, f64)),
     /// For gameplay portals and dual portals.
-    Camera(PortalCameraOptions), // todo: type
+    Camera(PortalCameraOptions),
 }
 
 /// Options for camera motion in gameplay portals

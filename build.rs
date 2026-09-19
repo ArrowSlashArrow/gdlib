@@ -35,10 +35,11 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
             if line.starts_with("};") {
                 break;
             }
-            if line.trim_start().starts_with("///") {
-                writeln!(out_str, "{}", line).unwrap();
+            if line.trim_start().starts_with("//") {
+                writeln!(out_str, "/{}", line.trim_start()).unwrap();
+                continue;
             }
-            if line.trim_start().starts_with("/*") || line.trim_start().starts_with("//") {
+            if line.trim_start().starts_with("/*") {
                 continue;
             }
 
@@ -49,14 +50,15 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
 
             let desc = tuple_split.next().unwrap();
             let const_name = to_const_name(desc);
-            let prop_type = tuple_split.next().unwrap_or_default();
+            let prop_type = tuple_split.next().unwrap_or("Not specified  ").trim_end();
 
             writeln!(
                 out_str,
                 "
 ///
-/// Property type: `{prop_type}`
-pub const {const_name}: u16 = {id};"
+/// Property type: `{}`
+pub const {const_name}: u16 = {id};",
+                &prop_type[..prop_type.len() - 2]
             )
             .unwrap();
 
@@ -78,10 +80,10 @@ fn get_map_from_line_untyped(file: &str, start_str: &str) -> String {
             if line.starts_with("};") {
                 break;
             }
-            if line.trim_start().starts_with("///") {
-                writeln!(out_str, "{}", line).unwrap();
+            if line.trim_start().starts_with("//") {
+                writeln!(out_str, "/{}", line.trim_start()).unwrap();
             }
-            if line.trim_start().starts_with("/*") || line.trim_start().starts_with("//") {
+            if line.trim_start().starts_with("/*") {
                 continue;
             }
 

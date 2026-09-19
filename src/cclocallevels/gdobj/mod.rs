@@ -541,71 +541,54 @@ macro_rules! prop_value {
     (Remaps, $field:expr) => {
         GDValue::from_spawn_remaps($field.clone())
     };
+    ($opt:literal $t:ident, $field:expr) => {
+        GDValue::$t($field.unwrap_or_default())
+    };
     ($t:ident, $field:expr) => {
         GDValue::$t($field)
     };
 }
 
-// GDValue => field type conversion
-macro_rules! from_obj_value {
-    (Events, $field:expr) => {
-        $field.into()
-    };
-    (ProbabilitiesList, $field:expr) => {
-        $field.into_vec()
-    };
-    (Remaps, $field:expr) => {
-        $field.into_vec()
-    };
-    ($t:ident, $field:expr) => {
-        $field.into()
-    };
-}
-
+// this macro assigns field value in from_object expansino in object_descriptor
+// convert to a call to get_property
 macro_rules! object_field_match {
-    (to_i32, $field_type:ty, $p:ident) => {
-        match $p {
-            GDValue::Int(l) => <$field_type>::from(l),
-            _ => return None,
-        }
+    // field_type implements from::<i32>
+    (to_i32, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Int => into $field_type)
     };
-    (as_i32, $field_type:ty, $p:ident) => {
-        match $p {
-            GDValue::Int(l) => match <$field_type>::try_from(l) {
-                Ok(v) => v,
-                Err(_) => return None,
-            },
-            _ => return None,
-        }
+    // field_type implements try_from::<i32>
+    (as_i32, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Int => $field_type)
     };
-    (Remaps, $field_type:ty, $p:ident) => {
-        match $p {
-            // GDValue::Int(l) => l
-            GDValue::SpawnRemapsList(l) => {
-                crate::cclocallevels::gdobj::from_obj_value!(Remaps, l)
-            }
-            _ => return None,
-        }
+    /* implement vector types here */
+    (Events, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Events => $field_type)
     };
-    ($gd_type:ident, $field_type:ty, $p:ident) => {
-        match $p {
-            // GDValue::Int(l) => l
-            GDValue::$gd_type(l) => crate::cclocallevels::gdobj::from_obj_value!($gd_type, l),
-            _ => return None,
-        }
+    (ProbabilitiesList, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => ProbabilitiesList => vec $field_type)
+    };
+    (Remaps, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => SpawnRemapsList => vec $field_type)
+    };
+    // field_type is optional
+    ($gd_type:ident, $opt:literal $field_type:ty , $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => $gd_type => opt $field_type)
+    };
+    ($gd_type:ident, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => $gd_type => $field_type)
     };
 }
 
 // quick way to create object descriptors where the descriptor can be serialised as a list of its properties
 macro_rules! object_descriptor {
-    ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
+    ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $( $opt:literal )? $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
         #[derive(Debug, Clone, PartialEq, Default)]
         #[allow(missing_docs)]
         $(#[$meta])*
         pub struct $descriptor {
             $(
                 $(#[$fmeta])*
-                pub $field: $ftype,
+                pub $field : object_descriptor!(@internal $($opt)? $ftype),
             )*
         }
 
@@ -614,7 +597,7 @@ macro_rules! object_descriptor {
                 vec![
                     (155, GDValue::Int(1)), // for good measure
                     $(
-                        ($prop_id, crate::cclocallevels::gdobj::prop_value!($prop_t, self.$field)),
+                        ($prop_id, crate::cclocallevels::gdobj::prop_value!($($opt)? $prop_t, self.$field)),
                     )*
                 ]
             }
@@ -628,23 +611,24 @@ macro_rules! object_descriptor {
                     return None;
                 }
 
-                let mut this = Self::default();
-
-                $(
-                    // here, try to assign each field the value from the object
-                    if let Some(p) = obj.get_property($prop_id) {
-                        // field exists, try to parse it. return None if you get bad data.
-                        this.$field = crate::cclocallevels::gdobj::object_field_match!($prop_t, $ftype, p)
-                    };
-                )*
-
-                return Some(this);
+                Some(Self {
+                    $(
+                        $field: crate::cclocallevels::gdobj::object_field_match!($prop_t, $($opt)? $ftype, obj, $prop_id),
+                    )*
+                })
             }
         }
     };
+
+    (@internal $ftype:ty) => {
+        $ftype
+    };
+
+    (@internal $opt:literal $ftype:ty) => {
+        Option<$ftype>
+    };
 }
 
-pub(crate) use from_obj_value;
 pub(crate) use object_descriptor;
 pub(crate) use object_field_match;
 pub(crate) use prop_value;
