@@ -1006,6 +1006,32 @@ impl ObjectProperties for ItemCompareTrigger {
     }
 }
 
+impl ItemCompareTrigger {
+    /// Returns the group that is to be activated when this trigger is called. The two required parameters are the values of the left- and right-hand side items respectively at the instant that this trigger is called.
+    ///
+    /// Note: DO NOT call `.eval_operand()` on the trigger's operands (`lhs`, `rhs`). This function requires the *raw* values of each item that is used.
+    ///
+    /// This implementation was ripped directly from the source code of GD version 2.2081.
+    pub fn eval_self(&self, val1: f64, val2: f64) -> i16 {
+        let lhs_value = self.lhs.eval_operand(val1);
+        let rhs_value = self.rhs.eval_operand(val2);
+        let tolerance = round_3dp(self.tolerance);
+        let comparison_result = match self.compare_op {
+            CompareOp::Equals => (lhs_value - rhs_value).abs() <= tolerance,
+            CompareOp::Greater => rhs_value < tolerance + lhs_value,
+            CompareOp::GreaterOrEquals => rhs_value <= tolerance + lhs_value,
+            CompareOp::Less => rhs_value > lhs_value - tolerance,
+            CompareOp::LessOrEquals => rhs_value >= lhs_value - tolerance,
+            CompareOp::NotEquals => tolerance < (lhs_value - rhs_value).abs(),
+        };
+        if comparison_result {
+            self.true_id
+        } else {
+            self.false_id
+        }
+    }
+}
+
 object_descriptor!(
     /// Enables the value of items to persist across attempts.
     PersistentItemTrigger: PERSISTENT_ITEM_SETUP_TRIGGER => {
@@ -1808,6 +1834,16 @@ impl ObjectProperties for TeleportTrigger {
         self.teleport_config.to_properties()
     }
 }
+
+// object_descriptor!(
+//     /// This thing
+//     Checkpoint: CHECKPOINT {
+//         spawn_id: i16 => Group TARGET_ITEM
+//         target_pos: i16 => Group TARGET_ITEM_2
+//     }
+// );
+
+// 1,2063,2,2145,3,345,107,1,11,1,87,1,36,1,51,3,71,4,448,6;
 
 pub(crate) use get_property;
 

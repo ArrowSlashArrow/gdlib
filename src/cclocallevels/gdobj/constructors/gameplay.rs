@@ -3,10 +3,10 @@
 use crate::cclocallevels::{
     consts::*,
     gdobj::{
-        ids::{objects::*, properties::*},
-        structs::{GDValue, TeleportConfig},
         GDOrbType::{GreenDash, PinkDash},
         ObjectProperties, ToggleBlock,
+        ids::{objects::*, properties::*},
+        structs::{GDValue, TeleportConfig},
     },
 };
 use crate::repr_t;

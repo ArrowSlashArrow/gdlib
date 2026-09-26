@@ -215,7 +215,7 @@ repr_t!(
 );
 
 repr_t!(
-    /// Enum for counter modes
+    /// Enum for special counter modes on the counter label.
     CounterMode: i32 {
         Attempts = -3,
         Points = -2,
@@ -919,6 +919,25 @@ repr_t!(
     } default Set
 );
 
+impl Op {
+    /// Evaluates the operation given two input parameters and given `self` as the operator. Division by 0.0 yields 0.0.
+    pub fn eval(&self, a: f64, b: f64) -> f64 {
+        match self {
+            Self::Add => a + b,
+            Self::Sub => a - b,
+            Self::Mul => a * b,
+            Self::Div => {
+                if b != 0.0 {
+                    a / b
+                } else {
+                    0.0
+                }
+            }
+            Self::Set => b, // Only used in itemedit/pickup trigger as `a = b`
+        }
+    }
+}
+
 repr_t!(
     /// Enum for item comparison operators
     strict CompareOp: i32 {
@@ -948,7 +967,7 @@ pub struct CompareOperand {
 
 impl CompareOperand {
     /// Constructor for an operand that is simply a number literal.  
-    /// Useful for comparing an [`Item`] against a number
+    /// Useful for comparing an [`Item`] against a number.
     pub fn number_literal(num: f64) -> Self {
         Self {
             operand_item: Item::Counter(0),
@@ -958,6 +977,26 @@ impl CompareOperand {
             sign: SignMode::None,
         }
     }
+
+    /// Evaluates this operand like GD does. The `num` parameter is value of this operand's `operand_item` at the time this operand is used.
+    ///
+    /// Note: `self.modifier` is rounded to 3 decimal places according to [`round_3dp`].
+    ///
+    /// This implementation was ripped directly GD's source code.
+    pub fn eval_operand(&self, num: f64) -> f64 {
+        let rounded_mod = round_3dp(self.modifier);
+        match self.mod_op {
+            Op::Set => Op::Mul,
+            o => o,
+        }
+        .eval(num, rounded_mod)
+    }
+}
+
+/// Used internally by GD to round some things like items. This function truncates the last three decimal places of the given number towards zero. `NaN` returns 0.
+pub fn round_3dp(num: f64) -> f64 {
+    // in gd, the i32 is cast to an f32 instead of f64.
+    ((num * 1000.0) as i32) as f64 / 1000.0
 }
 
 impl From<Item> for CompareOperand {
@@ -983,6 +1022,18 @@ repr_t!(
     } default None
 );
 
+impl RoundMode {
+    /// Evaluates `n` according to the round mode stored in this object.
+    pub fn eval(&self, n: f64) -> f64 {
+        match self {
+            Self::None => n,
+            Self::Nearest => n.round(),
+            Self::Floor => n.floor(),
+            Self::Ceiling => n.ceil(),
+        }
+    }
+}
+
 repr_t!(
     /// Enum for item sign modes
     strict SignMode: i32 {
@@ -992,6 +1043,17 @@ repr_t!(
         Negative = 2,
     } default None
 );
+
+impl SignMode {
+    /// Evaluates `n` according to the sign mode stored in this object.
+    pub fn eval(&self, n: f64) -> f64 {
+        match self {
+            Self::None => n,
+            Self::Absolute => n.abs(),
+            Self::Negative => -(n.abs()),
+        }
+    }
+}
 
 /// Enum for target player in gravity trigger
 #[repr(u16)]

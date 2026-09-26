@@ -49,7 +49,7 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 }
 
 /// Determines the group that an advanced random trigger will activate based on an input seed
-/// and a list of the trigger's activation probabilities per group as a [`GDValue::ProbabilitiesList`].
+/// and a list of the trigger's activation probabilities per group (can be easily gotten from the `probabilities` field of [`crate::cclocallevels::gdobj::AdvancedRandomTrigger`]).
 /// Note that this is the same type as the advanced trigger's `RANDOM_PROBABILITIES_LIST` property.
 /// If the given list of probabilities is empty, this method will return `None`.
 ///
@@ -64,9 +64,9 @@ pub fn check_seed_advanced_random(seed: u64, probabilities: &Vec<(i16, i32)>) ->
     let total_chance: i32 = probabilities.iter().map(|(_, chance)| chance).sum();
     let accumulated_chance_threshold =
         (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;
-    let mut buf_ptr = 0;
 
     if !probabilities.is_empty() {
+        let mut buf_ptr = 0;
         let mut accumulated_chance = probabilities[buf_ptr].1; // chance
 
         while !(accumulated_chance_threshold <= accumulated_chance) {

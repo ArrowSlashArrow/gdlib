@@ -710,12 +710,7 @@ impl GDLevel {
 
     /// Exports the level to a .gmd file
     pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
-        let export_str = format!(
-            "{PLIST_HEADER}{}{PLIST_FOOTER}",
-            stringify_xml(&self.to_dict(), true)
-        );
-
-        write(path.into(), export_str)?;
+        write(path.into(), self.serialise_to_string())?;
         Ok(())
     }
 
@@ -725,6 +720,26 @@ impl GDLevel {
 
         write(path.into(), export_str)?;
         Ok(())
+    }
+
+    /// Serialize this object to a raw string. The returned string is in the format of a .gmd file and is not encrypted.
+    pub fn serialise_to_string(&self) -> String {
+        format!(
+            "{PLIST_HEADER}{}{PLIST_FOOTER}",
+            stringify_xml(&self.to_dict(), true)
+        )
+    }
+
+    /// Parse a raw level as a plist (such as the kind stored in a .gmd file) to a GDLevel. The given parameter must be **unencrypted.**
+    pub fn from_plist_string<T: Into<String>>(plist: T) -> Result<Self, GDError> {
+        let file = proper_plist_tags(plist.into())?;
+        let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
+
+        Ok(
+            Self::from_dict(xmltree.as_dictionary().unwrap()).ok_or(GDError::CorruptedSavefile(
+                "Unable to parse file to valid level.".into(),
+            ))?,
+        )
     }
 
     /// Parses a `plist::Dictionary` into a GDLevel object.

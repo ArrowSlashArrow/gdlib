@@ -116,6 +116,8 @@ macro_rules! repr_t {
         #[allow(missing_docs)]
         #[repr($t)]
         $(#[$meta])*
+        ///
+        #[doc = concat!("When parsing an arbitrary input value, this struct will lossily convert erroneous values to the default variant, which is [`Self::", stringify!($default), "`].")]
         pub enum $name {
             $(
                 $(#[$vmeta])*

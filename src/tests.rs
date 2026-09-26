@@ -16,11 +16,13 @@ use crate::{
             constructors::triggers::{
                 AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
+            ids::properties::NEW_X_SCALE,
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
                 ColourChannel, CompareOp, CompareOperand, DefaultMove, Easing, Event, ExtraID2,
                 Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
+            text,
         },
         properties::PROPERTY_TABLE,
     },

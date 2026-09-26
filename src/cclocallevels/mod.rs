@@ -5,6 +5,8 @@ pub mod gdobj;
 pub mod properties;
 pub mod consts {
     //! Hard-coded constants in GD. These numbers are either derived from the source code of GD or directly ripped from it.
+    //!
+    //! Reference: <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/constants/game/speed/__init__.py>
     /// Units per second of movement at 0.5x speed
     pub const SPEED_05X: f64 = 0.7 * 5.98000200 * 60.0;
     /// Units per second of movement at 1x speed
