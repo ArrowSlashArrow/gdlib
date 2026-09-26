@@ -836,33 +836,6 @@ impl ItemEditTrigger {
     ///
     /// Depending on the configuration of this object, the two parameters don't always get used (for example, if `self.operand2` is `None`). In the case that a parameter is not used, it can have any value.
     pub fn eval_result(&self, operand1: f64, operand2: f64, current_value_at_target: f64) -> f64 {
-        let apply_op = |a: f64, b: f64, op: Op| -> f64 {
-            match op {
-                Op::Set => b,
-                Op::Add => a + b,
-                Op::Sub => a - b,
-                Op::Mul => a * b,
-                Op::Div => a / b,
-            }
-        };
-
-        let apply_round = |a: f64, round: RoundMode| -> f64 {
-            match round {
-                RoundMode::None => a,
-                RoundMode::Nearest => a.round(),
-                RoundMode::Floor => a.floor(),
-                RoundMode::Ceiling => a.ceil(),
-            }
-        };
-
-        let apply_sign = |a: f64, sign: SignMode| -> f64 {
-            match sign {
-                SignMode::None => a,
-                SignMode::Absolute => a.abs(),
-                SignMode::Negative => a.neg(),
-            }
-        };
-
         let mut id_result = if self.operand1.is_none() && self.operand2.is_none() {
             self.modifier
         } else if self.operand1.is_some() && self.operand2.is_none() {
@@ -870,24 +843,18 @@ impl ItemEditTrigger {
         } else if self.operand1.is_none() && self.operand2.is_some() {
             operand2
         } else {
-            apply_op(operand1, operand2, self.id_op)
+            self.id_op.eval(operand1, operand2)
         };
 
         if !(self.operand1.is_none() && self.operand2.is_none()) {
-            id_result = apply_op(
-                id_result,
-                self.modifier,
-                if self.multiply_mod { Op::Mul } else { Op::Div },
-            );
+            id_result =
+                if self.multiply_mod { Op::Mul } else { Op::Div }.eval(id_result, self.modifier);
         }
 
-        id_result = apply_sign(apply_round(id_result, self.id_rounding), self.id_sign);
+        id_result = self.id_sign.eval(self.id_rounding.eval(id_result));
         if self.assign_op != Op::Set {
-            id_result = apply_op(id_result, current_value_at_target, self.assign_op);
-            id_result = apply_sign(
-                apply_round(id_result, self.result_rounding),
-                self.result_sign,
-            );
+            id_result = self.assign_op.eval(id_result, current_value_at_target);
+            id_result = self.result_sign.eval(self.result_rounding.eval(id_result));
         }
 
         id_result
