@@ -2,7 +2,7 @@
 A typesafe, rust library to interface with GD savefiles. It is intended to enable programmatic savefile operations, such as automatic level creation.
 
 Documentation can be found on [docs.rs](https://docs.rs/gdlib/latest/gdlib/).  
-As of v0.4.2, GDLib is in active development.
+As of v0.4.3, GDLib is in active development.
 
 ## Overview
 GDLib is an API that is designed to parse the Geometry Dash savefile format. It can parse levels and objects from the savefile (CCLocalLevels.dat) and from .gmd files. 

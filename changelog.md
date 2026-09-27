@@ -1,6 +1,6 @@
 # Changelog
 
-## Update v0.4.2
+## Update v0.4.3
 * Introduced `ObjectProperties` trait which defines functions for seriailization and an optional function for converting from GDObject.
 * Refactored all items under `constructors/` to use the ObjectProperties trait
 * Resolved issue #2 - every property now has a given property type and will be parsed properly.
@@ -14,6 +14,9 @@
 * Fixed bug where `GDLevel`s did not load in GD due to a missing value in `k50` which needs to equal `binaryVersion` for the specific version otherwise the game replaces the level data with new, empty data
 * Added constructors for all orbs, pads, portals, force blocks, and spinning objects.
 * Added evaluator functions for `ItemEditTrigger`, `ItemCompareTrigger` and `CompareOperand` to check what values will result from certain item states.
+
+## Update v0.4.2
+* Not sure what happened here. I apparently did not document this release.
 
 ## Update v0.4.1
 * Optimized advanced random trigger seed checker
