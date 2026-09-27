@@ -6,13 +6,14 @@
 * Resolved issue #2 - every property now has a given property type and will be parsed properly.
 * Resolved issue #16 - all objects as of GD 2.2082 are named in `properties` according to Flowvix's object names.
 * Added triggers:
-    - BPM Guide
+     - BPM Guide
     - Rotate Gameplay
     - Pickup trigger (documentation update)
     - Instant count
 * Added enum for GD versions (`GDVersion`).
 * Fixed bug where `GDLevel`s did not load in GD due to a missing value in `k50` which needs to equal `binaryVersion` for the specific version otherwise the game replaces the level data with new, empty data
 * Added constructors for all orbs, pads, portals, force blocks, and spinning objects.
+* Added evaluator functions for `ItemEditTrigger`, `ItemCompareTrigger` and `CompareOperand` to check what values will result from certain item states.
 
 ## Update v0.4.1
 * Optimized advanced random trigger seed checker

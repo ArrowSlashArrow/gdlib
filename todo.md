@@ -4,19 +4,12 @@
     - cover all enums and struct fields
     - also cover all the known edgecases/anomalies
 
-fns todo
-- `ItemEditTrigger::eval_result(item1_value, item2_value, attempts, points, maintime)`
-- `CompareOperand::eval_operand(item_value)`
-- `ItemCompareTrigger::eval_comparison(item1_value, item2_value)`
-
 ## cclocallevels
 - gdlevel
     - implement sha-256 hashing (feature: "hashing")
 - objects
     - constructors for all of the following:
         - triggers
-        - gameplay objects
-        - saws
         - other objects which have intrinsic properties
     - cover all gd obj properties
     - implement sha-256 hashing (feature: "hashing")
