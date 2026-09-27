@@ -258,6 +258,7 @@ pub enum GDObjPropType {
     StopMode,
     ItemAlign,
     MiddleGround,
+    TeleportGravity,
     Unknown,
 }
 
@@ -498,6 +499,8 @@ pub enum GDValue {
     MiddleGround(MiddleGround),
     /// Wrapper for [`ItemAlign`]
     ItemAlign(ItemAlign),
+    /// Wrapper for [`TeleportGravity`],
+    TeleportGravity(TeleportGravity),
 
     /// A UTF-8 string. The fallback for any value that did not fit any of the aforementioned criteria. Any properties marked with [`GDObjPropType::Unknown`] are parsed to a String.
     String(String), // fallback
@@ -570,6 +573,9 @@ impl GDValue {
             GDObjPropType::StopMode => Self::StopMode(parse!(s => i32 => StopMode)),
             GDObjPropType::ItemAlign => Self::ItemAlign(parse!(s => i32 => ItemAlign)),
             GDObjPropType::MiddleGround => Self::MiddleGround(parse!(s => i32 => MiddleGround)),
+            GDObjPropType::TeleportGravity => {
+                Self::TeleportGravity(parse!(s => i32 => TeleportGravity))
+            }
             GDObjPropType::Text | GDObjPropType::Unknown => Self::String(s.to_owned()),
         }
     }
@@ -724,6 +730,7 @@ impl Display for GDValue {
             GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ExtraID2(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ItemAlign(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::TeleportGravity(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::MiddleGround(v) => write!(f, "{}", i_buf.format(v.to_num())),
         }
     }
