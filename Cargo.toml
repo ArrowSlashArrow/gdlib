@@ -1,6 +1,6 @@
 [package]
 name = "gdlib"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 build = "build.rs"
 
@@ -23,6 +23,7 @@ flate2 = { version = "1.1.2", features = ["zlib"] }
 hex = "0.4.3"
 itoa = "1.0.15"
 nohash-hasher = "0.2.0"
+paste = "1.0.15"
 phf = { version = "0.13.1", features = ["macros"] }
 plist = "1.7.4"
 rayon = { version = "1.12.0", optional = true }
@@ -32,9 +33,6 @@ smallvec = "1.15.1"
 [features]
 default = []
 parallel = ["dep:rayon"]
-
-[build-dependencies]
-syn = { version = "2", features = ["full"] }
 
 [profile.release]
 codegen-units = 1

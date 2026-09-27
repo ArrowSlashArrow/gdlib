@@ -7,7 +7,7 @@ pub(crate) const MAX_ACHIEVEMENT_INDEX: usize = 537;
 repr_t!(
     /// All vanilla achievements in GD. All names were imported as-is, then captialized and stripped of spaces and periods with no further processing.
     ///
-    /// Each variant has a repr value of the index that it will occupy in CCGameManager.stats.achievements.
+    /// Each variant has a repr value of the index that it will occupy in `CCGameManager.stats.achievements`.
     ///
     /// All achievement documentation was obtained from Wylie's docs: <https://wyliemaster.github.io/gddocs/#/resources/client/gamesave/achievement>
     strict GDAchievement: i32 {

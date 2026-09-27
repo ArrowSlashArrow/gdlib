@@ -2,9 +2,8 @@ use gdlib::{
     cclocallevels::{
         gdlevel::GDLevel,
         gdobj::{
-            GDObject,
-            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
-            structs::Group,
+            ObjectProperties, constructors::triggers::AdvancedRandomTrigger,
+            ids::objects::ADVANCED_RANDOM_TRIGGER, structs::Group,
         },
     },
     core::rand::{check_seed_advanced_random, next_seed_mut},
@@ -15,8 +14,12 @@ fn main() {
     let mut objects = level.get_decrypted_data().unwrap().objects;
 
     // filter out all objects that are not advanced random triggers
-    objects.retain(|o| o.id == TRIGGER_ADVANCED_RANDOM && o.config.pos.0 > 0.0);
+    objects.retain(|o| o.id == ADVANCED_RANDOM_TRIGGER && o.config.pos.0 > 0.0);
     objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
+    let configs = objects
+        .iter()
+        .filter_map(|obj| AdvancedRandomTrigger::from_object(obj))
+        .collect::<Vec<_>>();
 
     // the group we want spawned for each trigger
     // -1: any group is fine
@@ -28,7 +31,7 @@ fn main() {
 
     // then try all of the seeds
     // cap it out at 25 seeds because searching all of them is impractically slow on a CPU
-    while !crack_seed(seed, &expected[..25], &objects) {
+    while !crack_seed(seed, &expected[..25], &configs) {
         seed += 1;
         if seed % 1000000 == 0 {
             println!("checked seeds until {seed}");
@@ -39,7 +42,7 @@ fn main() {
     println!("got seed: {seed}");
 }
 
-fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<GDObject>) -> bool {
+fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<AdvancedRandomTrigger>) -> bool {
     let mut seed_clone = seed;
 
     for (idx, obj) in objects.iter().enumerate() {
@@ -60,10 +63,8 @@ fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<GDObject>) -> bool {
     true
 }
 
-fn check_object(seed: u64, object: &GDObject, expected_group: i16) -> bool {
-    let probabilities = object.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
-
-    match check_seed_advanced_random(seed, &probabilities) {
+fn check_object(seed: u64, object: &AdvancedRandomTrigger, expected_group: i16) -> bool {
+    match object.determine_spawn_from_seed(seed) {
         Some(Group::Regular(g)) => g == expected_group,
         _ => false, // this should never be hit since all of the triggers have set groups
     }

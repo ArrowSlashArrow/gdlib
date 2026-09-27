@@ -1,5 +1,25 @@
 # Changelog
 
+## Update v0.4.2
+* Introduced `ObjectProperties` trait which defines functions for seriailization and an optional function for converting from GDObject.
+* Refactored all items under `constructors/` to use the ObjectProperties trait
+* Resolved issue #2 - every property now has a given property type and will be parsed properly.
+* Resolved issue #16 - all objects as of GD 2.2082 are named in `properties` according to Flowvix's object names.
+* Added triggers:
+    - BPM Guide
+    - Rotate Gameplay
+    - Pickup trigger (documentation update)
+    - Instant count
+* Added enum for GD versions (`GDVersion`).
+* Fixed bug where `GDLevel`s did not load in GD due to a missing value in `k50` which needs to equal `binaryVersion` for the specific version otherwise the game replaces the level data with new, empty data
+* Added constructors for all orbs, pads, portals, force blocks, and spinning objects.
+
+## Update v0.4.1
+* Optimized advanced random trigger seed checker
+* Added `GDSearchFilters` struct
+* Added `GDAchievement` enum
+* Some miscellaneous support for keys in CCGameManager.dat
+
 ## Update v0.4.0
 * Fixed item compare triggers not being given correct property values
 * Reorganized the crate for the future and expandability

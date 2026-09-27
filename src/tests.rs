@@ -6,21 +6,23 @@ use plist::Value::{Array, Dictionary, String};
 use crate::{
     ccgamemanager::CCGameManager,
     cclocallevels::{
-        gdlevel::{CCLocalLevels, GDLevel, leveldata::HeaderValue},
+        gdlevel::{
+            CCLocalLevels, GDLevel,
+            leveldata::{GDLevelHeaderKey, GDLevelHeaderValue},
+            version::GDVersion,
+        },
         gdobj::{
-            self, GDObject,
-            constructors::{
-                misc::default_block,
-                triggers::{advanced_random_trigger, event_trigger, move_trigger},
+            self, EndTrigger, GDObject, ObjectProperties,
+            constructors::triggers::{
+                AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
-            ids::{objects::TRIGGER_ADVANCED_RANDOM, properties::RANDOM_PROBABILITIES_LIST},
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
-                ColourChannel, DefaultMove, Event, ExtraID2, Group, MoveEasing, MoveMode, ZLayer,
+                ColourChannel, CompareOp, CompareOperand, DefaultMove, Easing, Event, ExtraID2,
+                Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
         },
     },
-    core::rand::{check_seed_advanced_random, next_seed_mut},
 };
 
 fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
@@ -31,6 +33,10 @@ fn benchmark<F: Fn() -> R, R>(name: &str, f: F) -> R {
         start.elapsed().as_micros() as f64 / 1000.0
     );
     result
+}
+
+fn default_block(cfg: &GDObjConfig) -> GDObject {
+    GDObject::new(1, cfg, vec![])
 }
 
 #[test]
@@ -48,19 +54,21 @@ fn move_constructor() {
     let mut level = GDLevel::default();
     level.identity.name = "move trigger t3st".into();
     level.identity.creator = "gdlib".into();
-    level.add_object(move_trigger(
-        &GDObjConfig::default().pos(45.0, 45.0),
-        MoveMode::Default(DefaultMove {
-            dx: 45.0,
-            dy: 54.0,
-            x_lock: None,
-            y_lock: None,
-        }),
-        17.38,
-        679,
-        false,
-        true,
-        Some((MoveEasing::ElasticInOut, 1.50)),
+    level.add_object(GDObject::from_config(
+        GDObjConfig::default().with_pos(45.0, 45.0),
+        MoveTrigger {
+            move_config: MoveMode::Default(DefaultMove {
+                dx: 45,
+                dy: 54,
+                x_lock: None,
+                y_lock: None,
+            }),
+            time: 17.38,
+            target_group: 679,
+            silent: false,
+            dynamic: true,
+            easing: Easing::from(MoveEasing::BackOut, 1.50),
+        },
     ));
 
     level
@@ -85,13 +93,14 @@ fn level_display_test() {
 #[test]
 fn obj_properties() {
     let config = GDObjConfig::new()
-        .editor_layer_1(4)
-        .set_attribute_flag(GDObjAttributes::dont_fade, true)
-        .groups([2, 3, 1738])
-        .set_attribute_flag(GDObjAttributes::extra_sticky, true)
-        .set_attribute_flag(GDObjAttributes::no_glow, true)
-        .set_z_layer(ZLayer::B3)
-        .set_base_colour(ColourChannel::Background);
+        .with_editor_layer_1(4)
+        .with_attributes(
+            GDObjAttributes::dont_fade | GDObjAttributes::extra_sticky | GDObjAttributes::no_glow,
+            true,
+        )
+        .with_groups([2, 3, 1738])
+        .with_z_layer(ZLayer::B3)
+        .with_base_colour(ColourChannel::Background);
 
     let block = default_block(&config);
     let mut level = GDLevel::default();
@@ -105,9 +114,11 @@ fn obj_properties() {
 #[test]
 fn adv_random() {
     let mut level = GDLevel::default();
-    level.add_object(advanced_random_trigger(
-        &GDObjConfig::default().pos(45.0, 45.0),
-        vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
+    level.add_object(GDObject::from_config(
+        GDObjConfig::default().with_pos(45.0, 45.0),
+        AdvancedRandomTrigger {
+            probabilities: vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
+        },
     ));
     let _ = level.export_to_gmd("test_gmds/generated_adv_random.gmd");
 }
@@ -163,13 +174,15 @@ fn serialise_level_benchmark() {
 #[test]
 fn event_trigger_test() {
     let mut level = GDLevel::default();
-    let cfg = GDObjConfig::new().pos(45.0, 45.0);
-    level.add_object(event_trigger(
-        &cfg,
-        123,
-        vec![Event::BallSwitch, Event::FallSpeedLow],
-        0,
-        ExtraID2::All,
+    let cfg = GDObjConfig::new().with_pos(45.0, 45.0);
+    level.add_object(GDObject::from_config(
+        cfg,
+        EventTrigger {
+            target_group: 123,
+            events: vec![Event::BallSwitch, Event::FallSpeedLow],
+            extra_id: 0,
+            extra_id2: ExtraID2::All,
+        },
     ));
 }
 
@@ -197,14 +210,64 @@ fn advanced_random_predict() {
     ];
 
     for &(obj_str, seed, expected) in tests {
-        let adv_rand = GDObject::parse_str(obj_str);
-        // get probabilities table
-        let probabilities = adv_rand.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
         assert_eq!(
-            check_seed_advanced_random(seed, &probabilities).unwrap(),
+            AdvancedRandomTrigger::from_object(&GDObject::parse_str(obj_str))
+                .unwrap()
+                .determine_spawn_from_seed(seed)
+                .unwrap(),
             Group::Regular(expected)
         );
     }
+}
+
+#[test]
+fn item_compare() {
+    benchmark("create level", || {
+        let mut level = GDLevel::new(GDVersion::GD22082);
+
+        level.add_object(GDObject::from_config(
+            GDObjConfig::new().with_pos(45.0, 45.0),
+            ItemCompareTrigger {
+                true_id: 11,
+                false_id: 22,
+                lhs: CompareOperand {
+                    operand_item: Item::Counter(1),
+                    modifier: 1.0,
+                    mod_op: Op::Mul,
+                    rounding: RoundMode::None,
+                    sign: SignMode::None,
+                },
+                rhs: CompareOperand {
+                    operand_item: Item::Counter(0),
+                    modifier: 2.0,
+                    mod_op: Op::Mul,
+                    rounding: RoundMode::None,
+                    sign: SignMode::None,
+                },
+                compare_op: CompareOp::LessOrEquals,
+                tolerance: 0.0,
+            },
+        ));
+        level
+            .export_to_gmd("test_gmds/generated_itemcompare.gmd")
+            .unwrap();
+    });
+}
+
+#[test]
+fn end_trigger_from_object() {
+    let obj_str = GDObject::parse_str("1,3600,2,2925,3,795,36,1,51,321,461,1,487,1;");
+
+    assert_eq!(
+        EndTrigger::from_object(&obj_str).unwrap(),
+        EndTrigger {
+            spawn_id: Some(321),
+            target_pos: None,
+            no_effects: false,
+            instant: true,
+            no_sfx: true
+        }
+    );
 }
 
 #[test]
@@ -234,7 +297,7 @@ fn cc_game_manager_parse() {
 #[test]
 #[ignore]
 fn _temp_read_objs() {
-    let level = GDLevel::from_gmd("test_gmds/empty test level.gmd").unwrap();
+    let level = GDLevel::from_gmd("GMDS/Unnamed 37.gmd").unwrap();
     let data = level.get_decrypted_data().unwrap();
 
     for (idx, obj) in data.objects.iter().enumerate() {
@@ -249,47 +312,15 @@ fn _temp_level_header() -> anyhow::Result<()> {
     let data = level.get_decrypted_data().unwrap();
     let colour_string = data
         .headers
-        .get_property(gdobj::ids::level_header::COLOURS)
+        .get(&GDLevelHeaderKey::from_id(
+            gdobj::ids::level_header::COLOURS,
+        ))
         .unwrap();
 
-    if let HeaderValue::ColourString(cs) = colour_string {
+    if let GDLevelHeaderValue::ColourString(cs) = colour_string {
         for c in cs {
             println!("{:?}", c);
         }
-    }
-
-    Ok(())
-}
-
-#[test]
-fn get_seed_from_criteria() -> anyhow::Result<()> {
-    let level = GDLevel::from_gmd("test_gmds/Chompstep.gmd")?;
-    let mut objects = level.get_decrypted_data().unwrap().objects;
-
-    // advanced random objects do not change the group for some reason
-    objects.retain(|o| o.id == TRIGGER_ADVANCED_RANDOM && o.config.pos.0 > 0.0);
-    objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
-
-    let expected = vec![3, 2, 2, 2, 2, 2, 2, 2];
-
-    let mut seed = 0;
-
-    'outer: for obj in objects {
-        // get probabilities table
-        let probabilities = obj.get_property(RANDOM_PROBABILITIES_LIST).unwrap();
-
-        let mut seed_clone = seed;
-        for g in &expected {
-            let got = check_seed_advanced_random(seed, &probabilities).unwrap();
-            next_seed_mut(&mut seed_clone);
-            if let Group::Regular(g1) = got
-                && g1 != *g
-            {
-                seed += 1;
-                continue 'outer;
-            }
-        }
-        println!("found seed: {}", seed_clone);
     }
 
     Ok(())

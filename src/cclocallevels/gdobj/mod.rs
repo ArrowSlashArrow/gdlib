@@ -6,7 +6,11 @@ use crate::cclocallevels::{
     gdobj::{
         ids::properties::*,
         meta::{GDObjAttributes, GDObjConfig},
-        structs::{ColourChannel, Event, GDObjPropType, GDValue, Group, MoveEasing, ZLayer},
+        structs::{
+            ColourChannel, Event,
+            GDObjPropType::{self},
+            GDValue, Group, ZLayer,
+        },
     },
     properties::{self, OBJECT_NAMES, get_obj_property_type},
 };
@@ -22,36 +26,20 @@ pub mod constructors;
 pub mod meta;
 pub mod structs;
 
+pub use constructors::{gameplay::*, triggers::*, *};
+
 macro_rules! parse {
     ($v:expr => $t:ty) => {
         $v.parse::<$t>().unwrap_or_default()
     };
 }
 
-// for debug purposes
-
-// fn parse_with_err_handle<T>(s: &str, p: u16) -> T
-// where
-//     T: FromStr + Default + Display,
-//     <T as FromStr>::Err: Debug,
-// {
-//     match s.parse::<T>() {
-//         Ok(n) => n,
-//         Err(e) => {
-//             println!(
-//                 "Error with parsing property {p} with value {s}, type {} ({e:?})",
-//                 type_name::<T>()
-//             );
-//             T::default()
-//         }
-//     }
-// }
-
-/// Container for GD Object properties.
+/// An in-game object in GD. This struct covers all objects placable in the editor. It is divided into three fields: the ID (object id, which is necessary to tell what an object is),
+/// general properties - which are common properties that every object has (e.g. position, rotation), and object-specific properties (in the `properties` field).
 #[derive(Clone, PartialEq)]
 #[must_use]
 pub struct GDObject {
-    /// The object's ID.
+    /// The object's ID. here: [Map of object IDs to names here](crate::cclocallevels::properties::OBJECT_NAMES), [Object ID consts here](ids::objects).
     pub id: i32,
     /// General properties, such as position and scale.
     pub config: GDObjConfig,
@@ -120,6 +108,8 @@ impl Debug for GDObject {
     }
 }
 
+const KA_PROPERTY_OFFSET: u16 = 10_000;
+
 impl GDObject {
     /// Parses raw object string to `GDObject`
     pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
@@ -135,7 +125,7 @@ impl GDObject {
             let idx_u16 = match idx.parse::<u16>() {
                 Ok(n) => n,
                 Err(_) => match idx[2..].parse::<u16>() {
-                    Ok(n) => n + 10_000,
+                    Ok(n) => n + KA_PROPERTY_OFFSET,
                     Err(_) => 65535,
                 },
             };
@@ -310,40 +300,43 @@ impl GDObject {
         }
     }
 
-    /// Returns this object as a property string
+    /// Returns this object as a property string. This function does not preserve the order of properties as they
+    /// originally were in the object since property order does not matter because they are collectively treated as
+    /// part of a dictionary of properties for this object. Each property is serialized as follows:
+    /// * The id of this object (property ID 1) is serialized at the beginning of the string.
+    /// * Each property covered in [`GDObjConfig`] is serialized with [`GDObjConfig::serialise_to_string`].
+    /// * Each remaining property's value is serialized by `GDValue`'s implementation of Display.
+    ///
+    /// Each object string is guaranteed to end with a `;`, meaning that to encode multiple objects, it is recommended
+    /// to simply call this function and join them without any delimeter, which is what the [`serialise_objects`] function does.
     #[must_use]
     pub fn serialise_to_string(&self) -> String {
+        // the average length of a property is assumed to be 8 bytes - an estimate.
         let mut properties_string = String::with_capacity(self.properties.len() * 8);
         for (idx, val) in &self.properties {
-            let (pref, id) = if *idx < 10_000 {
-                ("", *idx)
+            // `GDValue` implementation for `Display` handles serialization.
+            if *idx < KA_PROPERTY_OFFSET {
+                write!(properties_string, ",{idx},{val}").unwrap();
             } else {
-                ("kA", idx - 10_000) // also need to add a "kA" prepend
-            };
-
-            write!(properties_string, ",{pref}{id},{val}").unwrap();
+                write!(properties_string, ",kA{},{val}", idx - KA_PROPERTY_OFFSET).unwrap();
+            }
         }
         let config_str = self.config.serialise_to_string();
 
-        let mut raw_str = format!("1,{}{config_str}{properties_string}", self.id);
-        raw_str.retain(|c| c != '"');
-        raw_str.push(';');
-        raw_str
+        format!("1,{}{config_str}{properties_string};", self.id)
     }
 
-    /// Returns this object's name
+    /// Returns this object's name if it was defined in [`crate::cclocallevels::properties::OBJECT_NAMES`], otherwise returns "Object {id}"
     #[inline]
     #[must_use]
     pub fn get_name(&self) -> String {
         OBJECT_NAMES
-            .iter()
-            .find(|&o| o.0 == self.id)
-            .unwrap_or(&(0, format!("Object {}", self.id).as_str()))
-            .1
+            .get(&self.id)
+            .unwrap_or(&format!("Object {}", self.id).as_str())
             .to_string()
     }
 
-    /// Creates a new GDObject from ID, config, and extra proerties
+    /// Default constructor for this object.
     #[inline]
     pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
         GDObject {
@@ -354,14 +347,14 @@ impl GDObject {
     }
 
     #[inline]
-    /// Creates a default object from the specified ID
+    /// Creates a default object from the specified ID. Internally calls [`defaults::default_object`].
     pub fn default_from_id(id: i32) -> Self {
         defaults::default_object(id)
     }
 
     #[inline]
     fn get_attr_as_gdvalue(&self, attr: GDObjAttributes) -> GDValue {
-        GDValue::Bool(self.config.get_attribute_flag(attr))
+        GDValue::Bool(self.config.get_attributes(attr))
     }
 
     /// Fetches a property from this object's configuration
@@ -380,8 +373,8 @@ impl GDObject {
             129 => Some(GDValue::Float(self.config.scale.1)),
             20 => Some(GDValue::Short(self.config.editor_layers.0)),
             61 => Some(GDValue::Short(self.config.editor_layers.1)),
-            21 => Some(GDValue::Short(self.config.colour_channels.0.into())),
-            22 => Some(GDValue::Short(self.config.colour_channels.1.into())),
+            21 => Some(GDValue::ColourChannel(self.config.colour_channels.0)),
+            22 => Some(GDValue::ColourChannel(self.config.colour_channels.1)),
             24 => Some(GDValue::ZLayer(self.config.z_layer)),
             25 => Some(GDValue::Int(self.config.z_order)),
             343 => Some(GDValue::Short(self.config.enter_effect_channel)),
@@ -420,8 +413,202 @@ impl GDObject {
         }
     }
 
+    /// Returns `true` if this object has as a set property at index `p`. If this function returns `true` for a given `p`, then `GDObject::get_property` is guaranteed to return a `Some`.
+    pub fn has_property(&self, p: u16) -> bool {
+        match p {
+            // all of the below are intrinsic properties of an object that are either set or filled in with a default value (by GD) if left unset.
+            1 | 2 | 3 | 6 | 11 | 57 | 62 | 87 | 128 | 129 | 20 | 61 | 21 | 22 | 24 | 25 | 343
+            | 446 | 534 => true,
+            64 => self.config.get_attributes(GDObjAttributes::dont_fade),
+            67 => self.config.get_attributes(GDObjAttributes::dont_enter),
+            116 => self.config.get_attributes(GDObjAttributes::no_effects),
+            34 => self.config.get_attributes(GDObjAttributes::is_group_parent),
+            279 => self.config.get_attributes(GDObjAttributes::is_area_parent),
+            509 => self.config.get_attributes(GDObjAttributes::dont_boost_x),
+            496 => self.config.get_attributes(GDObjAttributes::dont_boost_y),
+            103 => self.config.get_attributes(GDObjAttributes::high_detail),
+            121 => self.config.get_attributes(GDObjAttributes::no_touch),
+            134 => self.config.get_attributes(GDObjAttributes::passable),
+            135 => self.config.get_attributes(GDObjAttributes::hidden),
+            136 => self.config.get_attributes(GDObjAttributes::non_stick_x),
+            289 => self.config.get_attributes(GDObjAttributes::non_stick_y),
+            495 => self.config.get_attributes(GDObjAttributes::extra_sticky),
+            511 => self
+                .config
+                .get_attributes(GDObjAttributes::extended_collision),
+            137 => self.config.get_attributes(GDObjAttributes::is_ice_block),
+            193 => self.config.get_attributes(GDObjAttributes::grip_slope),
+            96 => self.config.get_attributes(GDObjAttributes::no_glow),
+            507 => self.config.get_attributes(GDObjAttributes::no_particles),
+            356 => self.config.get_attributes(GDObjAttributes::scale_stick),
+            372 => self.config.get_attributes(GDObjAttributes::no_audio_scale),
+            284 => self.config.get_attributes(GDObjAttributes::single_ptouch),
+            369 => self.config.get_attributes(GDObjAttributes::center_effect),
+            117 => self.config.get_attributes(GDObjAttributes::reverse),
+
+            _ => self
+                .properties
+                .binary_search_by_key(&p, |(key, _)| *key)
+                .is_ok(),
+        }
+    }
+
     /// Set this object's internal config
     pub fn set_config(&mut self, config: GDObjConfig) {
         self.config = config;
     }
+
+    /// Creates an object from a property descriptor object. This is the standard way to create objects with extra properties such as triggers.
+    pub fn from_config<P: ObjectProperties>(config: GDObjConfig, details: P) -> Self {
+        Self {
+            id: details.object_id(),
+            config,
+            properties: details.serialise(),
+        }
+    }
 }
+
+/// Returns the objects in the iterator as a string.
+pub fn serialise_objects<I: IntoIterator<Item = GDObject>>(objects: I) -> String {
+    objects
+        .into_iter()
+        .map(|obj| obj.serialise_to_string())
+        .collect::<String>() // concats all strings
+}
+
+/// Trait for structs that encode configuration for a GD object. This trait is used in [`GDObject::from_config`].
+///
+/// Structs that implement this trait cannot be treated as or directly converted into `GDValue` since this trait lacks a definition for an object configuration function -
+/// specifically one that returns `GDObjConfig` - because this trait is intended to encode only the properties specific to one object. Of course, it is trivial to convert
+/// any struct that implements this trait if you also have a `GDObjConfig`, which is exactly what [`GDObject::from_config`] does.
+pub trait ObjectProperties {
+    /// Serialise this object to a list of properties in the form of tuples: (id, value)
+    fn serialise(&self) -> Vec<(u16, GDValue)>;
+    /// Returns the object ID that this struct is configured for.
+    fn object_id(&self) -> i32;
+    /// Converts a `GDobject` to this struct. Should fail if the object ID doesn't match and if the required values aren't of the right type.
+    /// Values that are missing from the original object (usually due to being unset) should be filled in with their type's implementation of `Default`.
+    /// For GD-specific types, such as [`structs::Speed`], the `Default` implementation will be whatever is the regular default value when a trigger is placed in the game.
+    #[allow(unused_variables)]
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        None
+    }
+}
+
+macro_rules! prop_value {
+    // This arm should not exist because there is a GDValue variant for every type - except for two.
+    // RobTop uses property 88 to enconde both `PickupTriggerMode` and `InstantCountComparison`, which are two different enums whose variant correspond to different things.
+    // This macro is primarily used in the `object_descriptor`, which automatically creates both the desrialization and serialization of objects.
+    // If a variant were created for either type in GDValue, it would cause the other one, which is not implemented, to be incorrectly parsed as the implemented one, which may cause confusion.
+    // As a result, I have opted to leave this arm in specifically for those two fields.
+    //
+    // Note: **DO NOT** use this for any other field, unless it is bound to a property that also has a conflicting type situation.
+    (as_i32, $field:expr) => {
+        GDValue::Int($field as i32)
+    };
+    (to_i32, $field:expr) => {
+        GDValue::Int($field.to_num())
+    };
+    (Events, $field:expr) => {
+        GDValue::Events($field.clone())
+    };
+    (ProbabilitiesList, $field:expr) => {
+        GDValue::from_prob_list($field.clone())
+    };
+    (Remaps, $field:expr) => {
+        GDValue::from_spawn_remaps($field.clone())
+    };
+    ($opt:literal $t:ident, $field:expr) => {
+        GDValue::$t($field.unwrap_or_default())
+    };
+    ($t:ident, $field:expr) => {
+        GDValue::$t($field)
+    };
+}
+
+// this macro assigns field value in from_object expansino in object_descriptor
+// convert to a call to get_property
+macro_rules! object_field_match {
+    // field_type implements from::<i32>
+    (to_i32, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Int => into $field_type)
+    };
+    // field_type implements try_from::<i32>
+    (as_i32, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Int => $field_type)
+    };
+    /* implement vector types here */
+    (Events, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Events => $field_type)
+    };
+    (ProbabilitiesList, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => ProbabilitiesList => vec $field_type)
+    };
+    (Remaps, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => SpawnRemapsList => vec $field_type)
+    };
+    // field_type is optional
+    ($gd_type:ident, $opt:literal $field_type:ty , $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => $gd_type => opt $field_type)
+    };
+    ($gd_type:ident, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => $gd_type => $field_type)
+    };
+}
+
+// quick way to create object descriptors where the descriptor can be serialised as a list of its properties
+macro_rules! object_descriptor {
+    ($(#[$meta:meta])* $descriptor:ident: $object:expr => { $( $(#[$fmeta:meta])* $( $opt:literal )? $field:ident : $ftype:ty => $prop_t:ident $prop_id:expr ),* $(,)? }) => {
+        #[derive(Debug, Clone, PartialEq, Default)]
+        #[allow(missing_docs)]
+        $(#[$meta])*
+        pub struct $descriptor {
+            $(
+                $(#[$fmeta])*
+                pub $field : object_descriptor!(@internal $($opt)? $ftype),
+            )*
+        }
+
+        impl ObjectProperties for $descriptor {
+            fn serialise(&self) -> Vec<(u16, GDValue)> {
+                vec![
+                    (155, GDValue::Int(1)), // for good measure
+                    $(
+                        ($prop_id, crate::cclocallevels::gdobj::prop_value!($($opt)? $prop_t, self.$field)),
+                    )*
+                ]
+            }
+
+            fn object_id(&self) -> i32 {
+                $object
+            }
+
+            fn from_object(obj: &GDObject) -> Option<Self> {
+                if obj.id != $object {
+                    return None;
+                }
+
+                Some(Self {
+                    $(
+                        $field: crate::cclocallevels::gdobj::object_field_match!($prop_t, $($opt)? $ftype, obj, $prop_id),
+                    )*
+                })
+            }
+        }
+    };
+
+    (@internal $ftype:ty) => {
+        $ftype
+    };
+
+    (@internal $opt:literal $ftype:ty) => {
+        Option<$ftype>
+    };
+}
+
+pub(crate) use object_descriptor;
+pub(crate) use object_field_match;
+pub(crate) use prop_value;
