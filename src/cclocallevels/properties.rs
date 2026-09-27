@@ -218,6 +218,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     445u16 => ("Claim touch?", GDObjPropType::Bool),
     446u16 => ("Object material", GDObjPropType::Int),
     447u16 => ("Event extra ID", GDObjPropType::Group),
+    448u16 => ("Checkpoint respawn ID", GDObjPropType::Group),
     449u16 => ("Pickup modifier", GDObjPropType::Float),
     452u16 => ("Relative rotation", GDObjPropType::Bool),
     460u16 => ("No end effects?", GDObjPropType::Bool),

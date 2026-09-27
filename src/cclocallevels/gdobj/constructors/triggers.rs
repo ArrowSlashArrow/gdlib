@@ -14,8 +14,6 @@
 //!
 //! All other triggers have a configuration struct that should be used instead.
 
-use std::ops::Neg;
-
 use crate::{
     cclocallevels::gdobj::{
         Event, GDObjConfig, GDObject, GDValue, ObjectProperties,

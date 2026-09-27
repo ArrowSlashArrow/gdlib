@@ -16,15 +16,12 @@ use crate::{
             constructors::triggers::{
                 AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
-            ids::properties::NEW_X_SCALE,
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
                 ColourChannel, CompareOp, CompareOperand, DefaultMove, Easing, Event, ExtraID2,
                 Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
-            text,
         },
-        properties::PROPERTY_TABLE,
     },
 };
 
@@ -58,7 +55,7 @@ fn move_constructor() {
     level.identity.name = "move trigger t3st".into();
     level.identity.creator = "gdlib".into();
     level.add_object(GDObject::from_config(
-        GDObjConfig::default().pos(45.0, 45.0),
+        GDObjConfig::default().with_pos(45.0, 45.0),
         MoveTrigger {
             move_config: MoveMode::Default(DefaultMove {
                 dx: 45,
@@ -96,13 +93,14 @@ fn level_display_test() {
 #[test]
 fn obj_properties() {
     let config = GDObjConfig::new()
-        .editor_layer_1(4)
-        .set_attribute_flag(GDObjAttributes::dont_fade, true)
-        .groups([2, 3, 1738])
-        .set_attribute_flag(GDObjAttributes::extra_sticky, true)
-        .set_attribute_flag(GDObjAttributes::no_glow, true)
-        .set_z_layer(ZLayer::B3)
-        .set_base_colour(ColourChannel::Background);
+        .with_editor_layer_1(4)
+        .with_attributes(
+            GDObjAttributes::dont_fade | GDObjAttributes::extra_sticky | GDObjAttributes::no_glow,
+            true,
+        )
+        .with_groups([2, 3, 1738])
+        .with_z_layer(ZLayer::B3)
+        .with_base_colour(ColourChannel::Background);
 
     let block = default_block(&config);
     let mut level = GDLevel::default();
@@ -117,7 +115,7 @@ fn obj_properties() {
 fn adv_random() {
     let mut level = GDLevel::default();
     level.add_object(GDObject::from_config(
-        GDObjConfig::default().pos(45.0, 45.0),
+        GDObjConfig::default().with_pos(45.0, 45.0),
         AdvancedRandomTrigger {
             probabilities: vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
         },
@@ -176,7 +174,7 @@ fn serialise_level_benchmark() {
 #[test]
 fn event_trigger_test() {
     let mut level = GDLevel::default();
-    let cfg = GDObjConfig::new().pos(45.0, 45.0);
+    let cfg = GDObjConfig::new().with_pos(45.0, 45.0);
     level.add_object(GDObject::from_config(
         cfg,
         EventTrigger {
@@ -228,7 +226,7 @@ fn item_compare() {
         let mut level = GDLevel::new(GDVersion::GD22082);
 
         level.add_object(GDObject::from_config(
-            GDObjConfig::new().pos(45.0, 45.0),
+            GDObjConfig::new().with_pos(45.0, 45.0),
             ItemCompareTrigger {
                 true_id: 11,
                 false_id: 22,

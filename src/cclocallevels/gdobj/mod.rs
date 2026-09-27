@@ -354,7 +354,7 @@ impl GDObject {
 
     #[inline]
     fn get_attr_as_gdvalue(&self, attr: GDObjAttributes) -> GDValue {
-        GDValue::Bool(self.config.get_attribute_flag(attr))
+        GDValue::Bool(self.config.get_attributes(attr))
     }
 
     /// Fetches a property from this object's configuration
@@ -419,52 +419,32 @@ impl GDObject {
             // all of the below are intrinsic properties of an object that are either set or filled in with a default value (by GD) if left unset.
             1 | 2 | 3 | 6 | 11 | 57 | 62 | 87 | 128 | 129 | 20 | 61 | 21 | 22 | 24 | 25 | 343
             | 446 | 534 => true,
-            64 => self.config.get_attribute_flag(GDObjAttributes::dont_fade),
-            67 => self.config.get_attribute_flag(GDObjAttributes::dont_enter),
-            116 => self.config.get_attribute_flag(GDObjAttributes::no_effects),
-            34 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::is_group_parent),
-            279 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::is_area_parent),
-            509 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::dont_boost_x),
-            496 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::dont_boost_y),
-            103 => self.config.get_attribute_flag(GDObjAttributes::high_detail),
-            121 => self.config.get_attribute_flag(GDObjAttributes::no_touch),
-            134 => self.config.get_attribute_flag(GDObjAttributes::passable),
-            135 => self.config.get_attribute_flag(GDObjAttributes::hidden),
-            136 => self.config.get_attribute_flag(GDObjAttributes::non_stick_x),
-            289 => self.config.get_attribute_flag(GDObjAttributes::non_stick_y),
-            495 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::extra_sticky),
+            64 => self.config.get_attributes(GDObjAttributes::dont_fade),
+            67 => self.config.get_attributes(GDObjAttributes::dont_enter),
+            116 => self.config.get_attributes(GDObjAttributes::no_effects),
+            34 => self.config.get_attributes(GDObjAttributes::is_group_parent),
+            279 => self.config.get_attributes(GDObjAttributes::is_area_parent),
+            509 => self.config.get_attributes(GDObjAttributes::dont_boost_x),
+            496 => self.config.get_attributes(GDObjAttributes::dont_boost_y),
+            103 => self.config.get_attributes(GDObjAttributes::high_detail),
+            121 => self.config.get_attributes(GDObjAttributes::no_touch),
+            134 => self.config.get_attributes(GDObjAttributes::passable),
+            135 => self.config.get_attributes(GDObjAttributes::hidden),
+            136 => self.config.get_attributes(GDObjAttributes::non_stick_x),
+            289 => self.config.get_attributes(GDObjAttributes::non_stick_y),
+            495 => self.config.get_attributes(GDObjAttributes::extra_sticky),
             511 => self
                 .config
-                .get_attribute_flag(GDObjAttributes::extended_collision),
-            137 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::is_ice_block),
-            193 => self.config.get_attribute_flag(GDObjAttributes::grip_slope),
-            96 => self.config.get_attribute_flag(GDObjAttributes::no_glow),
-            507 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::no_particles),
-            356 => self.config.get_attribute_flag(GDObjAttributes::scale_stick),
-            372 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::no_audio_scale),
-            284 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::single_ptouch),
-            369 => self
-                .config
-                .get_attribute_flag(GDObjAttributes::center_effect),
-            117 => self.config.get_attribute_flag(GDObjAttributes::reverse),
+                .get_attributes(GDObjAttributes::extended_collision),
+            137 => self.config.get_attributes(GDObjAttributes::is_ice_block),
+            193 => self.config.get_attributes(GDObjAttributes::grip_slope),
+            96 => self.config.get_attributes(GDObjAttributes::no_glow),
+            507 => self.config.get_attributes(GDObjAttributes::no_particles),
+            356 => self.config.get_attributes(GDObjAttributes::scale_stick),
+            372 => self.config.get_attributes(GDObjAttributes::no_audio_scale),
+            284 => self.config.get_attributes(GDObjAttributes::single_ptouch),
+            369 => self.config.get_attributes(GDObjAttributes::center_effect),
+            117 => self.config.get_attributes(GDObjAttributes::reverse),
 
             _ => self
                 .properties

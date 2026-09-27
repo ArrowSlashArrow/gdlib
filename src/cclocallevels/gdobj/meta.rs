@@ -64,13 +64,46 @@ impl Default for GDObjConfig {
     }
 }
 
+use paste::paste;
+
 macro_rules! config_fn {
-    (setter $fn_ident:ident, $param:expr, $t:ty) => {
-        #[inline]
-        #[doc = concat!("Sets this object's ", $fn_ident, " field.")]
-        pub fn $fn_ident(mut self, $fn_ident: $t) -> Self {
-            self.$param = $fn_ident;
-            self
+    ($fn_ident:ident ($t:ty) => $param:ident $(. $subparam:tt)?) => {
+        paste! {
+            #[inline]
+            #[doc = concat!("Sets this object's ", stringify!($fn_ident), " field.")]
+            pub fn [< set _ $fn_ident >](&mut self, $fn_ident: $t) {
+                self.$param $(. $subparam)? = $fn_ident;
+            }
+
+            #[inline]
+            #[doc = concat!("Sets this object's ", stringify!($fn_ident), " field and returns this object.")]
+            ///
+            /// This function enables object builder syntax.
+            pub fn [< with _ $fn_ident >](mut self, $fn_ident: $t) -> Self {
+                self.$param $(. $subparam)? = $fn_ident;
+                self
+            }
+        }
+    };
+
+    (#[$customdoc:meta] $fn_ident:ident ($t:ty) => $param:ident $(. $subparam:tt)?) => {
+
+
+        paste! {
+            #[inline]
+            #[$customdoc]
+            pub fn [< set _ $fn_ident >](&mut self, $fn_ident: $t) {
+                self.$param $(. $subparam)? = $fn_ident;
+            }
+
+            #[inline]
+            #[$customdoc]
+            ///
+            /// This function enables object builder syntax.
+            pub fn [< with _ $fn_ident >](mut self, $fn_ident: $t) -> Self {
+                self.$param $(. $subparam)? = $fn_ident;
+                self
+            }
         }
     };
 }
@@ -154,12 +187,21 @@ impl GDObjConfig {
         self.groups.dedup_by(|a, b| a.id() == b.id());
     }
 
-    /// Sets groups of this object
+    /// Sets groups of this object.
+    ///
+    /// This function allows for object builder syntax
     #[inline]
-    pub fn groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) -> Self {
+    pub fn with_groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) -> Self {
         self.groups = groups.into_iter().map(std::convert::Into::into).collect();
         self.dedup_groups();
         self
+    }
+
+    /// Sets groups of this object.
+    #[inline]
+    pub fn set_groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) {
+        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
+        self.dedup_groups();
     }
     /// Adds groups to this object's groups
     #[inline]
@@ -185,18 +227,15 @@ impl GDObjConfig {
     pub fn clear_groups(&mut self) {
         self.groups.clear();
     }
-    /// Sets x position of this object
-    #[inline]
-    pub fn x(mut self, x: f64) -> Self {
-        self.pos.0 = x;
-        self
-    }
-    /// Sets y position of this object
-    #[inline]
-    pub fn y(mut self, y: f64) -> Self {
-        self.pos.1 = y;
-        self
-    }
+
+    config_fn!(
+        /// Sets this object's y-position.
+        x(f64) => pos.0
+    );
+    config_fn!(
+        /// Sets this object's y-position.
+        y(f64) => pos.1
+    );
 
     /// Applies a translation to this object's position
     #[inline]
@@ -208,118 +247,78 @@ impl GDObjConfig {
 
     /// Sets x and y position of this object
     #[inline]
-    pub fn pos(mut self, x: f64, y: f64) -> Self {
+    pub fn set_pos(mut self, x: f64, y: f64) {
+        self.pos = (x, y);
+    }
+    /// Sets x and y position of this object
+    ///
+    /// This function enables object builder syntax.
+    #[inline]
+    pub fn with_pos(mut self, x: f64, y: f64) -> Self {
         self.pos = (x, y);
         self
     }
-    /// Sets x scale of this object
+    config_fn!(xscale(f64) => scale.0);
+    config_fn!(yscale(f64) => scale.1);
+    /// Sets x and y scale of this object.
     #[inline]
-    pub fn xscale(mut self, xscale: f64) -> Self {
-        self.scale.0 = xscale;
-        self
+    pub fn set_scale(mut self, x: f64, y: f64) {
+        self.scale = (x, y);
     }
-    /// Sets y scale of this object
+    /// Sets x and y scale of this object.
+    ///
+    /// This function enables object builder syntax.
     #[inline]
-    pub fn yscale(mut self, yscale: f64) -> Self {
-        self.scale.1 = yscale;
-        self
-    }
-    /// Sets x and y scale of this object
-    #[inline]
-    pub fn scale(mut self, x: f64, y: f64) -> Self {
+    pub fn with_scale(mut self, x: f64, y: f64) -> Self {
         self.scale = (x, y);
         self
     }
-    /// Sets rotation angle of this object
-    #[inline]
-    pub fn angle(mut self, angle: f64) -> Self {
-        self.angle = angle;
-        self
-    }
-    /// Makes this object touch triggerable
-    #[inline]
-    pub fn touchable(mut self, touchable: bool) -> Self {
-        self.trigger_cfg.touchable = touchable;
-        self
-    }
-    /// Makes this object spawn triggerable
-    #[inline]
-    pub fn spawnable(mut self, spawnable: bool) -> Self {
-        self.trigger_cfg.spawnable = spawnable;
-        self
-    }
-    /// Makes this object multi-triggerable
-    #[inline]
-    pub fn multitrigger(mut self, multi: bool) -> Self {
-        self.trigger_cfg.multitriggerable = multi;
-        self
-    }
-    /// Sets this object's base colour channel
-    #[inline]
-    pub fn set_base_colour(mut self, channel: ColourChannel) -> Self {
-        self.colour_channels.0 = channel;
-        self
-    }
-    /// Sets this object's detail colour channel
-    #[inline]
-    pub fn set_detail_colour(mut self, channel: ColourChannel) -> Self {
-        self.colour_channels.1 = channel;
-        self
-    }
-    /// Sets this object's Z-layer
-    #[inline]
-    pub fn set_z_layer(mut self, z: ZLayer) -> Self {
-        self.z_layer = z;
-        self
-    }
-    /// Sets this object's Z-order
-    #[inline]
-    pub fn set_z_order(mut self, z: i32) -> Self {
-        self.z_order = z;
-        self
-    }
-    /// Sets editor layer 1 of this object
-    #[inline]
-    pub fn editor_layer_1(mut self, l: i16) -> Self {
-        self.editor_layers.0 = l;
-        self
-    }
-    /// Sets editor layer 2 of this object
-    #[inline]
-    pub fn editor_layer_2(mut self, l: i16) -> Self {
-        self.editor_layers.1 = l;
-        self
-    }
-    /// Sets this object's material id
-    #[inline]
-    pub fn set_material_id(mut self, material_id: i16) -> Self {
-        self.material_id = material_id;
-        self
-    }
-    /// Sets this object's enter effect channel
-    #[inline]
-    pub fn set_enter_channel(mut self, channel: i16) -> Self {
-        self.enter_effect_channel = channel;
-        self
-    }
-    /// Sets this object's control ID
-    #[inline]
-    pub fn set_control_id(mut self, id: i16) -> Self {
-        self.control_id = id;
-        self
-    }
+    config_fn!(angle(f64) => angle);
+    config_fn!(
+        /// Makes this object touch triggerable. This option is used primarily in triggers but also in things such as collectibles and orbs. This field is automatically set when such an object is placed in-game.
+        touchable(bool) => trigger_cfg.touchable
+    );
+    config_fn!(
+        /// Makes this object spawn triggerable. This option is used primarily in triggers.
+        spawnable(bool) => trigger_cfg.spawnable
+    );
+    config_fn!(
+        /// Makes this object multi-triggerable. This option is used in any object that can actiavte more than once. This includes pads, portals, orbs, and triggers. This field is automatically set when such an object is placed in-game.
+        multitrigger(bool) => trigger_cfg.multitriggerable
+    );
+    config_fn!(base_colour(ColourChannel) => colour_channels.0);
+    config_fn!(detail_colour(ColourChannel) => colour_channels.1);
+    config_fn!(
+        /// Sets this object's Z-layer
+        z_layer(ZLayer) => z_layer
+    );
+    config_fn!(
+        /// Sets this object's Z-order
+        z_order(i32) => z_order
+    );
+    config_fn!(control_id(i16) => control_id);
+    config_fn!(enter_channel(i16) => enter_effect_channel);
+    config_fn!(material_id(i16) => material_id);
+    config_fn!(editor_layer_1(i16) => editor_layers.0);
+    config_fn!(editor_layer_2(i16) => editor_layers.1);
 
     /// Gets the value of a set attribute flag.  
-    /// The flag is only true if it has been set as such. Unset flags return false.
+    /// All flags are false by default.
     #[inline]
     #[must_use]
-    pub fn get_attribute_flag(&self, flag: GDObjAttributes) -> bool {
+    pub fn get_attributes(&self, flag: GDObjAttributes) -> bool {
         self.attributes.contains(flag)
     }
 
-    /// Sets the attribute of the specified flag. Function is useable in builder syntax.
+    /// Sets the attribute of the specified flag.
     #[inline]
-    pub fn set_attribute_flag(mut self, flag: GDObjAttributes, toggle: bool) -> Self {
+    pub fn set_attributes(mut self, flag: GDObjAttributes, toggle: bool) {
+        self.attributes.set(flag, toggle);
+    }
+
+    /// Sets the attribute(s) of the specified flag. Function is useable in builder syntax.
+    #[inline]
+    pub fn with_attributes(mut self, flag: GDObjAttributes, toggle: bool) -> Self {
         self.attributes.set(flag, toggle);
         self
     }
