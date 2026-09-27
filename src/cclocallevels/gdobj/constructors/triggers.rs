@@ -280,115 +280,125 @@ impl ObjectProperties for StartposConfig {
         })
     }
 }
-
-// TODO: implement ObjectProperties
-/// Returns a colour trigger
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `fade_time`: Time to fade into the colour
-/// * `copy_colour`: Optional [`CopyColourConfig`]
-pub fn colour_trigger(
-    config: &GDObjConfig,
-    colour_cfg: ColourTriggerConfig,
-    fade_time: f64,
-    copy_colour: Option<CopyColourConfig>,
-) -> GDObject {
-    let mut properties = vec![
-        (RED, GDValue::Int(colour_cfg.colour.red as i32)),
-        (GREEN, GDValue::Int(colour_cfg.colour.green as i32)),
-        (BLUE, GDValue::Int(colour_cfg.colour.blue as i32)),
-        (DURATION_GROUP_TRIGGER_CHANCE, GDValue::Float(fade_time)),
-        (
-            USING_PLAYER_COLOUR_1,
-            GDValue::Bool(colour_cfg.use_player_col_1),
-        ),
-        (
-            USING_PLAYER_COLOUR_2,
-            GDValue::Bool(colour_cfg.use_player_col_2),
-        ),
-        (COLOUR_CHANNEL, GDValue::Short(colour_cfg.channel.into())),
-        (OPACITY, GDValue::Float(colour_cfg.opacity)),
-        (BLENDING_ENABLED, GDValue::Bool(colour_cfg.blending)),
-    ];
-
-    if let Some(config) = copy_colour {
-        let cfg_string = config.hsv_config.to_string();
-        if !config.use_legacy_hsv {
-            properties.push((NO_LEGACY_HSV, GDValue::Bool(true)));
-        }
-
-        properties.push((COPY_OPACITY, GDValue::Bool(config.copy_opacity)));
-        properties.push((COPY_COLOUR_SPECS, GDValue::String(cfg_string)));
-        properties.push((
-            COPY_COLOUR_FROM_CHANNEL,
-            GDValue::ColourChannel(config.original_ch),
-        ));
-    }
-
-    GDObject::new(COLOR_TRIGGER, config, properties)
+/// Sets the colour of a colour channel.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ColourTrigger {
+    /// The new colour of the target channel. This field is an (R, G, B) tuple of `u8`s (which can also be obtained from a hexcode string via [`Colour::from_hex`]).
+    pub colour: Colour,
+    /// The channel to change the colour of
+    pub channel: ColourChannel,
+    /// Opacity of colour: 0.0 = transparent, 1.0 = opaque.
+    pub opacity: f64,
+    /// Use blending for this colour
+    pub blending: bool,
+    /// Use player colour 1 instead of the specified colour.
+    pub use_player_col_1: bool,
+    /// Use player colour 2 instead of the specified colour.
+    pub use_player_col_2: bool,
+    /// Amount of time in seconds that it takes to fade from the old colour to the new colour.
+    pub fade_time: f64,
+    /// Optional setup for copying a colour from another colour channel.
+    pub copy_colour: Option<CopyColourConfig>,
 }
 
-// TODO: implement ObjectProperties
-/// Returns a pulse trigger
-///
-/// # Arguments
-/// * `config`: General object options, such as position and scale
-/// * `pulse_fade_in_time`: fade-in time of the pulse in seconds  
-/// * `pulse_hold_time`: gold time of the pulse in seconds  
-/// * `pulse_fade_out_time`: fade-out time of the pulse in seconds  
-/// * `exclusive_pulse`: disable all other pulses of the same ID when this trigger is activated
-/// * `pulse_target`: Target group/channel of pulse. See [`PulseTarget`]
-/// * `pulse_mode`: Colour settings of this pulse. See [`PulseMode`]
-pub fn pulse_trigger(
-    config: &GDObjConfig,
-    pulse_fade_in_time: f64,
-    pulse_hold_time: f64,
-    pulse_fade_out_time: f64,
-    exclusive_pulse: bool,
-    pulse_target: &PulseTarget,
-    pulse_mode: PulseMode,
-) -> GDObject {
-    let mut properties = vec![
-        (PULSE_FADE_IN_TIME, GDValue::Float(pulse_fade_in_time)),
-        (PULSE_HOLD_TIME, GDValue::Float(pulse_hold_time)),
-        (PULSE_FADE_OUT_TIME, GDValue::Float(pulse_fade_out_time)),
-        (EXCLUSIVE_PULSE_MODE, GDValue::Bool(exclusive_pulse)),
-    ];
-    match pulse_target {
-        PulseTarget::Channel(c) => properties.push((TARGET_ITEM, GDValue::Group(c.channel_id))),
-        PulseTarget::Group(g) => {
-            properties.extend_from_slice(&[
-                (
-                    PULSE_DETAIL_COLOUR_ONLY,
-                    GDValue::Bool(g.detail_colour_only),
-                ),
-                (PULSE_MAIN_COLOUR_ONLY, GDValue::Bool(g.main_colour_only)),
-                (PULSE_GROUP, GDValue::Group(g.group_id)),
-            ]);
+impl ObjectProperties for ColourTrigger {
+    fn object_id(&self) -> i32 {
+        COLOR_TRIGGER
+    }
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (
+                DURATION_GROUP_TRIGGER_CHANCE,
+                GDValue::Float(self.fade_time),
+            ),
+            (USING_PLAYER_COLOUR_1, GDValue::Bool(self.use_player_col_1)),
+            (USING_PLAYER_COLOUR_2, GDValue::Bool(self.use_player_col_2)),
+            (COLOUR_CHANNEL, GDValue::Short(self.channel.into())),
+            (OPACITY, GDValue::Float(self.opacity)),
+            (BLENDING_ENABLED, GDValue::Bool(self.blending)),
+        ];
+
+        if let Some(ref config) = self.copy_colour {
+            let cfg_string = config.hsv_config.to_string();
+            if !config.use_legacy_hsv {
+                properties.push((NO_LEGACY_HSV, GDValue::Bool(true)));
+            }
+
+            properties.push((COPY_OPACITY, GDValue::Bool(config.copy_opacity)));
+            properties.push((COPY_COLOUR_SPECS, GDValue::String(cfg_string)));
+            properties.push((
+                COPY_COLOUR_FROM_CHANNEL,
+                GDValue::ColourChannel(config.original_ch),
+            ));
         }
+        properties
     }
 
-    match pulse_mode {
-        PulseMode::Colour(c) => {
-            properties.extend_from_slice(&[
-                (RED, GDValue::Int(c.red as i32)),
-                (GREEN, GDValue::Int(c.green as i32)),
-                (BLUE, GDValue::Int(c.blue as i32)),
-            ]);
+    /* TODO: implement `from_object` */
+}
+
+/// Temporarily changes the colour of a colour channel/group by fading the colour in/out.
+pub struct PulseTrigger {
+    /// Fade-in time of the pulse in seconds  
+    pub pulse_fade_in_time: f64,
+    /// How long the pulsed colour stays before fading out (in seconds).  
+    pub pulse_hold_time: f64,
+    /// Fade-out time of the pulse in seconds  
+    pub pulse_fade_out_time: f64,
+    /// Disable all other pulses of the same ID when this trigger is activated.
+    pub exclusive_pulse: bool,
+    /// Target group/channel of pulse. See [`PulseTarget`]
+    pub pulse_target: PulseTarget,
+    /// Colour settings of this pulse. See [`PulseMode`]
+    pub pulse_mode: PulseMode,
+}
+
+impl ObjectProperties for PulseTrigger {
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        let mut properties = vec![
+            (PULSE_FADE_IN_TIME, GDValue::Float(self.pulse_fade_in_time)),
+            (PULSE_HOLD_TIME, GDValue::Float(self.pulse_hold_time)),
+            (
+                PULSE_FADE_OUT_TIME,
+                GDValue::Float(self.pulse_fade_out_time),
+            ),
+            (EXCLUSIVE_PULSE_MODE, GDValue::Bool(self.exclusive_pulse)),
+        ];
+        match self.pulse_target {
+            PulseTarget::Channel(c) => properties.push((TARGET_ITEM, GDValue::Group(c.channel_id))),
+            PulseTarget::Group(g) => {
+                properties.extend_from_slice(&[
+                    (
+                        PULSE_DETAIL_COLOUR_ONLY,
+                        GDValue::Bool(g.detail_colour_only),
+                    ),
+                    (PULSE_MAIN_COLOUR_ONLY, GDValue::Bool(g.main_colour_only)),
+                    (PULSE_GROUP, GDValue::Group(g.group_id)),
+                ]);
+            }
         }
-        PulseMode::HSV(h) => {
-            properties.extend_from_slice(&[
-                (NO_LEGACY_HSV, GDValue::Bool(h.use_static_hsv)),
-                (COPY_COLOUR_SPECS, GDValue::String(h.hsv_config.to_string())),
-                (
-                    COPY_COLOUR_FROM_CHANNEL,
-                    GDValue::ColourChannel(h.colour_id),
-                ),
-            ]);
+
+        match &self.pulse_mode {
+            PulseMode::Colour(c) => properties.extend_from_slice(&c.to_properties()),
+            PulseMode::HSV(h) => {
+                properties.extend_from_slice(&[
+                    (NO_LEGACY_HSV, GDValue::Bool(h.use_static_hsv)),
+                    (COPY_COLOUR_SPECS, GDValue::String(h.hsv_config.to_string())),
+                    (
+                        COPY_COLOUR_FROM_CHANNEL,
+                        GDValue::ColourChannel(h.colour_id),
+                    ),
+                ]);
+            }
         }
+        properties
     }
-    GDObject::new(PULSE_TRIGGER, config, properties)
+
+    fn object_id(&self) -> i32 {
+        PULSE_TRIGGER
+    }
+
+    /* TODO: implement `from_object` */
 }
 
 object_descriptor!(

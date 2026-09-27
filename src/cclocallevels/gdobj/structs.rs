@@ -5,16 +5,7 @@ use std::{f64::consts::PI, fmt::Display, str::FromStr};
 use anyhow::anyhow;
 use smallvec::SmallVec;
 
-use crate::{
-    cclocallevels::gdobj::ids::properties::{
-        TARGET_ITEM, TELEPORT_EXIT_GRAVITY, TELEPORT_IGNORE_X, TELEPORT_IGNORE_Y,
-        TELEPORT_INSTANT_CAMERA, TELEPORT_REDIRECT_DASH, TELEPORT_REDIRECT_FORCE_MAXIMUM,
-        TELEPORT_REDIRECT_FORCE_MINIMUM, TELEPORT_REDIRECT_FORCE_MOD, TELEPORT_SAVE_OFFSET,
-        TELEPORT_SMOOTH_EASE, TELEPORT_SNAP_GROUND, TELEPORT_STATIC_FORCE_IS_ADDITIVE,
-        TELEPORT_STATIC_FORCE_VALUE, TELEPORT_USE_REDIRECT_FORCE, TELEPORT_USE_STATIC_FORCE,
-    },
-    repr_t,
-};
+use crate::{cclocallevels::gdobj::ids::properties::*, repr_t};
 
 const LIST_ALLOCSIZE: usize = 5;
 
@@ -1284,7 +1275,7 @@ impl Colour {
         }
     }
 
-    /// Parses a hex code (#123456) to a [`Colour`]
+    /// Parses a hex code (#123456) to a [`Colour`]. The hex code must start with a `#` and be seven chars in length, the last 6 being hexadecimal digits.
     pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Result<Self, anyhow::Error> {
         let str = hex_str.as_ref();
         if str.len() != 7 || !str.starts_with('#') {
@@ -1302,6 +1293,15 @@ impl Colour {
             green: (hex >> 8 & 0xFF) as u8,
             blue: (hex & 0xFF) as u8,
         })
+    }
+
+    /// Convert this object to a list of properties ready to be used in serialization.
+    pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
+        vec![
+            (RED, GDValue::Int(self.red as i32)),
+            (GREEN, GDValue::Int(self.green as i32)),
+            (BLUE, GDValue::Int(self.blue as i32)),
+        ]
     }
 }
 
@@ -1430,23 +1430,6 @@ impl ColliderConfig {
             collide_both_players: false,
         }
     }
-}
-
-/// Configuration struct for the primary colour operation in a colour trigger
-#[derive(Debug, Clone, Copy)]
-pub struct ColourTriggerConfig {
-    /// (R, G, B) tuple of `u8`s
-    pub colour: Colour,
-    /// Channel whose colour will be changed
-    pub channel: ColourChannel,
-    /// Opacity of colour
-    pub opacity: f64,
-    /// Use blending?
-    pub blending: bool,
-    /// Use player colour 1 instead of the specified colour.
-    pub use_player_col_1: bool,
-    /// Use player colour 2 instead of the specified colour.
-    pub use_player_col_2: bool,
 }
 
 repr_t!(
