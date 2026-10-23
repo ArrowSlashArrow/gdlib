@@ -558,6 +558,7 @@ pub struct GDLevelPlayerStats {
     /// Internal key: `k85`
     pub clicks: i32,
     /// Amount of time spent on a player's best attempt
+    ///
     /// Internal key: `k86`
     pub best_attempt_time: i32,
     /// Internal key: `k71`
@@ -565,6 +566,7 @@ pub struct GDLevelPlayerStats {
     /// Internal key: `k90`
     pub leaderboard_percentage: i32,
     /// Verification time in game ticks, where 1 game tick = 1s/240 = roughly 4.167ms
+    ///
     /// Internal key: `k95`
     pub verification_time: Option<i32>,
     /// Internal key: `k107`
@@ -782,6 +784,34 @@ impl GDLevel {
                 "Unable to parse file to valid level.".into(),
             ))?,
         )
+    }
+
+    /// Generates the leaderboard seed for a classic level (property `k87` found at `GDLevel.integrity.level_seed`).
+    ///
+    /// Parameter info:
+    /// * `has_played`: whether the player has played the level. Default: true
+    /// * `seconds`: Presumably, the amount of seconds spent on the player's best attempt (found at `GDLevel.player_stats.best_attempt_time`).
+    ///
+    /// Note that an additional 1482 must be added to this value when submitting the level score.
+    ///
+    /// Reference: <https://boomlings.dev/resources/client/level>
+    pub fn generate_level_seed_classic(&self, has_played: bool, seconds: i32) -> i32 {
+        let temp1 = seconds + 4085;
+        return 1482 * (has_played as i32)
+            + (self.player_stats.jumps + 3991) * (self.player_stats.normal_percentage * 8354)
+            + (temp1 * temp1)
+            - 50028039;
+    }
+
+    /// Generates the leaderboard seed for a platformer level (property `k111`).
+    ///
+    /// Reference: <https://boomlings.dev/resources/client/level>
+    pub fn generate_level_seed_platformer(&self) -> i32 {
+        let number = (((self.player_stats.best_attempt_time + 7890) % 34567) * 601
+            + ((self.player_stats.best_points.unwrap_or(0).abs() + 3456) % 78901) * 967
+            + 94819)
+            % 94433;
+        return ((number ^ number >> 16) * 829) % 77849;
     }
 
     /// Parses a `plist::Dictionary` into a GDLevel object.
