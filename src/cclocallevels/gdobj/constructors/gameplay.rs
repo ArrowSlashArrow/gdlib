@@ -96,7 +96,7 @@ repr_t!(
     strict GDOrbType: i32 {
         Yellow = YELLOW_JUMP_ORB,
         Pink = PINK_JUMP_ORB,
-        Blue = BLUE_GRAVITY_PAD,
+        Blue = BLUE_GRAVITY_ORB,
         Red = RED_JUMP_ORB,
         Green = GREEN_GRAVITY_ORB,
         Black = BLACK_DROP_ORB,
@@ -180,11 +180,11 @@ impl ObjectProperties for GDOrb {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DashOrbSettings {
     /// Speed of the dash. Default is `1.0`
-    pub speed: f64,
+    pub speed: f32,
     /// Force applied to the player when the dash stops. Default is `1.0`
-    pub end_boost: f64,
+    pub end_boost: f32,
     /// Dash ends automatically after this many seconds have passed since the orb was activated. Set to `0.0` for infinite duration.
-    pub max_duration: f64,
+    pub max_duration: f32,
     /// Makes the dash not end when the player collides with a hitbox.
     pub allow_collide: bool,
     // TODO: clarify
@@ -254,13 +254,13 @@ impl ObjectProperties for ForceObjectConfig {
 /// Force that is applied to a player in a force object
 pub enum Force {
     /// Applies a fixed amount of force in the direction that the force block is pointing - 0 degrees = up, 90 degrees = right, 180 degrees = down, -90 degrees = left
-    Scalar(f64),
+    Scalar(f32),
     /// Applies force based on player position.
     Range {
         /// @nodoc
-        minimum: f64,
+        minimum: f32,
         /// @nodoc
-        maximum: f64,
+        maximum: f32,
     },
 }
 
@@ -399,7 +399,7 @@ pub enum PortalOptions {
     /// For `UnlinkedBlueTeleportal` only.
     Teleportal(TeleportConfig),
     /// For `LinkedTeleportals` only. The second item specifies the y-position of the orange teleportal in units relative to the blue one (default = 100).
-    LinkedTeleportal((TeleportConfig, f64)),
+    LinkedTeleportal((TeleportConfig, f32)),
     /// For gameplay portals and dual portals.
     Camera(PortalCameraOptions),
 }
@@ -416,7 +416,7 @@ pub struct PortalCameraOptions {
     /// Tuple of two items - (easing, padding)
     /// * Easing: smoothness of camera motion
     /// * Padding: how close the player has to be to the edge of the screen for the camera to move
-    pub edit_camera_settings: Option<(i32, f64)>,
+    pub edit_camera_settings: Option<(i32, f32)>,
 }
 
 // 1,1933,2,2295,3,855,155,9,36,1                                      ;    nothing

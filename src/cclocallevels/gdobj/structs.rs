@@ -1,11 +1,14 @@
 //! This module contains all structs and enums for values that are present in GD objects.
 
-use std::{f64::consts::PI, fmt::Display, str::FromStr};
+use std::{f32::consts::PI, fmt::Display, str::FromStr};
 
 use anyhow::anyhow;
 use smallvec::SmallVec;
 
-use crate::{cclocallevels::gdobj::ids::properties::*, repr_t};
+use crate::{
+    cclocallevels::gdobj::{GDObject, ids::properties::*},
+    repr_t,
+};
 
 const LIST_ALLOCSIZE: usize = 5;
 
@@ -224,6 +227,7 @@ repr_t!(
 pub enum GDObjPropType {
     Int,
     Float,
+    Double,
     Text,
     Bool,
     /// Refers specifically to a single group field.
@@ -259,6 +263,7 @@ pub enum GDObjPropType {
     ItemAlign,
     MiddleGround,
     TeleportGravity,
+    ExtraID2,
     Unknown,
 }
 
@@ -381,7 +386,7 @@ pub struct Easing {
     /// Type of easing to apply. Different easings produce different curves of motion.
     pub easing: MoveEasing,
     /// The higher this number is, the "smoother" the movement will be.
-    pub easing_rate: f64,
+    pub easing_rate: f32,
 }
 
 impl Easing {
@@ -394,15 +399,36 @@ impl Easing {
     }
 
     /// Converts an (easing, rate) tuple into Self.
-    pub fn from(easing: MoveEasing, rate: f64) -> Self {
+    pub fn from(easing: MoveEasing, rate: f32) -> Self {
         Easing {
             easing,
             easing_rate: rate,
         }
     }
+
+    /// Rebuilds a copy of this struct from a `GDObject`. If the required parameters are not found, the default ones are used instead.
+    pub fn from_object(object: &GDObject) -> Self {
+        let mut this = Self::none();
+        if let Some(GDValue::Float(f)) = object.get_property(EASING_RATE) {
+            this.easing_rate = f;
+        }
+        if let Some(GDValue::Easing(e)) = object.get_property(MOVE_EASING) {
+            this.easing = e;
+        }
+
+        this
+    }
+
+    /// Serializes this struct into object properties
+    pub fn serialise(&self) -> [(u16, GDValue); 2] {
+        [
+            (MOVE_EASING, GDValue::Easing(self.easing)),
+            (EASING_RATE, GDValue::Float(self.easing_rate)),
+        ]
+    }
 }
 /// The default easing rate for any move easing.
-pub const DEFAULT_EASING_RATE: f64 = 2.00;
+pub const DEFAULT_EASING_RATE: f32 = 2.00;
 
 impl From<MoveEasing> for Easing {
     fn from(easing: MoveEasing) -> Self {
@@ -430,8 +456,10 @@ pub enum GDValue {
     Int(i32),
     /// Any 16-bit signed integer.
     Short(i16),
+    /// Any 32-bit signed float.
+    Float(f32),
     /// Any 64-bit signed float.
-    Float(f64),
+    Double(f64),
     /// Any boolean.
     Bool(bool),
     /// Alternative boolean form. It is serialised as -1 instead of 0 if false. Used in the OptionTrigger.
@@ -452,7 +480,7 @@ pub enum GDValue {
     /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger.
     ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
     /// A list of spawn remap pairs: (old id, new id). Used in the spawn trigger.
-    SpawnRemapsList(smallvec::SmallVec<[(i16, i16); LIST_ALLOCSIZE]>),
+    SpawnRemapsList(smallvec::SmallVec<[(i32, i32); LIST_ALLOCSIZE]>),
     /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for a more
     Easing(MoveEasing),
     /// A [`ColourChannel`]. It may be any of the built in ones, or one with an ID in the range of \[1, 999]
@@ -523,7 +551,8 @@ impl GDValue {
                 Self::ColourChannel(ColourChannel::from(parse!(s => i16)))
             }
             GDObjPropType::Easing => Self::Easing(parse!(s => i32 => MoveEasing)),
-            GDObjPropType::Float => Self::Float(parse!(s => f64)),
+            GDObjPropType::Double => Self::Double(parse!(s => f64)),
+            GDObjPropType::Float => Self::Float(parse!(s => f32)),
             GDObjPropType::Int => Self::Int(parse!(s => i32)),
             GDObjPropType::EventsList => Self::Events(
                 s.split('.')
@@ -535,7 +564,7 @@ impl GDValue {
                 Self::ProbabilitiesList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::SpawnRemapsList => {
-                let tuples = parse_sibling_items::<i16, i16>(s);
+                let tuples = parse_sibling_items::<i32, i32>(s);
                 Self::SpawnRemapsList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
@@ -573,6 +602,7 @@ impl GDValue {
             GDObjPropType::StopMode => Self::StopMode(parse!(s => i32 => StopMode)),
             GDObjPropType::ItemAlign => Self::ItemAlign(parse!(s => i32 => ItemAlign)),
             GDObjPropType::MiddleGround => Self::MiddleGround(parse!(s => i32 => MiddleGround)),
+            GDObjPropType::ExtraID2 => Self::ExtraID2(parse!(s => i32 => ExtraID2)),
             GDObjPropType::TeleportGravity => {
                 Self::TeleportGravity(parse!(s => i32 => TeleportGravity))
             }
@@ -585,21 +615,8 @@ impl GDValue {
 
     #[inline]
     /// Converts a vector of [`Group`]s to a [`GDValue`]
-    pub fn from_group_list(g: &[Group]) -> Self {
-        Self::GroupList(SmallVec::from_vec(g.iter().map(|&g| g.id()).collect()))
-    }
-
-    #[inline]
-    /// Converts a vector of parent [`Group`]s to a [`GDValue`]
-    pub fn parents_group_list(g: &[Group]) -> Self {
-        Self::GroupList(SmallVec::from_vec(
-            g.iter()
-                .filter_map(|g| match g {
-                    Group::Parent(p) => Some(*p),
-                    Group::Regular(_) => None,
-                })
-                .collect(),
-        ))
+    pub fn from_group_list(g: &[i16]) -> Self {
+        Self::GroupList(SmallVec::from_slice(g))
     }
 
     #[inline]
@@ -610,7 +627,7 @@ impl GDValue {
 
     #[inline]
     /// Converts a spawn remaps list to a [`GDValue`].
-    pub fn from_spawn_remaps(g: Vec<(i16, i16)>) -> Self {
+    pub fn from_spawn_remaps(g: Vec<(i32, i32)>) -> Self {
         Self::SpawnRemapsList(SmallVec::from_vec(g))
     }
 
@@ -628,7 +645,7 @@ impl GDValue {
 
     #[inline]
     /// Quick cast for `Self::Easing` to [`Easing`]. Returns `None` if `self` is not `Self::Easing`.
-    pub fn to_easing(&self, easing_rate: f64) -> Option<Easing> {
+    pub fn to_easing(&self, easing_rate: f32) -> Option<Easing> {
         match self {
             Self::Easing(e) => Some(Easing {
                 easing: *e,
@@ -702,6 +719,7 @@ impl Display for GDValue {
             GDValue::ColourChannel(v) => write!(f, "{}", i_buf.format(Into::<i16>::into(*v))),
             GDValue::Easing(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Float(v) => write!(f, "{}", d_buf.format(*v)),
+            GDValue::Double(v) => write!(f, "{}", d_buf.format(*v)),
             GDValue::Group(v) | GDValue::Item(v) | GDValue::Short(v) => {
                 write!(f, "{}", i_buf.format(*v))
             }
@@ -954,7 +972,7 @@ pub struct CompareOperand {
     /// Base item whose value is being used for the comparsion
     pub operand_item: Item,
     /// Multiplier
-    pub modifier: f64,
+    pub modifier: f32,
     /// Operator between the item's value and modifier. Can be any operator except for `Op::Set`. Default is `Op::Mul` in item compare triggers.
     pub mod_op: Op,
     /// Forces a specific rounding on the resulting value: See [`RoundMode`]
@@ -966,7 +984,7 @@ pub struct CompareOperand {
 impl CompareOperand {
     /// Constructor for an operand that is simply a number literal.  
     /// Useful for comparing an [`Item`] against a number.
-    pub fn number_literal(num: f64) -> Self {
+    pub fn number_literal(num: f32) -> Self {
         Self {
             operand_item: Item::Counter(0),
             modifier: num,
@@ -982,7 +1000,7 @@ impl CompareOperand {
     ///
     /// This implementation was ripped directly GD's source code.
     pub fn eval_operand(&self, num: f64) -> f64 {
-        let rounded_mod = round_3dp(self.modifier);
+        let rounded_mod = round_3dp(self.modifier as f64);
         match self.mod_op {
             Op::Set => Op::Mul,
             o => o,
@@ -1222,8 +1240,9 @@ impl HSVColour {
         new.hue_shift = set_value!(vals_iter => i32);
         new.saturation_mult = set_value!(vals_iter => f64);
         new.brightness_mult = set_value!(vals_iter => f64);
-        new.static_bright_scalar = set_value!(vals_iter);
+        // todo: figure out which is which (they are swapped)
         new.static_sat_scalar = set_value!(vals_iter);
+        new.static_bright_scalar = set_value!(vals_iter);
         Some(new)
     }
 }
@@ -1316,9 +1335,9 @@ impl Colour {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScaleConfig {
     /// Scale of target on x-axis
-    pub x_scale: f64,
+    pub x_scale: f32,
     /// Scale of target on y-axis
-    pub y_scale: f64,
+    pub y_scale: f32,
     /// Divides the x scale by the existing x-axis scale value of the target
     pub div_by_value_x: bool,
     /// Divides the y scale by the existing y-axis scale value of the target
@@ -1370,14 +1389,14 @@ pub enum RotationMode {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RotationNormal {
     /// Amount of degrees
-    pub degrees: f64,
+    pub degrees: f32,
     /// Amount of full rotations. Specifying these is preferred to specifying an overly large number of degrees.
     pub x360: i32,
 }
 
 impl RotationNormal {
     /// Specify rotation amount with degrees
-    pub fn from_degrees(deg: f64) -> Self {
+    pub fn from_degrees(deg: f32) -> Self {
         Self {
             degrees: deg % 360.0,
             x360: (deg as i32 / 360),
@@ -1385,7 +1404,7 @@ impl RotationNormal {
     }
 
     /// Specify rotation amount with radians
-    pub fn from_radians(rad: f64) -> Self {
+    pub fn from_radians(rad: f32) -> Self {
         Self::from_degrees(rad * 180.0 / PI)
     }
 }
@@ -1404,7 +1423,7 @@ pub struct RotationAim {
     /// Group around which to rotate
     pub aim_target: i16,
     /// Rotation offset of the rotating group
-    pub rot_offset: f64,
+    pub rot_offset: f32,
     /// Overrides aim_target if not None, uses either P1 or P2 as the target instead.
     pub player_target: Option<RotationPlayerTarget>,
 }
@@ -1489,51 +1508,6 @@ where
         tuples.push((g, c));
     }
     tuples
-}
-
-/// Group ID container for regular and parent groups
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum Group {
-    Regular(i16),
-    Parent(i16),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-/// Group type enum
-pub enum GroupType {
-    Regular,
-    Parent,
-}
-
-impl Group {
-    /// Returns this group's ID
-    pub fn id(&self) -> i16 {
-        match self {
-            Self::Regular(id) | Self::Parent(id) => *id,
-        }
-    }
-    /// Returns this group's type
-    #[must_use]
-    pub fn get_type(&self) -> GroupType {
-        match self {
-            Group::Parent(_) => GroupType::Parent,
-            Group::Regular(_) => GroupType::Regular,
-        }
-    }
-}
-
-impl From<i16> for Group {
-    fn from(value: i16) -> Self {
-        Self::Regular(value)
-    }
-}
-
-impl Into<i16> for Group {
-    fn into(self) -> i16 {
-        self.id()
-    }
 }
 
 repr_t!(
@@ -1666,18 +1640,18 @@ pub enum TeleportForce {
     /// force applied to player after teleport
     Static {
         /// @nodoc
-        force: f64,
+        force: f32,
         /// @nodoc
         is_additive: bool,
     },
     /// exits based on input
     Redirect {
         /// @nodoc
-        min: f64,
+        min: f32,
         /// @nodoc
-        max: f64,
+        max: f32,
         /// default: 1.0
-        modifier: f64,
+        modifier: f32,
     },
 }
 

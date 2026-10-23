@@ -4,6 +4,8 @@ A typesafe, rust library to interface with GD savefiles. It is intended to enabl
 Documentation can be found on [docs.rs](https://docs.rs/gdlib/latest/gdlib/).  
 As of v0.4.3, GDLib is in active development.
 
+Latest supported version of GD: **2.2081**.
+
 ## Overview
 GDLib is an API that is designed to parse the Geometry Dash savefile format. It can parse levels and objects from the savefile (CCLocalLevels.dat) and from .gmd files. 
 
@@ -28,13 +30,13 @@ As of v0.4.1, this crate only supports decoding files from Windows and Linux. Th
 ## Usage instructions
 This crate can be added to a project by running `cargo add gdlib`.
 
+This crate enables the programmer to __manually control__ all components of a GD savefile/level/object. This means that the responsibility for GD structs to be properly encoded is *__on the programmer__*.
+While there are some helper functions to assist with automatically setting fields necessary for compliance with proper GD format, it is on the programmer to verify that their program really does generate usable items. 
+
 ## Minimal example
 This example can be found at `examples/minimal.rs`.
 ```rust
-use gdlib::{
-    cclocallevels::{gdlevel::GDLevel, gdobj::structs::Group},
-    core::GDError,
-};
+use gdlib::{cclocallevels::gdlevel::GDLevel, core::GDError};
 
 fn main() -> Result<(), GDError> {
     // Load level from .gmd file
@@ -44,7 +46,7 @@ fn main() -> Result<(), GDError> {
     if let Some(data) = level.get_decrypted_data_ref() {
         // Add group 42 to all objects
         for obj in data.objects.iter_mut() {
-            obj.config.add_group(Group::Regular(42));
+            obj.config.add_group(42);
         }
     }
 

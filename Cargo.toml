@@ -5,7 +5,7 @@ edition = "2024"
 build = "build.rs"
 
 description = "Rust library for editing Geometry Dash savefiles"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 repository = "https://github.com/ArrowSlashArrow/gdlib"
 keywords = ["fast", "api", "gd"]
 categories = ["encoding", "api-bindings", "games"]

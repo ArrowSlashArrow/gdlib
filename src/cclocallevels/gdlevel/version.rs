@@ -111,6 +111,8 @@ pub enum GDVersion {
     GD22082,
     /// GD Version 2.209
     GD2209,
+    /// GD Version 2.2091
+    GD22091,
     /// Unknown version. Internal value is `binaryVersion`.
     Unknown(i32),
 }
@@ -219,6 +221,7 @@ impl GDVersion {
             47 => Self::GD22081,
             48 => Self::GD22082,
             49 => Self::GD2209,
+            51 => Self::GD22091,
             n => Self::Unknown(n),
         }
     }
@@ -231,11 +234,11 @@ impl GDVersion {
     /// The variants of this enum correspond to different builds of GD. Not all of the values of this enum are known.
     ///
     /// **WARNING:** This function will NOT return a value for the following versions:
-    /// - 2.207
-    /// - 2.2071
-    /// - 2.2072
-    /// - 2.2073
-    /// - `Self::Unknown`.
+    /// * 2.207
+    /// * 2.2071
+    /// * 2.2072
+    /// * 2.2073
+    /// * `Self::Unknown`.
     pub fn to_binary_version_id(&self) -> Option<i32> {
         match self {
             Self::GD1000 => Some(0),
@@ -285,7 +288,8 @@ impl GDVersion {
             Self::GD22081 => Some(47),
             Self::GD22082 => Some(48),
             Self::GD2209 => Some(49),
-            Self::Unknown(_) => None,
+            Self::GD22091 => Some(51),
+            Self::Unknown(u) => Some(*u),
         }
     }
 
@@ -341,6 +345,7 @@ impl GDVersion {
             Self::GD22081 => None,
             Self::GD22082 => None,
             Self::GD2209 => None,
+            Self::GD22091 => None,
             Self::Unknown(_) => None,
         }
     }

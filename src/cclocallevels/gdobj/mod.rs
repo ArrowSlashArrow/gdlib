@@ -9,7 +9,7 @@ use crate::cclocallevels::{
         structs::{
             ColourChannel, Event,
             GDObjPropType::{self},
-            GDValue, Group, ZLayer,
+            GDValue, ZLayer,
         },
     },
     properties::{self, OBJECT_NAMES, get_obj_property_type},
@@ -29,6 +29,9 @@ pub mod structs;
 pub use constructors::{gameplay::*, triggers::*, *};
 
 macro_rules! parse {
+    ($v:expr => bool) => {
+        $v == "1"
+    };
     ($v:expr => $t:ty) => {
         $v.parse::<$t>().unwrap_or_default()
     };
@@ -56,7 +59,7 @@ impl Display for GDObject {
                 if idx != 0 {
                     group_str.push_str(", ");
                 }
-                let _ = write!(group_str, "{}", g.id());
+                let _ = write!(group_str, "{}", itoa::Buffer::new().format(*g));
             }
         }
 
@@ -126,7 +129,7 @@ impl GDObject {
                 Ok(n) => n,
                 Err(_) => match idx[2..].parse::<u16>() {
                     Ok(n) => n + KA_PROPERTY_OFFSET,
-                    Err(_) => 65535,
+                    Err(_) => u16::MAX,
                 },
             };
 
@@ -143,9 +146,9 @@ impl GDObject {
                         val.trim_matches('"')
                             .split('.')
                             .filter_map(|g| g.parse::<i16>().ok())
-                            .map(Group::Regular)
-                            .collect::<Vec<Group>>(),
+                            .collect::<Vec<i16>>(),
                     );
+                    obj.config.groups.sort();
                 }
                 X_SCALE => obj.config.scale.0 = val.parse().unwrap_or(1.0),
                 Y_SCALE => obj.config.scale.1 = val.parse().unwrap_or(1.0),
@@ -260,13 +263,13 @@ impl GDObject {
                 MATERIAL_CONTROL_ID => obj.config.control_id = parse!(val => i16),
                 PARENT_GROUPS => {
                     // add groups method handles deduping
-                    obj.config.add_groups(
+                    obj.config.add_pink_groups(
                         val.trim_matches('"')
                             .split('.')
                             .filter_map(|g| g.parse::<i16>().ok())
-                            .map(Group::Parent)
-                            .collect::<Vec<Group>>(),
+                            .collect::<Vec<_>>(),
                     );
+                    obj.config.pink_groups.sort()
                 }
                 n => obj.set_property_raw(n, val),
             }
@@ -285,7 +288,7 @@ impl GDObject {
         );
     }
 
-    /// Sets the prpoerty ID to the value, and craetes it if it doesn't exist
+    /// Sets the property ID to the value, and craetes it if it doesn't exist
     pub fn set_property(&mut self, p: u16, val: GDValue) {
         match self.properties.binary_search_by_key(&p, |t| t.0) {
             Ok(idx) => self.properties[idx].1 = val,
@@ -336,13 +339,16 @@ impl GDObject {
             .to_string()
     }
 
-    /// Default constructor for this object.
+    /// Default constructor for this object. The given property list is sorted and deduplicated before the object is instantiated.
     #[inline]
     pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
-        GDObject {
+        let mut p = properties;
+        p.sort_by(|a, b| a.0.cmp(&b.0));
+        p.dedup();
+        Self {
             id,
             config: config.clone(),
-            properties,
+            properties: p,
         }
     }
 
@@ -459,12 +465,8 @@ impl GDObject {
     }
 
     /// Creates an object from a property descriptor object. This is the standard way to create objects with extra properties such as triggers.
-    pub fn from_config<P: ObjectProperties>(config: GDObjConfig, details: P) -> Self {
-        Self {
-            id: details.object_id(),
-            config,
-            properties: details.serialise(),
-        }
+    pub fn from_config<P: ObjectProperties>(config: &GDObjConfig, details: P) -> Self {
+        Self::new(details.object_id(), config, details.serialise())
     }
 }
 

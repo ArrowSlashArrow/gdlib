@@ -1,7 +1,7 @@
 //! Unit tests for the crate
 use std::{fs, time::Instant};
 
-use plist::Value::{Array, Dictionary, String};
+use plist::Value::{self, Array, Dictionary};
 
 use crate::{
     ccgamemanager::CCGameManager,
@@ -19,7 +19,7 @@ use crate::{
             meta::{GDObjAttributes, GDObjConfig},
             structs::{
                 ColourChannel, CompareOp, CompareOperand, DefaultMove, Easing, Event, ExtraID2,
-                Group, Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
+                Item, MoveEasing, MoveMode, Op, RoundMode, SignMode, ZLayer,
             },
         },
     },
@@ -55,7 +55,7 @@ fn move_constructor() {
     level.identity.name = "move trigger t3st".into();
     level.identity.creator = "gdlib".into();
     level.add_object(GDObject::from_config(
-        GDObjConfig::default().with_pos(45.0, 45.0),
+        &GDObjConfig::default().with_pos(45.0, 45.0),
         MoveTrigger {
             move_config: MoveMode::Default(DefaultMove {
                 dx: 45,
@@ -98,7 +98,7 @@ fn obj_properties() {
             GDObjAttributes::dont_fade | GDObjAttributes::extra_sticky | GDObjAttributes::no_glow,
             true,
         )
-        .with_groups([2, 3, 1738])
+        .with_groups([2i16, 3, 1738])
         .with_z_layer(ZLayer::B3)
         .with_base_colour(ColourChannel::Background);
 
@@ -115,7 +115,7 @@ fn obj_properties() {
 fn adv_random() {
     let mut level = GDLevel::default();
     level.add_object(GDObject::from_config(
-        GDObjConfig::default().with_pos(45.0, 45.0),
+        &GDObjConfig::default().with_pos(45.0, 45.0),
         AdvancedRandomTrigger {
             probabilities: vec![(50, 10), (60, 20), (70, 5), (80, 25), (90, 2)],
         },
@@ -176,7 +176,7 @@ fn event_trigger_test() {
     let mut level = GDLevel::default();
     let cfg = GDObjConfig::new().with_pos(45.0, 45.0);
     level.add_object(GDObject::from_config(
-        cfg,
+        &cfg,
         EventTrigger {
             target_group: 123,
             events: vec![Event::BallSwitch, Event::FallSpeedLow],
@@ -184,6 +184,16 @@ fn event_trigger_test() {
             extra_id2: ExtraID2::All,
         },
     ));
+}
+
+#[test]
+fn parse_gdlvl() {
+    let mut gdl = GDLevel::from_gdlvl("test_gmds/Jesse Pinkman 2.gdlvl").unwrap();
+    gdl.identity.name = String::from("Jesse Pinkman 3");
+    gdl.identity.level_version = 123;
+    println!("{gdl:#?}");
+    gdl.export_to_gdlvl("test_gmds/generated_Jesse Pinkman 3.gdlvl")
+        .unwrap();
 }
 
 #[test]
@@ -215,7 +225,7 @@ fn advanced_random_predict() {
                 .unwrap()
                 .determine_spawn_from_seed(seed)
                 .unwrap(),
-            Group::Regular(expected)
+            expected
         );
     }
 }
@@ -226,7 +236,7 @@ fn item_compare() {
         let mut level = GDLevel::new(GDVersion::GD22082);
 
         level.add_object(GDObject::from_config(
-            GDObjConfig::new().with_pos(45.0, 45.0),
+            &GDObjConfig::new().with_pos(45.0, 45.0),
             ItemCompareTrigger {
                 true_id: 11,
                 false_id: 22,
@@ -271,6 +281,12 @@ fn end_trigger_from_object() {
 }
 
 #[test]
+fn read_cclocallevels() {
+    let cclocallevels = CCLocalLevels::from_local().unwrap();
+    println!("binary version: {:?}", cclocallevels.binary_version);
+}
+
+#[test]
 #[ignore]
 fn print_list_info() {
     let cc = CCLocalLevels::from_local().unwrap();
@@ -286,8 +302,8 @@ fn cc_game_manager_parse() {
         println!(
             "{k}: {:?}",
             match v {
-                Dictionary(d) => String(format!("{{ length: {} }}", d.len())),
-                Array(a) => String(format!("[ length: {} ]", a.len())),
+                Dictionary(d) => Value::String(format!("{{ length: {} }}", d.len())),
+                Array(a) => Value::String(format!("[ length: {} ]", a.len())),
                 v => v,
             }
         );

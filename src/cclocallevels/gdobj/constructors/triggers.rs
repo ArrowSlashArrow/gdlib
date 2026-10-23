@@ -58,10 +58,7 @@ macro_rules! get_property {
     ($obj:expr, $prop:expr => $a:ident => opt $b:ty) => {
         $obj.get_property($prop).map(|maybe_val| match maybe_val {
             GDValue::$a(v) => <$b>::try_from(v).unwrap_or_default(),
-            _ => {
-                println!("{maybe_val:#?}");
-                <$b>::default()
-            }
+            _ => <$b>::default(),
         })
     };
 }
@@ -72,7 +69,7 @@ pub struct MoveTrigger {
     /// Details for the movement of the target group. See [`MoveMode`] struct
     pub move_config: MoveMode,
     /// Move time of group.
-    pub time: f64,
+    pub time: f32,
     /// Group that is moving.
     pub target_group: i16,
     /// Skips collision checking with the player(s) in the path of its motion. Useful for reducing lag.
@@ -288,7 +285,7 @@ pub struct ColourTrigger {
     /// The channel to change the colour of
     pub channel: ColourChannel,
     /// Opacity of colour: 0.0 = transparent, 1.0 = opaque.
-    pub opacity: f64,
+    pub opacity: f32,
     /// Use blending for this colour
     pub blending: bool,
     /// Use player colour 1 instead of the specified colour.
@@ -296,7 +293,7 @@ pub struct ColourTrigger {
     /// Use player colour 2 instead of the specified colour.
     pub use_player_col_2: bool,
     /// Amount of time in seconds that it takes to fade from the old colour to the new colour.
-    pub fade_time: f64,
+    pub fade_time: f32,
     /// Optional setup for copying a colour from another colour channel.
     pub copy_colour: Option<CopyColourConfig>,
 }
@@ -340,11 +337,11 @@ impl ObjectProperties for ColourTrigger {
 /// Temporarily changes the colour of a colour channel/group by fading the colour in/out.
 pub struct PulseTrigger {
     /// Fade-in time of the pulse in seconds  
-    pub pulse_fade_in_time: f64,
+    pub pulse_fade_in_time: f32,
     /// How long the pulsed colour stays before fading out (in seconds).  
-    pub pulse_hold_time: f64,
+    pub pulse_hold_time: f32,
     /// Fade-out time of the pulse in seconds  
-    pub pulse_fade_out_time: f64,
+    pub pulse_fade_out_time: f32,
     /// Disable all other pulses of the same ID when this trigger is activated.
     pub exclusive_pulse: bool,
     /// Target group/channel of pulse. See [`PulseTarget`]
@@ -373,7 +370,7 @@ impl ObjectProperties for PulseTrigger {
                         GDValue::Bool(g.detail_colour_only),
                     ),
                     (PULSE_MAIN_COLOUR_ONLY, GDValue::Bool(g.main_colour_only)),
-                    (PULSE_GROUP, GDValue::Group(g.group_id)),
+                    (TARGET_ITEM, GDValue::Group(g.group_id)),
                 ]);
             }
         }
@@ -419,9 +416,9 @@ object_descriptor!(
         /// Target group to stop/pause/resume
         target_group: i16 => Group TARGET_ITEM,
         /// Opacity to set group at
-        opacity: f64 => Float OPACITY,
+        opacity: f32 => Float OPACITY,
         /// Time to fade to the opacity
-        fade_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE
+        fade_time: f32 => Float DURATION_GROUP_TRIGGER_CHANCE
     }
 );
 
@@ -485,7 +482,7 @@ object_descriptor!(
     /// Timewarp trigger
     TimewarpTrigger: TIMEWARP_TRIGGER => {
         /// How much to speed up/slow down time by. 1.0 is the default
-        time_scale: f64 => Float TIMEWARP_AMOUNT
+        time_scale: f32 => Float TIMEWARP_AMOUNT
     }
 );
 
@@ -561,9 +558,9 @@ object_descriptor!(
         /// Strength of shake
         strength: i32 => Int SHAKE_STRENGTH,
         /// Interval in seconds between each shake
-        interval: f64 => Float SHAKE_INTERVAL,
+        interval: f32 => Float SHAKE_INTERVAL,
         /// Total duration of shaking
-        duration: f64 => Float DURATION_GROUP_TRIGGER_CHANCE
+        duration: f32 => Float DURATION_GROUP_TRIGGER_CHANCE
     }
 );
 
@@ -571,9 +568,9 @@ object_descriptor!(
     /// Background speed trigger
     BGSpeedTrigger: BACKGROUND_SPEED_TRIGGER => {
         /// X-axis speed of BG in terms of player speed. Default is 0.3
-        mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
+        mod_x: f32 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of BG in terms of player speed. Default is 0.5
-        mod_y: f64 => Float Y_MOVEMENT_MULTIPLIER
+        mod_y: f32 => Float Y_MOVEMENT_MULTIPLIER
     }
 );
 
@@ -581,9 +578,9 @@ object_descriptor!(
     /// Middleground speed trigger
     MGSpeedTrigger: MIDDLEGROUND_SPEED_TRIGGER => {
         /// X-axis speed of MG in terms of player speed. Default is 0.3
-        mod_x: f64 => Float X_MOVEMENT_MULTIPLIER,
+        mod_x: f32 => Float X_MOVEMENT_MULTIPLIER,
         /// Y-axis speed of MG in terms of player speed. Default is 0.5
-        mod_y: f64 => Float Y_MOVEMENT_MULTIPLIER
+        mod_y: f32 => Float Y_MOVEMENT_MULTIPLIER
     }
 );
 
@@ -608,7 +605,7 @@ object_descriptor!(
 /// Sets the gravity intensity.
 pub struct GravityTrigger {
     /// Intensity of gravity. 0 = no gravity, <1 = decreased gravity, 1 = normal gravity >1 = boosted gravity
-    pub gravity: f64,
+    pub gravity: f32,
     /// Optional player to assign gravity to. The two players can have different gravities.
     pub target_player: Option<TargetPlayer>,
 }
@@ -644,7 +641,7 @@ impl ObjectProperties for GravityTrigger {
         };
 
         Some(Self {
-            gravity: get_property!(obj, GRAVITY => Float => f64),
+            gravity: get_property!(obj, GRAVITY => Float => f32),
             target_player: target_player,
         })
     }
@@ -714,7 +711,7 @@ impl ObjectProperties for CounterLabel {
     where
         Self: Sized,
     {
-        if obj.id == COUNTER_LABEL {
+        if obj.id != COUNTER_LABEL {
             return None;
         }
 
@@ -746,9 +743,9 @@ impl ObjectProperties for CounterLabel {
 ///
 /// The value that is set to the target item is evaluated like so:
 /// 1. The value of each specified operand is fetched and an intermediate result (referred to as the operand result in the struct's remaining documentation) is computed.
-///     - In the case that no operands are specified, this result is not computed.
-///     - In the case that one operand is specified, this result is the value of that operand.
-///     - In the case that two operands are specified, this result = `first <op> second`, where `op` is the `id_op`.
+///     * In the case that no operands are specified, this result is not computed.
+///     * In the case that one operand is specified, this result is the value of that operand.
+///     * In the case that two operands are specified, this result = `first <op> second`, where `op` is the `id_op`.
 /// 2. The operand result is then modified according to the value of the modifier and `multiply_mod`. If the operand result was not computed, the operand result is now set to the value of the modifier.
 /// Otherwise, the operand result becomes `operand result <op> modifier` where `op` is multiplication if `multiply_mod` is enabled and division if not.
 /// 3. The operand result is rounded according to `id_rounding` and then its sign is modified according to `id_sign`.
@@ -764,7 +761,7 @@ pub struct ItemEditTrigger {
     pub target: Item,
     /// An immediate value that can be used to modify the value directly. For example, using `=` as the assignment operator with both operands set to None will simply set the value of the target to the modifier.
     /// This value can also be used to multiply the result after adding the two operands together as well as a number of other things.
-    pub modifier: f64,
+    pub modifier: f32,
     /// Operator for modifying target; see [`Op`] enum. This operator determines how the computed result from the operands is assigned to the target item.
     /// When set to `Op::Set` (assignment, `=` in-game), the result will simply be assigned to the target item.
     /// When set to an arithmetic operator, the target item will be set according to the equation `previous value <operator> computed value`.
@@ -788,7 +785,6 @@ pub struct ItemEditTrigger {
     pub result_sign: SignMode,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for ItemEditTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mod_op = match self.multiply_mod {
@@ -833,6 +829,94 @@ impl ObjectProperties for ItemEditTrigger {
     fn object_id(&self) -> i32 {
         ITEM_EDIT_TRIGGER
     }
+
+    fn from_object(obj: &GDObject) -> Option<ItemEditTrigger> {
+        if obj.id != ITEM_EDIT_TRIGGER {
+            return None;
+        }
+
+        // an operand is only present if its ID != 0.
+        let read_item = |id_prop, type_prop| -> Option<Item> {
+            let id = match obj.get_property(id_prop) {
+                Some(GDValue::Item(id)) if id != 0 => id,
+                _ => return None,
+            };
+            let item_type = match obj.get_property(type_prop) {
+                Some(GDValue::ItemType(t)) => t,
+                _ => ItemType::default(),
+            };
+            Some(Item::from_id_type(id as i16, item_type))
+        };
+
+        let operand1 = read_item(INPUT_ITEM_1, FIRST_ITEM_TYPE);
+        let operand2 = read_item(INPUT_ITEM_2, SECOND_ITEM_TYPE);
+
+        // target is required, so fall back to a default rather than returning None.
+        let target = {
+            let id = match obj.get_property(TARGET_ITEM) {
+                Some(GDValue::Group(id)) => id,
+                _ => 0,
+            };
+            let item_type = match obj.get_property(TARGET_ITEM_TYPE) {
+                Some(GDValue::ItemType(t)) => t,
+                _ => ItemType::default(),
+            };
+            Item::from_id_type(id as i16, item_type)
+        };
+
+        let modifier = match obj.get_property(MODIFIER) {
+            Some(GDValue::Float(m)) => m,
+            _ => 1.0,
+        };
+
+        // transmutate COMPARE_OPERATOR since this property has type of ItemCompareOperator (we want ItemEditOperator).
+        let multiply_mod = match obj.get_property(COMPARE_OPERATOR) {
+            Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::Less => true, // Op::Mul
+            Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::LessOrEquals => false, // Op::Div
+            _ => true,
+        };
+
+        let assign_op = match obj.get_property(LEFT_OPERATOR) {
+            Some(GDValue::ItemEditOperator(op)) => op,
+            _ => Op::Set,
+        };
+        let id_op = match obj.get_property(RIGHT_OPERATOR) {
+            Some(GDValue::ItemEditOperator(op)) => op,
+            _ => Op::Add,
+        };
+
+        let id_rounding = match obj.get_property(LEFT_ROUND_MODE) {
+            Some(GDValue::ItemEditRoundMode(m)) => m,
+            _ => RoundMode::default(),
+        };
+        let result_rounding = match obj.get_property(RIGHT_ROUND_MODE) {
+            Some(GDValue::ItemEditRoundMode(m)) => m,
+            _ => RoundMode::default(),
+        };
+
+        let id_sign = match obj.get_property(LEFT_SIGN_MODE) {
+            Some(GDValue::ItemEditSignMode(m)) => m,
+            _ => SignMode::default(),
+        };
+        let result_sign = match obj.get_property(RIGHT_SIGN_MODE) {
+            Some(GDValue::ItemEditSignMode(m)) => m,
+            _ => SignMode::default(),
+        };
+
+        Some(ItemEditTrigger {
+            operand1,
+            operand2,
+            target,
+            modifier,
+            assign_op,
+            multiply_mod,
+            id_op,
+            id_rounding,
+            result_rounding,
+            id_sign,
+            result_sign,
+        })
+    }
 }
 
 impl ItemEditTrigger {
@@ -845,7 +929,7 @@ impl ItemEditTrigger {
     /// Depending on the configuration of this object, the two parameters don't always get used (for example, if `self.operand2` is `None`). In the case that a parameter is not used, it can have any value.
     pub fn eval_result(&self, operand1: f64, operand2: f64, current_value_at_target: f64) -> f64 {
         let mut id_result = if self.operand1.is_none() && self.operand2.is_none() {
-            self.modifier
+            self.modifier as f64
         } else if self.operand1.is_some() && self.operand2.is_none() {
             operand1
         } else if self.operand1.is_none() && self.operand2.is_some() {
@@ -855,8 +939,8 @@ impl ItemEditTrigger {
         };
 
         if !(self.operand1.is_none() && self.operand2.is_none()) {
-            id_result =
-                if self.multiply_mod { Op::Mul } else { Op::Div }.eval(id_result, self.modifier);
+            id_result = if self.multiply_mod { Op::Mul } else { Op::Div }
+                .eval(id_result, self.modifier as f64);
         }
 
         id_result = self.id_sign.eval(self.id_rounding.eval(id_result));
@@ -888,7 +972,7 @@ pub struct ItemCompareTrigger {
     /// Operator used to compare the two sides. See [`CompareOp`] enum.
     pub compare_op: CompareOp,
     /// Tolerant range of comparsion. Comparsion will be true if the resulting value is off by at most this value.
-    pub tolerance: f64,
+    pub tolerance: f32,
 }
 
 // TODO: implement `from_object`
@@ -947,7 +1031,7 @@ impl ObjectProperties for ItemCompareTrigger {
                 get_property!(obj, INPUT_ITEM_1 => Item => i16),
                 get_property!(obj, FIRST_ITEM_TYPE => ItemType => ItemType),
             ),
-            modifier: get_property!(obj, MODIFIER => Float => f64),
+            modifier: get_property!(obj, MODIFIER => Float => f32),
             mod_op: get_property!(obj, LEFT_OPERATOR => ItemEditOperator => Op),
             rounding: get_property!(obj, LEFT_ROUND_MODE => ItemEditRoundMode => RoundMode),
             sign: get_property!(obj, LEFT_SIGN_MODE => ItemEditSignMode => SignMode),
@@ -958,7 +1042,7 @@ impl ObjectProperties for ItemCompareTrigger {
                 get_property!(obj, INPUT_ITEM_2 => Item => i16),
                 get_property!(obj, SECOND_ITEM_TYPE => ItemType => ItemType),
             ),
-            modifier: get_property!(obj, SECOND_MODIFIER => Float => f64),
+            modifier: get_property!(obj, SECOND_MODIFIER => Float => f32),
             mod_op: get_property!(obj, RIGHT_OPERATOR => ItemEditOperator => Op),
             rounding: get_property!(obj, RIGHT_ROUND_MODE => ItemEditRoundMode => RoundMode),
             sign: get_property!(obj, RIGHT_SIGN_MODE => ItemEditSignMode => SignMode),
@@ -968,7 +1052,7 @@ impl ObjectProperties for ItemCompareTrigger {
         let false_id = get_property!(obj, TARGET_ITEM_2 => Group => i16);
 
         let compare_op = get_property!(obj, COMPARE_OPERATOR => ItemCompareOperator => CompareOp);
-        let tolerance = get_property!(obj, TOLERANCE => Float => f64);
+        let tolerance = get_property!(obj, TOLERANCE => Float => f32);
 
         Some(Self {
             true_id,
@@ -990,7 +1074,7 @@ impl ItemCompareTrigger {
     pub fn eval_self(&self, val1: f64, val2: f64) -> i16 {
         let lhs_value = self.lhs.eval_operand(val1);
         let rhs_value = self.rhs.eval_operand(val2);
-        let tolerance = round_3dp(self.tolerance);
+        let tolerance = round_3dp(self.tolerance as f64);
         let comparison_result = match self.compare_op {
             CompareOp::Equals => (lhs_value - rhs_value).abs() <= tolerance,
             CompareOp::Greater => rhs_value < tolerance + lhs_value,
@@ -1034,7 +1118,7 @@ object_descriptor!(
     /// If it is desirable not to activate a group, use 0 as the ID. This trigger will not activate any group ID 0.
     RandomTrigger: RANDOM_TRIGGER => {
         /// Float in the range [0.0, 1.0] to spawn the first target group
-        chance: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        chance: f32 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// Has a `chance` chance to be spawned
         target_group1: i16 => Group TARGET_ITEM,
         /// Has a `1 - chance` chance to be spawned
@@ -1048,9 +1132,9 @@ object_descriptor!(
         /// Spawns this group
         spawn_id: i16 => Group TARGET_ITEM,
         /// Delay between beign triggered and spawning the group
-        delay: f64 => Float SPAWN_DELAY,
+        delay: f32 => Float SPAWN_DELAY,
         /// Random variation on delay
-        delay_variation: f64 => Float SPAWN_DELAY_VARIATION,
+        delay_variation: f32 => Float SPAWN_DELAY_VARIATION,
         /// Resets the remapping of group IDs
         reset_remap: bool => Bool RESET_REMAP,
         /// Spawns constituents of group in the order of x-position
@@ -1058,8 +1142,7 @@ object_descriptor!(
         /// prevents the trigger's resulting spawns from being rendered in editor preview
         preview_disable: bool => Bool DISABLE_PREVIEW,
         /// List of ID remaps: (old, new). When a group is triggered with remaps, it will use new IDs
-        spawn_remaps: Vec<(i16, i16)> => Remaps SPAWN_ID_REMAPS
-        // spawn_remap: Vec<(i16, i16)> - special case, uses `GDValue::from_spawn_remaps()` conversion (not a plain variant), and `Vec` does not implement `Copy`, could not convert
+        spawn_remaps: Vec<(i32, i32)> => Remaps SPAWN_ID_REMAPS
     }
 );
 
@@ -1084,7 +1167,7 @@ pub struct ParticleSpawnTrigger {
     /// (rotation, variation) tuple that describes the rotation of the particles + random offset range
     pub rotation_config: Option<(i32, i32)>,
     /// (scale, variation) tuple that describes the scale of the particles + random offset range
-    pub scale_config: Option<(f64, f64)>,
+    pub scale_config: Option<(f32, f32)>,
     /// Makes all of the particles in the group be rotated in the same direction.
     pub match_rotation: bool,
     /// Group that contains the particle objects
@@ -1245,13 +1328,13 @@ object_descriptor!(
     /// Time trigger
     TimeTrigger: TIME_TRIGGER => {
         /// Starting time of target timer that will be set on activation of the trigger
-        start_time: f64 => Float START_TIME,
+        start_time: f32 => Float START_TIME,
         /// Time at which to call the target group
-        stop_time: f64 => Float TARGET_TIME,
+        stop_time: f32 => Float TARGET_TIME,
         /// Whether or not to pause the timer once it reaches the stop time
         pause_when_reached: bool => Bool PAUSE_AT_TARGET_TIME,
         /// Time multiplier for this timer
-        time_mod: f64 => Float TIME_VALUE_MULTIPLER,
+        time_mod: f32 => Float TIME_VALUE_MULTIPLER,
         /// Target timer ID
         timer_id: i16 => Item INPUT_ITEM_1,
         /// Group that is activated when the timer reaches the target value
@@ -1286,7 +1369,7 @@ object_descriptor!(
         /// If enabled, stops the timer; otherwise, starts the timer.
         target_group: i16 => Group TARGET_ITEM,
         /// At what time the timer should be to activate objects in `target_group`.
-        target_time: f64 => Float TARGET_TIME,
+        target_time: f32 => Float TARGET_TIME,
         /// Whether this event should be triggerable multiple times
         multi_activate: bool => Bool MULTIACTIVATABLE_TIME_EVENT
     }
@@ -1298,9 +1381,9 @@ object_descriptor!(
 #[derive(Debug, Clone, PartialEq)]
 pub struct CameraZoomTrigger {
     /// How far to zoom the camera. Values above 1 zoom in, values below 1 zoom out. This value must be positive.
-    pub zoom: f64,
+    pub zoom: f32,
     /// Time to zoom
-    pub time: f64,
+    pub time: f32,
     /// Zoom easing
     pub easing: Easing,
 }
@@ -1328,8 +1411,8 @@ impl ObjectProperties for CameraZoomTrigger {
 
         let mut easing = Easing::default();
 
-        let time = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f64);
-        let zoom = get_property!(obj, CAMERA_ZOOM => Float => f64);
+        let time = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f32);
+        let zoom = get_property!(obj, CAMERA_ZOOM => Float => f32);
 
         if let Some(GDValue::Easing(e)) = obj.get_property(MOVE_EASING) {
             easing.easing = e;
@@ -1346,13 +1429,13 @@ object_descriptor!(
     /// Visual guide for the camera in the edito
     CameraGuide: CAMERA_GUIDE => {
         /// Zoom of camera guide
-        zoom: f64 => Float CAMERA_ZOOM,
+        zoom: f32 => Float CAMERA_ZOOM,
         /// Center offset from this object in x axis
         offset_x: i32 => Int MOVE_UNITS_X,
         /// Center offset from this object in y axis
         offset_y: i32 => Int MOVE_UNITS_Y,
         /// Opacity of guidelines
-        opacity: f64 => Float CAMERA_GUIDE_PREVIEW_OPACITY
+        opacity: f32 => Float CAMERA_GUIDE_PREVIEW_OPACITY
     }
 );
 
@@ -1360,11 +1443,11 @@ object_descriptor!(
     /// Makes a group of objets follow another group
     FollowTrigger: FOLLOW_TRIGGER => {
         /// Multiplier for x-axis movement of follow group
-        x_mod: f64 => Float XAXIS_FOLLOW_MOD,
+        x_mod: f32 => Float XAXIS_FOLLOW_MOD,
         /// Multiplier for y-axis movement of follow group
-        y_mod: f64 => Float YAXIS_FOLLOW_MOD,
+        y_mod: f32 => Float YAXIS_FOLLOW_MOD,
         /// Time that the follow group is followed for. -1.0 = infinite.
-        follow_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        follow_time: f32 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// Group that is following
         target_group: i16 => Group TARGET_ITEM,
         /// Group that is being followed
@@ -1413,7 +1496,7 @@ impl AdvancedRandomTrigger {
     /// Returns what group will be called when this trigger is spawned, given a seed.
     ///
     /// This function uses [`check_seed_advanced_random`] internally.
-    pub fn determine_spawn_from_seed(&self, seed: u64) -> Option<Group> {
+    pub fn determine_spawn_from_seed(&self, seed: u64) -> Option<i16> {
         check_seed_advanced_random(seed, &self.probabilities)
     }
 }
@@ -1440,7 +1523,7 @@ object_descriptor!(
 /// Rotates a group of objects.
 pub struct RotateTrigger {
     /// How long the rotation should take in total
-    pub move_time: f64,
+    pub move_time: f32,
     /// How to rotate the objects. See [`RotationMode`]
     pub rotation_mode: RotationMode,
     /// Update location of aim group every tick
@@ -1559,7 +1642,7 @@ pub struct ScaleTrigger {
     /// Objects to scale
     pub target_group: i16,
     /// How long the scaling will take in seconds
-    pub duration: f64,
+    pub duration: f32,
 }
 
 impl ObjectProperties for ScaleTrigger {
@@ -1605,13 +1688,13 @@ impl ObjectProperties for ScaleTrigger {
             return None;
         }
 
-        let x_scale = get_property!(obj, NEW_X_SCALE => Float => f64);
-        let y_scale = get_property!(obj, NEW_Y_SCALE => Float => f64);
+        let x_scale = get_property!(obj, NEW_X_SCALE => Float => f32);
+        let y_scale = get_property!(obj, NEW_Y_SCALE => Float => f32);
         let div_by_value_x = get_property!(obj, DIV_BY_VALUE_X => Bool => bool);
         let div_by_value_y = get_property!(obj, DIV_BY_VALUE_Y => Bool => bool);
         let target_group = get_property!(obj, TARGET_ITEM => Group => i16);
         let center_group_id = get_property!(obj, TARGET_ITEM_2 => Group => i16);
-        let duration = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f64);
+        let duration = get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f32);
         let only_move = get_property!(obj, ONLY_MOVE => Bool => bool);
         let relative_scale = get_property!(obj, RELATIVE_SCALE => Bool => bool);
         let relative_rotation = get_property!(obj, RELATIVE_ROTATION => Bool => bool);
@@ -1647,15 +1730,15 @@ object_descriptor!(
     /// Makes an object follow the player on the y-axis
     FollowPlayerYTrigger: FOLLOW_PLAYER_Y_TRIGGER => {
         /// Follow speed in the range \[0.0, 1.0]; 1.0 = instantaneously snaps to player y-pos
-        speed: f64 => Float FOLLOW_SPEED,
+        speed: f32 => Float FOLLOW_SPEED,
         /// Delay of the following group
-        delay: f64 => Float FOLLOW_DELAY,
+        delay: f32 => Float FOLLOW_DELAY,
         /// Y offset of the following group
         offset: i32 => Int FOLLOW_OFFSET,
         /// Speed limit of the following group
-        max_speed: f64 => Float MAX_FOLLOW_SPEED,
+        max_speed: f32 => Float MAX_FOLLOW_SPEED,
         /// How long the group will follow the player
-        move_time: f64 => Float DURATION_GROUP_TRIGGER_CHANCE,
+        move_time: f32 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// The group that is following the player's y-pos
         target_group: i16 => Group TARGET_ITEM
     }
@@ -1678,6 +1761,19 @@ impl ObjectProperties for MiddleGroundConfigTrigger {
     }
     fn object_id(&self) -> i32 {
         EDIT_MIDDLEGROUND_TRIGGER
+    }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != EDIT_MIDDLEGROUND_TRIGGER {
+            return None;
+        }
+
+        Some(Self {
+            offset_y: get_property!(obj, MOVE_UNITS_Y => Int => i32),
+            easing: Easing::from_object(obj),
+        })
     }
 }
 
@@ -1749,9 +1845,9 @@ object_descriptor!(
         /// Sets the velocity of the player instead of multipling the player's current velocity. Uses `velocity_modifier` for each respective axis of motion.
         override_velocity: bool => Bool OVERRIDE_VELOCITY,
         /// Modifier of velocity. Applied to the player when the trigger is activated
-        velocity_modifier_x: f64 => Float X_VELOCITY_MODIFIER,
+        velocity_modifier_x: f32 => Float X_VELOCITY_MODIFIER,
         /// Modifier of velocity. Applied to the player when the trigger is activated
-        velocity_modifier_y: f64 => Float Y_VELOCITY_MODIFIER,
+        velocity_modifier_y: f32 => Float Y_VELOCITY_MODIFIER,
         /// Change to a different gameplay channel when the trigger is activated. Enables `channel_only` and `target_channel`.
         change_channel: bool => Bool CHANGE_CHANNEL,
         /// Change to the channel without rotating gameplay
@@ -1772,7 +1868,7 @@ object_descriptor!(
         item_id: i32 => Int INPUT_ITEM_1,
         count: i32 => Int TARGET_COUNT,
         /// What the item's value is multiplied/divided by when using one of those modes in the trigger
-        modifier: f64 => Float PICKUP_MODIFIER,
+        modifier: f32 => Float PICKUP_MODIFIER,
         /// Which operation to do
         mode: PickupTriggerMode => as_i32 PICKUP_COUNT_MODE,
         /// Set the item's value to the count directly.

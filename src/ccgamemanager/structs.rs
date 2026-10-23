@@ -17,8 +17,8 @@ use crate::{
 /// Type of a valid achievement progress value: unsigned integer that supports a maximum value of at least 10,000.
 ///
 /// For achievements that are not completed, the game uses one of two formats to represent completion progress:
-/// - A value on the interval \[0, 100] which is an integer percentage
-/// - A value on that interval\[0, 10'000] which is a percentage with double decimal point precision; e.g. 1962 is 19.62%
+/// * A value on the interval \[0, 100] which is an integer percentage
+/// * A value on that interval\[0, 10'000] which is a percentage with double decimal point precision; e.g. 1962 is 19.62%
 ///
 /// A value of 100 represents a completed achievement regardless of format.
 /// It is unknown what format is used by the game for specific achievements, however it is known that for values

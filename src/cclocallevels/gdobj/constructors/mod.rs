@@ -36,9 +36,9 @@ pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObj
 
 repr_t!(
     /// All objects that spin - i.e. have a parameter to control constant rotation, which can be in one of three modes:
-    ///     - Default: use the default rotation
-    ///     - Custom: set a custom rotation in degrees per second
-    ///     - Disable: equivalent to 0 degrees/second of rotation. Object is stationary is a result.
+    ///     * Default: use the default rotation
+    ///     * Custom: set a custom rotation in degrees per second
+    ///     * Disable: equivalent to 0 degrees/second of rotation. Object is stationary is a result.
     ///
     /// Casting a variant of this enum returns the object's ID.
     strict SpinningObject: i32 {
@@ -178,3 +178,9 @@ pub enum RotationConfig {
 // default - 1,395,2,2505,3,315;        (no change)
 // custom - 1,395,2,2505,3,315,97,125;  (+ 97, deg)
 // disabled - 1,395,2,2505,3,315,98,1;  (+ 98, tru)
+
+macro_rules! set_prop {
+    ($prop_id:expr, $var:expr) => {
+        ($prop_id, GDValue::/* get type from prop_id somehow */($var))
+    };
+}

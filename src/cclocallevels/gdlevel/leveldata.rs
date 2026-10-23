@@ -12,7 +12,7 @@ use crate::{
         gdobj::{
             GDObject,
             ids::metadata::GROUP_PROPERTY_IDS,
-            structs::{Colour, GDValue, Gamemode, Group, HSVColour, Speed},
+            structs::{Colour, GDValue, Gamemode, HSVColour, Speed},
         },
         properties::get_level_header_property_type,
     },
@@ -234,7 +234,7 @@ impl GDLevelData {
 
     /// Returns a list of all the groups that contain at least one object
     #[must_use]
-    pub fn get_used_groups(&self) -> Vec<Group> {
+    pub fn get_used_groups(&self) -> Vec<i16> {
         if self.objects.is_empty() {
             return vec![];
         }
@@ -246,7 +246,7 @@ impl GDLevelData {
             .par_iter()
             .flat_map_iter(|obj| obj.config.groups.iter())
             .copied()
-            .collect::<Vec<Group>>();
+            .collect::<Vec<_>>();
 
         #[cfg(not(feature = "parallel"))]
         let mut groups = self
@@ -254,7 +254,7 @@ impl GDLevelData {
             .iter()
             .flat_map(|obj| obj.config.groups.iter())
             .copied()
-            .collect::<Vec<Group>>();
+            .collect::<Vec<_>>();
 
         groups.sort();
         groups.dedup();
@@ -263,22 +263,20 @@ impl GDLevelData {
 
     /// Returns a list of all the groups that do not contain any objects
     #[must_use]
-    pub fn get_unused_groups(&self) -> Vec<Group> {
+    pub fn get_unused_groups(&self) -> Vec<i16> {
         let mut used: [bool; 10_000] = [false; 10_000];
         for object in &self.objects {
             for group in &object.config.groups {
-                if let Group::Regular(g) = group
-                    && (1..10_000).contains(g)
-                {
-                    used[*g as usize] = true;
+                if (1..10_000).contains(group) {
+                    used[*group as usize] = true;
                 }
             }
         }
 
-        let mut unused: Vec<Group> = Vec::with_capacity(9_999);
+        let mut unused: Vec<_> = Vec::with_capacity(9_999);
         for id in 1..10_000 {
             if !used[id as usize] {
-                unused.push(Group::Regular(id));
+                unused.push(id);
             }
         }
 
@@ -651,9 +649,9 @@ pub enum GDLevelHeaderKey {
 
 impl GDLevelHeaderKey {
     /// Parses a raw header identifier to a header. This function checks for these three forms:
-    ///     - `kAxx` where `xx` is an integer: becomes [`Self::A`]
-    ///     - `kSxx` where `xx` is an integer: becomes [`Self::S`]
-    ///     - anything else: becomes [`Self::Unknown`]
+    ///     * `kAxx` where `xx` is an integer: becomes [`Self::A`]
+    ///     * `kSxx` where `xx` is an integer: becomes [`Self::S`]
+    ///     * anything else: becomes [`Self::Unknown`]
     pub fn parse(s: &str) -> Self {
         match s {
             a if a.starts_with("kA") && s.len() > 2 && a[2..].parse::<u16>().is_ok() => {

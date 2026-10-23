@@ -1,7 +1,4 @@
-use gdlib::{
-    cclocallevels::{gdlevel::GDLevel, gdobj::structs::Group},
-    core::GDError,
-};
+use gdlib::{cclocallevels::gdlevel::GDLevel, core::GDError};
 
 fn main() -> Result<(), GDError> {
     // Load level from .gmd file
@@ -11,7 +8,7 @@ fn main() -> Result<(), GDError> {
     if let Some(data) = level.get_decrypted_data_ref() {
         // Add group 42 to all objects
         for obj in data.objects.iter_mut() {
-            obj.config.add_group(Group::Regular(42));
+            obj.config.add_group(42);
         }
     }
 

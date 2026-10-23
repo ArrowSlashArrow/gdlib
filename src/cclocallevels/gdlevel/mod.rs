@@ -27,7 +27,10 @@ use crate::{
     },
     core::{
         GDError, b64_decode, b64_encode, get_cclocallevels_path,
-        io::{decompress, decrypt_file, encrypt_savefile_str, stringify_xml, vec_as_str},
+        io::{
+            decompress, decrypt_file, encrypt_level_str, encrypt_savefile_str, stringify_xml,
+            vec_as_str,
+        },
         proper_plist_tags,
         structs::KCEKValue,
     },
@@ -71,7 +74,9 @@ impl CCLocalLevels {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
         };
 
-        let mut xmltree = Value::from_reader_xml(Cursor::new(s.as_bytes()))?
+        // println!("{}", &s[..500]);
+
+        let mut xmltree = Value::from_reader_xml(Cursor::new(proper_plist_tags(s)?.as_bytes()))?
             .into_dictionary()
             .ok_or(GDError::CorruptedSavefile(
                 "CCLocalLevels.dat is not a dict".into(),
@@ -708,26 +713,63 @@ impl GDLevel {
         )
     }
 
+    /// Parses a .gdlvl file to a GDLevel. This function will fail if:
+    /// 1. The file could not be read
+    /// 2. There was an AhoCorasick error
+    /// 3. The file is not valid XML
+    /// 4. The level file itself is not a valid level.
+    ///
+    /// **NOTE:** Levels modified by Geode mods may be parsed **incorrectly** or may fail to be parsed at all!
+    pub fn from_gdlvl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
+        let file = proper_plist_tags(vec_as_str(&decompress(read(path.into())?)?))?;
+        let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
+
+        Ok(
+            Self::from_dict(xmltree.as_dictionary().unwrap()).ok_or(GDError::CorruptedSavefile(
+                "Unable to parse file to valid level.".into(),
+            ))?,
+        )
+    }
+
     /// Exports the level to a .gmd file
+    #[inline]
     pub fn export_to_gmd<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         write(path.into(), self.serialise_to_string())?;
         Ok(())
     }
 
-    /// Exports raw level data to a .gmd file.
-    pub fn export_raw_to_gmd<T: Into<PathBuf>>(path: T, raw_data: &str) -> Result<(), GDError> {
-        let export_str = format!("{PLIST_HEADER}{raw_data}{PLIST_FOOTER}");
-
-        write(path.into(), export_str)?;
+    /// Exports the level to a .gdlvl file
+    #[inline]
+    pub fn export_to_gdlvl<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
+        write(
+            path.into(),
+            encrypt_level_str(&Self::format_to_gmd(&self.stringified())),
+        )?;
         Ok(())
     }
 
-    /// Serialize this object to a raw string. The returned string is in the format of a .gmd file and is not encrypted.
+    #[inline]
+    /// Formats a payload of raw level data to gmd format.
+    pub fn format_to_gmd(data: &str) -> String {
+        format!("{PLIST_HEADER}{data}{PLIST_FOOTER}")
+    }
+
+    #[inline]
+    /// Formats a payload of raw level data to .gdlvl format.
+    pub fn format_to_gdlvl(data: &str) -> String {
+        vec_as_str(&encrypt_level_str(&Self::format_to_gmd(data)))
+    }
+
+    /// Serialize this object to a raw string. The returned string is in the format of a .gmd file and is not encrypted. This is the same format that is required for the level to be serialised as into the savefile.
+    #[inline]
     pub fn serialise_to_string(&self) -> String {
-        format!(
-            "{PLIST_HEADER}{}{PLIST_FOOTER}",
-            stringify_xml(&self.to_dict(), true)
-        )
+        Self::format_to_gmd(&self.stringified())
+    }
+
+    /// Returns this level as stringified XML in GD's plist format.
+    #[inline]
+    pub fn stringified(&self) -> String {
+        stringify_xml(&self.to_dict(), true)
     }
 
     /// Parse a raw level as a plist (such as the kind stored in a .gmd file) to a GDLevel. The given parameter must be **unencrypted.**

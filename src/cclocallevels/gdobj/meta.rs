@@ -6,20 +6,22 @@ use bitflags::bitflags;
 
 use crate::cclocallevels::gdobj::{
     ids::properties::*,
-    structs::{ColourChannel, Group, GroupType, ZLayer},
+    structs::{ColourChannel, ZLayer},
 };
 /// Object config, used for defining general properties of an object
 #[derive(Clone, Debug, PartialEq)]
 #[must_use]
 pub struct GDObjConfig {
     /// Position of this object
-    pub pos: (f64, f64),
+    pub pos: (f32, f32),
     /// Scale of this object
-    pub scale: (f64, f64),
+    pub scale: (f32, f32),
     /// Angle of rotation
-    pub angle: f64,
-    /// Groups (both parents and regular)
-    pub groups: Vec<Group>,
+    pub angle: f32,
+    /// Groups of this object. This field does not contain information about which groups are pink groups.
+    pub groups: Vec<i16>,
+    /// Pink groups (groups that are coloured pink in the editor). Under normal conditions, all groups here are also present in `groups`, though this is not a guarantee.
+    pub pink_groups: Vec<i16>,
     /// Trigger activation config
     pub trigger_cfg: TriggerConfig,
     /// Z order of this object
@@ -47,6 +49,7 @@ impl Default for GDObjConfig {
             scale: (1.0, 1.0),
             angle: 0.0,
             groups: vec![],
+            pink_groups: vec![],
             trigger_cfg: TriggerConfig {
                 touchable: false,
                 spawnable: false,
@@ -168,30 +171,37 @@ impl GDObjConfig {
 
         serialise_fields(&[("25", self.z_order, 0)], &mut properties);
 
-        if !self.groups.is_empty() {
-            properties.push_str(",57,");
-            let mut i_buf = itoa::Buffer::new();
-            for (idx, group) in self.groups.iter().enumerate() {
-                if idx != 0 {
-                    properties.push('.');
+        let serialize_groups = |prop: u16, groups: &Vec<i16>, properties: &mut String| {
+            if !groups.is_empty() {
+                properties.push_str(",");
+                properties.push_str(itoa::Buffer::new().format(prop));
+                properties.push_str(",");
+                let mut i_buf = itoa::Buffer::new();
+                for (idx, group) in self.groups.iter().enumerate() {
+                    if idx != 0 {
+                        properties.push('.');
+                    }
+                    properties.push_str(i_buf.format(*group));
                 }
-                properties.push_str(i_buf.format(group.id()));
             }
-        }
+        };
+
+        serialize_groups(GROUPS, &self.groups, &mut properties);
+        serialize_groups(PARENT_GROUPS, &self.pink_groups, &mut properties);
 
         properties
     }
 
     fn dedup_groups(&mut self) {
         self.groups.sort();
-        self.groups.dedup_by(|a, b| a.id() == b.id());
+        self.groups.dedup_by(|a, b| a == b);
     }
 
     /// Sets groups of this object.
     ///
     /// This function allows for object builder syntax
     #[inline]
-    pub fn with_groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) -> Self {
+    pub fn with_groups<T: IntoIterator<Item = I>, I: Into<i16>>(mut self, groups: T) -> Self {
         self.groups = groups.into_iter().map(std::convert::Into::into).collect();
         self.dedup_groups();
         self
@@ -199,25 +209,61 @@ impl GDObjConfig {
 
     /// Sets groups of this object.
     #[inline]
-    pub fn set_groups<T: IntoIterator<Item = I>, I: Into<Group>>(mut self, groups: T) {
+    pub fn set_groups<T: IntoIterator<Item = I>, I: Into<i16>>(&mut self, groups: T) {
         self.groups = groups.into_iter().map(std::convert::Into::into).collect();
         self.dedup_groups();
     }
-    /// Adds groups to this object's groups
+    /// Adds groups to this object's groups. Groups are not automatically re-sorted.
     #[inline]
-    pub fn add_groups<T: AsRef<[Group]>>(&mut self, groups: T) {
+    pub fn add_groups<T: AsRef<[i16]>>(&mut self, groups: T) {
         self.groups.extend_from_slice(groups.as_ref());
         self.dedup_groups();
     }
-    /// Adds group to this object's groups
+    /// Adds a group to this object's groups. Groups are not automatically re-sorted.
     #[inline]
-    pub fn add_group(&mut self, group: Group) {
+    pub fn add_group(&mut self, group: i16) {
         self.groups.push(group);
         self.dedup_groups();
     }
     /// Removes this group from this object's groups
     #[inline]
-    pub fn remove_group(&mut self, group: Group) {
+    pub fn remove_group(&mut self, group: i16) {
+        if let Some(idx) = self.groups.iter().position(|&g| g == group) {
+            self.groups.swap_remove(idx);
+        }
+    }
+
+    /// Sets pink groups of this object.
+    ///
+    /// This function allows for object builder syntax
+    #[inline]
+    pub fn with_pink_groups<T: IntoIterator<Item = I>, I: Into<i16>>(mut self, groups: T) -> Self {
+        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
+        self.dedup_groups();
+        self
+    }
+
+    /// Sets pink groups of this object.
+    #[inline]
+    pub fn set_pink_groups<T: IntoIterator<Item = I>, I: Into<i16>>(&mut self, groups: T) {
+        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
+        self.dedup_groups();
+    }
+    /// Adds pink groups to this object's groups. Groups are not automatically re-sorted.
+    #[inline]
+    pub fn add_pink_groups<T: AsRef<[i16]>>(&mut self, groups: T) {
+        self.groups.extend_from_slice(groups.as_ref());
+        self.dedup_groups();
+    }
+    /// Adds a pink group to this object's groups. Groups are not automatically re-sorted.
+    #[inline]
+    pub fn add_pink_group(&mut self, group: i16) {
+        self.groups.push(group);
+        self.dedup_groups();
+    }
+    /// Removes this pink group from this object's groups
+    #[inline]
+    pub fn remove_pink_group(&mut self, group: i16) {
         if let Some(idx) = self.groups.iter().position(|&g| g == group) {
             self.groups.swap_remove(idx);
         }
@@ -230,16 +276,16 @@ impl GDObjConfig {
 
     config_fn!(
         /// Sets this object's y-position.
-        x(f64) => pos.0
+        x(f32) => pos.0
     );
     config_fn!(
         /// Sets this object's y-position.
-        y(f64) => pos.1
+        y(f32) => pos.1
     );
 
     /// Applies a translation to this object's position
     #[inline]
-    pub fn translate(mut self, x: f64, y: f64) -> Self {
+    pub fn translate(mut self, x: f32, y: f32) -> Self {
         self.pos.0 += x;
         self.pos.1 += y;
         self
@@ -247,33 +293,33 @@ impl GDObjConfig {
 
     /// Sets x and y position of this object
     #[inline]
-    pub fn set_pos(mut self, x: f64, y: f64) {
+    pub fn set_pos(&mut self, x: f32, y: f32) {
         self.pos = (x, y);
     }
     /// Sets x and y position of this object
     ///
     /// This function enables object builder syntax.
     #[inline]
-    pub fn with_pos(mut self, x: f64, y: f64) -> Self {
+    pub fn with_pos(mut self, x: f32, y: f32) -> Self {
         self.pos = (x, y);
         self
     }
-    config_fn!(xscale(f64) => scale.0);
-    config_fn!(yscale(f64) => scale.1);
+    config_fn!(xscale(f32) => scale.0);
+    config_fn!(yscale(f32) => scale.1);
     /// Sets x and y scale of this object.
     #[inline]
-    pub fn set_scale(mut self, x: f64, y: f64) {
+    pub fn set_scale(&mut self, x: f32, y: f32) {
         self.scale = (x, y);
     }
     /// Sets x and y scale of this object.
     ///
     /// This function enables object builder syntax.
     #[inline]
-    pub fn with_scale(mut self, x: f64, y: f64) -> Self {
+    pub fn with_scale(mut self, x: f32, y: f32) -> Self {
         self.scale = (x, y);
         self
     }
-    config_fn!(angle(f64) => angle);
+    config_fn!(angle(f32) => angle);
     config_fn!(
         /// Makes this object touch triggerable. This option is used primarily in triggers but also in things such as collectibles and orbs. This field is automatically set when such an object is placed in-game.
         touchable(bool) => trigger_cfg.touchable
@@ -312,7 +358,7 @@ impl GDObjConfig {
 
     /// Sets the attribute of the specified flag.
     #[inline]
-    pub fn set_attributes(mut self, flag: GDObjAttributes, toggle: bool) {
+    pub fn set_attributes(&mut self, flag: GDObjAttributes, toggle: bool) {
         self.attributes.set(flag, toggle);
     }
 
@@ -457,42 +503,5 @@ fn serialise_bools(fields: &[(&str, bool)], buf: &mut String) {
         if *field {
             let _ = write!(buf, ",{id},1");
         }
-    }
-}
-
-// for sorting a list of groups
-impl Ord for Group {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // check ids first
-        // check the types only if equal
-        match self.id().cmp(&other.id()) {
-            std::cmp::Ordering::Equal => self.get_type().cmp(&other.get_type()),
-            o => o,
-        }
-    }
-}
-
-impl PartialOrd for Group {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for GroupType {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self == other {
-            std::cmp::Ordering::Equal
-        } else if *self == Self::Regular {
-            // other is parent, so is less
-            std::cmp::Ordering::Greater
-        } else {
-            std::cmp::Ordering::Less
-        }
-    }
-}
-
-impl PartialOrd for GroupType {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
