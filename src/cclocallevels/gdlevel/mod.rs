@@ -167,7 +167,7 @@ impl CCLocalLevels {
     /// Serialises this object to a formatted .plist structure.
     ///
     /// **NOTE:** The caller *MUST* ensure that `self.binary_version` is a value that will return
-    pub fn export_to_string(&mut self) -> String {
+    pub fn serialise_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
 
         /* levels */
@@ -237,14 +237,14 @@ impl CCLocalLevels {
     /// Standard location on linux: [`crate::core::LINUX_GD_FILES`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
-        let export_str = encrypt_savefile_str(&self.export_to_string());
+        let export_str = encrypt_savefile_str(&&self.serialise_to_string());
         write(savefile, export_str)?;
         Ok(())
     }
 
     /// Exports this struct as encrypted XML to a given file
     pub fn export_to_file(&mut self, file: PathBuf) -> Result<(), GDError> {
-        let export_str = encrypt_savefile_str(self.export_to_string().as_str());
+        let export_str = encrypt_savefile_str(self.serialise_to_string().as_str());
         write(file, export_str)?;
         Ok(())
     }
@@ -255,7 +255,7 @@ impl CCLocalLevels {
         let backup_path = format!("{}.bak", savefile.to_string_lossy());
         write(backup_path, read(&savefile)?)?;
 
-        let export_str = encrypt_savefile_str(&self.export_to_string());
+        let export_str = encrypt_savefile_str(&self.serialise_to_string());
         write(savefile, export_str)?;
         Ok(())
     }
@@ -1010,7 +1010,7 @@ impl GDLevel {
                     }
                     /* 96 - 100 are unused */
                     101 => level.unknowns.k101 = Some(v.as_string()?.to_string()),
-                    /* 102 - 103 */
+                    /* todo: 102 - 103 */
                     104 => {
                         // special case: comma-separated list
                         level.content.song_list = parse_csv(v)?;
@@ -1034,7 +1034,7 @@ impl GDLevel {
                     112 => level.flags.no_shake = v.as_boolean()?,
                     _ => {
                         level.unknowns.other.insert(k.clone(), v.clone());
-                    }
+                    } /* todo: 115 - 125 */
                 }
                 continue;
             }
