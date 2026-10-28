@@ -22,10 +22,11 @@ use crate::cclocallevels::{
     gdlevel::{
         GDLevel, default_level_data,
         enums::{DemonType, DifficultyRating, EpicRating, GDLevelType, Length, OfficialSong},
+        leveldata::GDLevelData,
         version::GDVersion,
     },
     gdlist::GDList,
-    gdobj::{GDObject, ids::properties as p, meta::GDObjConfig},
+    gdobj::{AdvancedRandomTrigger, GDObject, ids::properties as p, meta::GDObjConfig},
 };
 
 mod accessors;
@@ -412,4 +413,22 @@ fn assert_lists_eq(actual: &GDList, expected: &GDList) {
     for (a, e) in actual.levels.iter().zip(&expected.levels) {
         assert_levels_eq(a, e);
     }
+}
+
+// -- convenience/scratch --
+#[ignore]
+#[test]
+fn create_level() {
+    let lvl = GDLevel::with_level_data(
+        GDVersion::GD22091,
+        GDLevelData::with_default_headers(vec![GDObject::from_config(
+            &GDObjConfig::new(),
+            AdvancedRandomTrigger {
+                probabilities: vec![(1, 5), (2, -1)],
+            },
+        )]),
+    );
+
+    lvl.export_to_gdlvl("test_gmds/generated_advrandom.gdlvl")
+        .unwrap();
 }

@@ -298,17 +298,6 @@ pub struct GDLevel {
     pub unknowns: GDLevelUnknowns,
 }
 
-impl GDLevel {
-    /// Creates a new instance of this object that is set with values necessary for the level to open in GD.
-    ///
-    /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
-    pub fn new(game_version: GDVersion) -> Self {
-        let mut this = GDLevel::default();
-        this.identity.binary_version = game_version;
-        this
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 /// Identity of the level and data surrounding it. Notably, the level name, id, and creator (among others).
 pub struct GDLevelIdentity {
@@ -402,12 +391,18 @@ pub struct GDLevelContents {
     pub is_platformer: bool,
 }
 
+impl Default for GDLevelData {
+    fn default() -> Self {
+        Self {
+            headers: parse_raw_level_headers(DEFAULT_LEVEL_HEADERS),
+            objects: vec![],
+        }
+    }
+}
+
 /// Returns a default decrypted `GDLevelState` ready for being written to. The value returned is of the same type as the `data` field in [`GDLevelContents`].
 pub fn default_level_data() -> Option<GDLevelState> {
-    Some(GDLevelState::Decrypted(GDLevelData {
-        headers: parse_raw_level_headers(DEFAULT_LEVEL_HEADERS),
-        objects: vec![],
-    }))
+    Some(GDLevelState::Decrypted(GDLevelData::default()))
 }
 
 impl Default for GDLevelContents {
@@ -697,6 +692,25 @@ pub struct GDLevelUnknowns {
 }
 
 impl GDLevel {
+    /// Creates a new instance of this object that is set with values necessary for the level to open in GD.
+    ///
+    /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
+    pub fn new(game_version: GDVersion) -> Self {
+        let mut this = GDLevel::default();
+        this.identity.binary_version = game_version;
+        this
+    }
+
+    /// Creates a new GD level with level data.
+    ///
+    /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
+    pub fn with_level_data(game_version: GDVersion, leveldata: GDLevelData) -> Self {
+        let mut this = GDLevel::default();
+        this.identity.binary_version = game_version;
+        this.content.data = Some(GDLevelState::Decrypted(leveldata));
+        this
+    }
+
     /// Parses a .gmd file to a GDLevel. This function will fail if:
     /// 1. The file could not be read
     /// 2. There was an AhoCorasick error

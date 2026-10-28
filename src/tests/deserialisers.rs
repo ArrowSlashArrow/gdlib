@@ -308,7 +308,7 @@ fn object_minimal() {
     let obj = GDObject::parse_str("1,8,2,15,3,30;");
     assert_eq!(obj.id, 8);
     assert_eq!(obj.config.pos, (15.0, 30.0));
-    assert!(obj.properties.is_empty());
+    assert!(obj.get_properties().is_empty());
 }
 
 #[test]
@@ -351,7 +351,11 @@ fn object_config_fields() {
     assert_eq!(c.enter_effect_channel, 8);
     assert_eq!(c.material_id, 9);
     assert_eq!(c.control_id, 10);
-    assert!(obj.properties.is_empty(), "{:?}", obj.properties);
+    assert!(
+        obj.get_properties().is_empty(),
+        "{:?}",
+        obj.get_properties()
+    );
 }
 
 #[test]
@@ -388,7 +392,7 @@ fn object_every_attribute() {
     for (id, flag) in ids {
         let obj = GDObject::parse_str(format!("1,1,2,0,3,0,{id},1;"));
         assert_eq!(obj.config.attributes, flag, "property {id}");
-        assert!(obj.properties.is_empty(), "property {id}");
+        assert!(obj.get_properties().is_empty(), "property {id}");
 
         let obj = GDObject::parse_str(format!("1,1,2,0,3,0,{id},0;"));
         assert_eq!(
@@ -442,7 +446,11 @@ fn object_extra_properties_use_property_table_types() {
 #[test]
 fn object_properties_are_sorted() {
     let obj = GDObject::parse_str("1,901,500,1,36,1,51,3,10,2;");
-    let ids = obj.properties.iter().map(|(id, _)| *id).collect::<Vec<_>>();
+    let ids = obj
+        .get_properties()
+        .iter()
+        .map(|(id, _)| *id)
+        .collect::<Vec<_>>();
     let mut sorted = ids.clone();
     sorted.sort();
     assert_eq!(ids, sorted);
@@ -452,7 +460,7 @@ fn object_properties_are_sorted() {
 fn object_duplicate_property_last_value_wins() {
     let obj = GDObject::parse_str("1,901,51,1,51,2;");
     assert_eq!(obj.get_property(51), Some(GDValue::Group(2)));
-    assert_eq!(obj.properties.len(), 1);
+    assert_eq!(obj.get_properties().len(), 1);
 }
 
 #[test]
@@ -507,13 +515,13 @@ fn object_huge_ka_key_does_not_panic() {
 fn object_unparseable_keys_are_kept_apart() {
     // two different unknown keys must not collapse into one property
     let obj = GDObject::parse_str("1,1,foo,1,bar,2;");
-    assert_eq!(obj.properties.len(), 2, "{:?}", obj.properties);
+    assert_eq!(obj.get_properties().len(), 2, "{:?}", obj.get_properties());
 }
 
 #[test]
 fn object_empty_string() {
     let obj = GDObject::parse_str("");
-    assert!(obj.properties.is_empty());
+    assert!(obj.get_properties().is_empty());
 }
 
 #[test]

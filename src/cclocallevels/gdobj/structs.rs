@@ -1233,8 +1233,8 @@ impl HSVColour {
             hue_shift: 0,
             saturation_mult: 1.0,
             brightness_mult: 1.0,
-            static_bright_scalar: false,
             static_sat_scalar: false,
+            static_bright_scalar: false,
         };
 
         new.hue_shift = set_value!(vals_iter => i32);

@@ -1,5 +1,5 @@
 //! Tests for getters, setters and builder methods on objects, object configs, levels and level data.
-use super::{default_block, test_config};
+use super::{CONFIG_PROPERTY_IDS, default_block, test_config};
 use crate::cclocallevels::{
     gdlevel::{
         CCLocalLevels, GDLevel,
@@ -7,10 +7,11 @@ use crate::cclocallevels::{
         version::GDVersion,
     },
     gdobj::{
-        GDObject,
+        GDObject, ObjectProperties,
         ids::{metadata::GROUP_PROPERTY_IDS, properties as p},
         meta::{GDObjAttributes, GDObjConfig},
         structs::*,
+        triggers::{EventTrigger, ItemEditTrigger, MoveTrigger, SpawnTrigger},
     },
 };
 
@@ -28,7 +29,10 @@ fn new_sorts_properties() {
         ],
     );
     assert_eq!(
-        obj.properties.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        obj.get_properties()
+            .iter()
+            .map(|(id, _)| *id)
+            .collect::<Vec<_>>(),
         vec![36, 51, 500]
     );
     assert_eq!(obj.get_property(500), Some(GDValue::Int(1)));
@@ -43,7 +47,7 @@ fn new_deduplicates_properties_with_the_same_id() {
         &GDObjConfig::default(),
         vec![(36, GDValue::Bool(true)), (36, GDValue::Bool(false))],
     );
-    assert_eq!(obj.properties.len(), 1, "{:?}", obj.properties);
+    assert_eq!(obj.get_properties().len(), 1, "{:?}", obj.get_properties());
 }
 
 #[test]
@@ -52,7 +56,11 @@ fn set_property_inserts_in_order() {
     for id in [500, 10, 300, 36, 10_005] {
         obj.set_property(id, GDValue::Int(id as i32));
     }
-    let ids = obj.properties.iter().map(|(id, _)| *id).collect::<Vec<_>>();
+    let ids = obj
+        .get_properties()
+        .iter()
+        .map(|(id, _)| *id)
+        .collect::<Vec<_>>();
     assert_eq!(ids, vec![10, 36, 300, 500, 10_005]);
     for id in ids {
         assert_eq!(obj.get_property(id), Some(GDValue::Int(id as i32)));
@@ -64,7 +72,7 @@ fn set_property_overwrites() {
     let mut obj = default_block();
     obj.set_property(51, GDValue::Group(1));
     obj.set_property(51, GDValue::Group(2));
-    assert_eq!(obj.properties.len(), 1);
+    assert_eq!(obj.get_properties().len(), 1);
     assert_eq!(obj.get_property(51), Some(GDValue::Group(2)));
 }
 
@@ -88,7 +96,7 @@ fn del_property() {
     assert_eq!(obj.get_property(71), Some(GDValue::Group(2)));
     // deleting a property that doesn't exist is a no-op
     obj.del_property(9999);
-    assert_eq!(obj.properties.len(), 1);
+    assert_eq!(obj.get_properties().len(), 1);
 }
 
 #[test]
@@ -275,6 +283,268 @@ fn debug_lists_properties() {
 fn default_from_id() {
     let obj = GDObject::default_from_id(1);
     assert_eq!(obj.id, 1);
+}
+
+// ---------------- property storage order (issue 1.2) ----------------
+// `get_property`, `set_property`, `has_property` and `del_property` binary search `properties`,
+// so every way of building a `GDObject` must leave them sorted by id with no duplicate ids.
+
+fn spawn_trigger() -> SpawnTrigger {
+    SpawnTrigger {
+        spawn_id: 10,
+        delay: 0.5,
+        delay_variation: 0.25,
+        reset_remap: true,
+        spawn_ordered: true,
+        preview_disable: true,
+        spawn_remaps: vec![(1, 2), (3, 4)],
+    }
+}
+
+/// Objects built with `from_config` from implementors whose `serialise()` is not in id order.
+fn from_config_objects() -> Vec<GDObject> {
+    vec![
+        GDObject::from_config(&test_config(), spawn_trigger()),
+        GDObject::from_config(
+            &test_config(),
+            ItemEditTrigger {
+                operand1: Some(Item::Counter(1)),
+                operand2: Some(Item::Timer(2)),
+                target: Item::Counter(3),
+                modifier: 2.5,
+                assign_op: Op::Add,
+                multiply_mod: true,
+                id_op: Op::Sub,
+                id_rounding: RoundMode::Floor,
+                result_rounding: RoundMode::Ceiling,
+                id_sign: SignMode::Absolute,
+                result_sign: SignMode::Negative,
+            },
+        ),
+        GDObject::from_config(
+            &test_config(),
+            MoveTrigger {
+                move_config: MoveMode::Default(DefaultMove {
+                    dx: 45,
+                    dy: -30,
+                    x_lock: Some(MoveLock::Player),
+                    y_lock: Some(MoveLock::Camera),
+                }),
+                time: 0.5,
+                target_group: 7,
+                silent: true,
+                dynamic: true,
+                easing: Easing::from(MoveEasing::BackOut, 1.5),
+            },
+        ),
+        GDObject::from_config(
+            &test_config(),
+            EventTrigger {
+                target_group: 4,
+                events: vec![Event::BallSwitch, Event::FallSpeedLow],
+                extra_id: 3,
+                extra_id2: ExtraID2::P2,
+            },
+        ),
+    ]
+}
+
+fn assert_sorted_unique(obj: &GDObject) {
+    let ids = obj
+        .get_properties()
+        .iter()
+        .map(|(id, _)| *id)
+        .collect::<Vec<_>>();
+    assert!(
+        ids.windows(2).all(|w| w[0] < w[1]),
+        "properties not strictly sorted by id: {ids:?}"
+    );
+}
+
+#[test]
+fn spawn_trigger_from_config_properties_are_found() {
+    // the exact reproduction from the issue: 155/581/441/102/442 were not found
+    let expected = spawn_trigger().serialise();
+    let obj = GDObject::from_config(&test_config(), spawn_trigger());
+    for (id, value) in expected {
+        assert!(obj.has_property(id), "has_property({id})");
+        assert_eq!(obj.get_property(id), Some(value), "get_property({id})");
+    }
+}
+
+#[test]
+fn from_config_properties_are_sorted_and_unique() {
+    for obj in from_config_objects() {
+        assert_sorted_unique(&obj);
+    }
+}
+
+#[test]
+fn from_config_every_property_is_found() {
+    for obj in from_config_objects() {
+        for (id, value) in obj.get_properties() {
+            assert_eq!(
+                obj.get_property(*id),
+                Some(value.clone()),
+                "property {id} of {obj:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn from_config_set_property_overwrites_existing() {
+    for mut obj in from_config_objects() {
+        let ids = obj
+            .get_properties()
+            .iter()
+            .map(|(id, _)| *id)
+            .collect::<Vec<_>>();
+        for &id in &ids {
+            obj.set_property(id, GDValue::Int(-1234));
+            assert_eq!(
+                obj.get_property(id),
+                Some(GDValue::Int(-1234)),
+                "property {id}"
+            );
+        }
+        assert_eq!(
+            obj.get_properties().len(),
+            ids.len(),
+            "set_property added entries"
+        );
+        assert_sorted_unique(&obj);
+    }
+}
+
+#[test]
+fn from_config_set_property_inserts_new_in_order() {
+    // ids that are not owned by `GDObjConfig`, spread out so that they land before, between and after existing properties
+    let new_ids = [7u16, 9_999, 20_000, 60_000];
+    assert!(new_ids.iter().all(|id| !CONFIG_PROPERTY_IDS.contains(id)));
+
+    for mut obj in from_config_objects() {
+        let before = obj.get_properties().to_vec();
+        let inserted = new_ids
+            .into_iter()
+            .filter(|id| !before.iter().any(|(i, _)| i == id))
+            .collect::<Vec<_>>();
+        for &id in &inserted {
+            obj.set_property(id, GDValue::Int(id as i32));
+        }
+
+        assert_sorted_unique(&obj);
+        assert_eq!(obj.get_properties().len(), before.len() + inserted.len());
+        for (id, value) in before {
+            assert_eq!(obj.get_property(id), Some(value), "old property {id} lost");
+        }
+        for id in inserted {
+            assert_eq!(
+                obj.get_property(id),
+                Some(GDValue::Int(id as i32)),
+                "new property {id}"
+            );
+        }
+    }
+}
+
+#[test]
+fn from_config_del_property_removes_only_that_property() {
+    for obj in from_config_objects() {
+        for (removed, _) in obj.get_properties() {
+            let mut obj = obj.clone();
+            obj.del_property(*removed);
+            assert!(
+                !obj.has_property(*removed),
+                "property {removed} still there"
+            );
+            for (id, value) in obj.get_properties() {
+                assert_eq!(
+                    obj.get_property(*id),
+                    Some(value.clone()),
+                    "property {id} after deleting {removed}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn new_with_reversed_properties() {
+    let props = (1..=50u16)
+        .rev()
+        .map(|id| (5_000 + id * 7, GDValue::Int(id as i32)))
+        .collect::<Vec<_>>();
+    let obj = GDObject::new(1, &GDObjConfig::default(), props.clone());
+    assert_sorted_unique(&obj);
+    for (id, value) in props {
+        assert_eq!(obj.get_property(id), Some(value), "property {id}");
+    }
+}
+
+#[test]
+fn new_with_identical_duplicates() {
+    let obj = GDObject::new(
+        1,
+        &GDObjConfig::default(),
+        vec![
+            (51, GDValue::Group(3)),
+            (36, GDValue::Bool(true)),
+            (51, GDValue::Group(3)),
+        ],
+    );
+    assert_eq!(obj.get_properties().len(), 2, "{:?}", obj.get_properties());
+    assert_sorted_unique(&obj);
+}
+
+#[test]
+fn new_with_conflicting_duplicates_keeps_one_entry() {
+    let obj = GDObject::new(
+        1,
+        &GDObjConfig::default(),
+        vec![
+            (51, GDValue::Group(3)),
+            (36, GDValue::Bool(true)),
+            (51, GDValue::Group(4)),
+        ],
+    );
+    assert_sorted_unique(&obj);
+    let stored = obj
+        .get_properties()
+        .iter()
+        .find(|(id, _)| *id == 51)
+        .unwrap()
+        .1
+        .clone();
+    assert_eq!(obj.get_property(51), Some(stored));
+}
+
+#[test]
+fn set_property_after_conflicting_duplicates_leaves_no_stale_value() {
+    let mut obj = GDObject::new(
+        1,
+        &GDObjConfig::default(),
+        vec![(51, GDValue::Group(3)), (51, GDValue::Group(4))],
+    );
+    obj.set_property(51, GDValue::Group(5));
+    assert_eq!(obj.get_property(51), Some(GDValue::Group(5)));
+    obj.del_property(51);
+    assert!(
+        !obj.has_property(51),
+        "a stale duplicate survived: {:?}",
+        obj.get_properties()
+    );
+    assert_eq!(obj.get_property(51), None);
+}
+
+#[test]
+fn parsed_object_with_unsorted_keys_is_searchable() {
+    let obj = GDObject::parse_str("1,1268,2,15,3,15,581,1,51,3,442,1.2,63,0.5,155,1;");
+    assert_sorted_unique(&obj);
+    for id in [51, 63, 155, 442, 581] {
+        assert!(obj.has_property(id), "property {id}");
+        assert!(obj.get_property(id).is_some(), "property {id}");
+    }
 }
 
 // ---------------- GDObjConfig ----------------

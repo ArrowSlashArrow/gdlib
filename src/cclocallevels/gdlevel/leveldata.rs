@@ -8,7 +8,10 @@ use std::{
 use crate::{
     cclocallevels::{
         consts::LEVEL_HEADER_PROP_ID_OFFSET,
-        gdlevel::leveldata::GDLevelHeaderKey::{A, S},
+        gdlevel::{
+            default_level_data,
+            leveldata::GDLevelHeaderKey::{A, S},
+        },
         gdobj::{
             GDObject,
             ids::metadata::GROUP_PROPERTY_IDS,
@@ -365,6 +368,14 @@ impl GDLevelData {
             headers: level_headers,
             objects,
         })
+    }
+
+    /// Creates a new instance of `GDLevelData` with the default level headers and set objects
+    pub fn with_default_headers<I: IntoIterator<Item = GDObject>>(objects: I) -> Self {
+        Self {
+            headers: parse_raw_level_headers(DEFAULT_LEVEL_HEADERS),
+            objects: objects.into_iter().collect(),
+        }
     }
 }
 

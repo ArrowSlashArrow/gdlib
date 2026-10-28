@@ -272,6 +272,8 @@ pub enum Force {
 repr_t!(
     /// Type of speed portal in GD. The variant corresponds to each speed portal by its color.
     ///
+    /// **Note:** to create a speed portal with `multi activate` enabled, you must set this in the object's `GDObjConfig.trigger_cfg.multiactivate`.
+    ///
     /// Casting a variant of this enum to an integer yields its object ID.
     strict SpeedPortal: i32 {
         Yellow = YELLOW_SLOW_SPEED_PORTAL,
@@ -295,43 +297,6 @@ impl SpeedPortal {
             Self::Pink => SPEED_3X,
             Self::Red => SPEED_4X,
         }
-    }
-}
-
-/// Settings for a speed portal
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SpeedPortalConfig {
-    /// What kind of speed portal this object is
-    pub portal: SpeedPortal,
-    /// Allow this portal to be hit multiple times
-    pub multi_activate: bool,
-}
-
-impl ObjectProperties for SpeedPortalConfig {
-    fn object_id(&self) -> i32 {
-        self.portal as i32
-    }
-
-    fn serialise(&self) -> Vec<(u16, GDValue)> {
-        vec![(MULTITRIGGERABLE, GDValue::Bool(self.multi_activate))]
-    }
-
-    fn from_object(obj: &crate::cclocallevels::gdobj::GDObject) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        let kind = SpeedPortal::try_from(obj.id).ok()?;
-        let multi_activate = match obj
-            .get_property(MULTITRIGGERABLE)
-            .unwrap_or(GDValue::Bool(false))
-        {
-            GDValue::Bool(b) => b,
-            _ => false,
-        };
-        Some(Self {
-            portal: kind,
-            multi_activate,
-        })
     }
 }
 

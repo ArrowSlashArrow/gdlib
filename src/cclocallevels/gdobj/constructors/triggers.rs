@@ -750,7 +750,7 @@ impl ObjectProperties for CounterLabel {
 /// Otherwise, the operand result becomes `operand result <op> modifier` where `op` is multiplication if `multiply_mod` is enabled and division if not.
 /// 3. The operand result is rounded according to `id_rounding` and then its sign is modified according to `id_sign`.
 /// 4. If `assign_op` is set to something other than `Op::Set`, the operand result becomes `current target item value <op> operand result` where `op` is `assign_op`.
-/// 5. The operand result is rounded again according to `result_rounding` and then its sign is modified according to `result_sign`.
+/// 5. If step 4 executed, the operand result is rounded again according to `result_rounding` and then its sign is modified according to `result_sign`.
 /// 6. Finally, the value of the target item is set to the operand result.
 pub struct ItemEditTrigger {
     /// Left-hand operand
@@ -928,14 +928,21 @@ impl ItemEditTrigger {
     ///
     /// Depending on the configuration of this object, the two parameters don't always get used (for example, if `self.operand2` is `None`). In the case that a parameter is not used, it can have any value.
     pub fn eval_result(&self, operand1: f64, operand2: f64, current_value_at_target: f64) -> f64 {
-        let mut id_result = if self.operand1.is_none() && self.operand2.is_none() {
-            self.modifier as f64
-        } else if self.operand1.is_some() && self.operand2.is_none() {
-            operand1
-        } else if self.operand1.is_none() && self.operand2.is_some() {
-            operand2
-        } else {
-            self.id_op.eval(operand1, operand2)
+        let get_item_value = |field: Item, current_value: f64| -> f64 {
+            if field.get_type() == ItemType::Counter {
+                (current_value).trunc() // integer conversion
+            } else {
+                current_value
+            }
+        };
+
+        let mut id_result = match (self.operand1, self.operand2) {
+            (None, None) => self.modifier as f64,
+            (Some(o1), None) => get_item_value(o1, operand1),
+            (None, Some(o2)) => get_item_value(o2, operand2),
+            (Some(o1), Some(o2)) => self
+                .id_op
+                .eval(get_item_value(o1, operand1), get_item_value(o2, operand2)),
         };
 
         if !(self.operand1.is_none() && self.operand2.is_none()) {
@@ -945,7 +952,7 @@ impl ItemEditTrigger {
 
         id_result = self.id_sign.eval(self.id_rounding.eval(id_result));
         if self.assign_op != Op::Set {
-            id_result = self.assign_op.eval(id_result, current_value_at_target);
+            id_result = self.assign_op.eval(current_value_at_target, id_result);
             id_result = self.result_sign.eval(self.result_rounding.eval(id_result));
         }
 

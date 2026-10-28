@@ -28,8 +28,8 @@ pub fn fast_rand_bits(seed: u64) -> u64 {
 /// Internally known as `fast_rand_0_1`
 #[inline(always)]
 #[must_use]
-pub fn fast_rand_bits_norm(seed: u64) -> f64 {
-    fast_rand_bits(seed) as f64 / 32767.0
+pub fn fast_rand_bits_norm(seed: u64) -> f32 {
+    fast_rand_bits(seed) as f32 / 32767.0
 }
 
 /// Checks if the seed will activate group 1 or 2 in a random trigger.
@@ -41,7 +41,7 @@ pub fn fast_rand_bits_norm(seed: u64) -> f64 {
 /// since the official one automatically updates the seed when called.
 #[inline(always)]
 #[must_use]
-pub fn check_seed_random(seed: u64, chance: f64) -> bool {
+pub fn check_seed_random(seed: u64, chance: f32) -> bool {
     // Compare against the chance threshold
     fast_rand_bits_norm(seed) < chance
 }
@@ -50,29 +50,38 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 /// and a list of the trigger's activation probabilities per group (can be easily gotten from the `probabilities` field of [`crate::cclocallevels::gdobj::AdvancedRandomTrigger`]).
 /// Note that this is the same type as the advanced trigger's `RANDOM_PROBABILITIES_LIST` property.
 /// If the given list of probabilities is empty, this method will return `None`.
+/// If the given list of probabilities has a single negative chance or the chances overflow the 32-bit integer limit, the first group is returned (as it is in GD).
 ///
 /// For accuracy, please do not sort or prune the list in any way.
 /// Doing so will likely affect the results of the check.
 ///
 /// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`] or [`next_seed_mut`].
 ///
-/// This algorithm was sourced from the Andriod APK for GD and is verified to work as of GD 2.2801.
+/// This algorithm was sourced from the Android APK for GD and is verified to work as of GD 2.2901.
 #[must_use]
 pub fn check_seed_advanced_random(seed: u64, probabilities: &Vec<(i16, i32)>) -> Option<i16> {
-    let total_chance: i32 = probabilities.iter().map(|(_, chance)| chance).sum();
-    let accumulated_chance_threshold =
-        (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;
-
-    if !probabilities.is_empty() {
-        let mut buf_ptr = 0;
-        let mut accumulated_chance = probabilities[buf_ptr].1; // chance
-
-        while !(accumulated_chance_threshold <= accumulated_chance) {
-            buf_ptr += 1;
-            accumulated_chance = accumulated_chance + probabilities[buf_ptr].1;
-        }
-        Some(probabilities[buf_ptr].0)
-    } else {
-        None
+    if probabilities.is_empty() {
+        return None;
     }
+
+    if probabilities.iter().any(|&(_, c)| c < 0) {
+        return Some(probabilities[0].0);
+    }
+    let big_total_chance: i64 = probabilities.iter().map(|(_, chance)| *chance as i64).sum();
+    if big_total_chance > i32::MAX as i64 {
+        // gd just spawns the first group if overflow
+        return Some(probabilities[0].0);
+    }
+
+    let accumulated_chance_threshold =
+        (fast_rand_bits_norm(seed) as f32 * (big_total_chance as i32) as f32) as i32;
+
+    let mut buf_ptr = 0;
+    let mut accumulated_chance = probabilities[buf_ptr].1; // chance
+
+    while !(accumulated_chance_threshold <= accumulated_chance) {
+        buf_ptr += 1;
+        accumulated_chance = accumulated_chance + probabilities[buf_ptr].1;
+    }
+    Some(probabilities[buf_ptr].0)
 }

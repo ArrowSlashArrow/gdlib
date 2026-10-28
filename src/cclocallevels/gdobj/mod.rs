@@ -46,8 +46,8 @@ pub struct GDObject {
     pub id: i32,
     /// General properties, such as position and scale.
     pub config: GDObjConfig,
-    /// Object-specific properties
-    pub properties: Vec<(u16, GDValue)>,
+    /// Object-specific properties. This field is intentionally left private to prevent duplicate properties.
+    properties: Vec<(u16, GDValue)>,
 }
 
 impl Display for GDObject {
@@ -288,7 +288,7 @@ impl GDObject {
         );
     }
 
-    /// Sets the property ID to the value, and craetes it if it doesn't exist
+    /// Sets the property ID to the value, and creates it if it doesn't exist
     pub fn set_property(&mut self, p: u16, val: GDValue) {
         match self.properties.binary_search_by_key(&p, |t| t.0) {
             Ok(idx) => self.properties[idx].1 = val,
@@ -344,7 +344,7 @@ impl GDObject {
     pub fn new(id: i32, config: &GDObjConfig, properties: Vec<(u16, GDValue)>) -> Self {
         let mut p = properties;
         p.sort_by(|a, b| a.0.cmp(&b.0));
-        p.dedup();
+        p.dedup_by_key(|p| p.0);
         Self {
             id,
             config: config.clone(),
@@ -457,6 +457,12 @@ impl GDObject {
                 .binary_search_by_key(&p, |(key, _)| *key)
                 .is_ok(),
         }
+    }
+
+    #[inline]
+    /// Returns this object's properties as a list of (property id, value) pairs.
+    pub fn get_properties(&self) -> &[(u16, GDValue)] {
+        &self.properties
     }
 
     /// Set this object's internal config

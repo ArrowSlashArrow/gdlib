@@ -274,7 +274,7 @@ fn item_edit_rounding_and_sign() {
 }
 
 #[test]
-fn item_edit_result_rounding_applies_with_set() {
+fn item_edit_result_rounding_does_not_apply_with_set() {
     // documented step 5 happens regardless of the assignment operator
     let t = ItemEditTrigger {
         operand1: Some(Item::Counter(2)),
@@ -282,13 +282,24 @@ fn item_edit_result_rounding_applies_with_set() {
         result_sign: SignMode::Absolute,
         ..item_edit()
     };
-    assert_eq!(t.eval_result(-2.5, 0.0, 0.0), 3.0);
+    assert_eq!(t.eval_result(-2.0, 0.0, 0.0), -2.0);
+}
+
+#[test]
+fn item_edit_result_truncated_with_counter() {
+    let t = ItemEditTrigger {
+        operand1: Some(Item::Counter(2)),
+        assign_op: Op::Add,
+        result_rounding: RoundMode::Ceiling,
+        ..item_edit()
+    };
+    assert_eq!(t.eval_result(0.25, 0.0, 1.0), 1.0);
 }
 
 #[test]
 fn item_edit_result_rounding_with_assign_operator() {
     let t = ItemEditTrigger {
-        operand1: Some(Item::Counter(2)),
+        operand1: Some(Item::Timer(2)),
         assign_op: Op::Add,
         result_rounding: RoundMode::Ceiling,
         ..item_edit()
@@ -363,7 +374,10 @@ fn advanced_random_negative_chances_do_not_panic() {
 #[test]
 fn advanced_random_huge_chances_do_not_panic() {
     for seed in 0..100 {
-        let _ = check_seed_advanced_random(seed, &vec![(1, i32::MAX), (2, i32::MAX)]);
+        assert_eq!(
+            check_seed_advanced_random(seed, &vec![(1, i32::MAX), (2, i32::MAX)]),
+            Some(1)
+        );
     }
 }
 

@@ -18,7 +18,7 @@ use crate::{
 /// # Arguments
 /// `config`: Object config
 /// `text`: Text in the objecty
-/// `kerning`: Spacing between chars. Default is 0
+/// `kerning`: Spacing between letters (tracking). Default is 0
 #[inline]
 pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
     GDObject::new(

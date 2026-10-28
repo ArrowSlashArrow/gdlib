@@ -1298,24 +1298,6 @@ object_properties_suite!(force_object_config: ForceObjectConfig {
     compare: direct,
 });
 
-object_properties_suite!(speed_portal_config: SpeedPortalConfig {
-    ids: [
-        SpeedPortal::Yellow as i32,
-        SpeedPortal::Blue as i32,
-        SpeedPortal::Green as i32,
-        SpeedPortal::Pink as i32,
-        SpeedPortal::Red as i32,
-    ],
-    samples: vec![
-        SpeedPortalConfig { portal: SpeedPortal::Yellow, multi_activate: true },
-        SpeedPortalConfig { portal: SpeedPortal::Blue, multi_activate: false },
-        SpeedPortalConfig { portal: SpeedPortal::Green, multi_activate: true },
-        SpeedPortalConfig { portal: SpeedPortal::Pink, multi_activate: false },
-        SpeedPortalConfig { portal: SpeedPortal::Red, multi_activate: true },
-    ],
-    compare: direct,
-});
-
 object_properties_suite!(gameplay_portal_config: GameplayPortalConfig {
     ids: [
         GameplayPortal::BlueGravity as i32,
@@ -1529,25 +1511,6 @@ fn every_orb_type_has_its_object_id() {
             extra_orb_config: OrbOptions::None,
         };
         assert_eq!(orb.object_id(), id, "{otype:?}");
-    }
-}
-
-#[test]
-fn every_speed_portal_has_its_object_id() {
-    for (portal, id) in [
-        (SpeedPortal::Yellow, YELLOW_SLOW_SPEED_PORTAL),
-        (SpeedPortal::Blue, BLUE_NORMAL_SPEED_PORTAL),
-        (SpeedPortal::Green, GREEN_FAST_SPEED_PORTAL),
-        (SpeedPortal::Pink, PINK_FAST_SPEED_PORTAL),
-        (SpeedPortal::Red, RED_FAST_SPEED_PORTAL),
-    ] {
-        let cfg = SpeedPortalConfig {
-            portal,
-            multi_activate: false,
-        };
-        assert_eq!(cfg.object_id(), id);
-        let obj = GDObject::new(id, &GDObjConfig::default(), vec![]);
-        assert_eq!(SpeedPortalConfig::from_object(&obj), Some(cfg));
     }
 }
 
