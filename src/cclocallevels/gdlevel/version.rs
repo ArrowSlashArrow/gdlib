@@ -1,353 +1,198 @@
 //! GDVersion.
 
-/// Enum for all released versions of Geometry Dash. The purpose of this enum is to provide a way to get game version id, `binaryVersion`, and manifest version from one object.
+/// Defines [`GDVersion`] and its conversion functions from a single table.
 ///
-/// Reference: <https://a-zalt.github.io/gdknowledge/versions.html>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum GDVersion {
+/// To add a new release, append one line at the **bottom** of the `gd_versions!` invocation below.
+/// [`GDVersion::ALL`] and [`GDVersion::LATEST`] follow the order of the table, so nothing else needs updating.
+macro_rules! gd_versions {
+    ($(
+        $(#[$attr:meta])*
+        $variant:ident => game: $game:expr, binary: $bin:expr, manifest: $man:expr;
+    )+) => {
+        /// Enum for all released versions of Geometry Dash. The purpose of this enum is to provide a way to get game version id, `binaryVersion`, and manifest version from one object.
+        ///
+        /// Reference: <https://a-zalt.github.io/gdknowledge/versions.html>
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+        pub enum GDVersion {
+            $( $(#[$attr])* $variant, )+
+            /// Unknown version. Internal value is `binaryVersion`.
+            Unknown(i32),
+        }
+
+        impl GDVersion {
+            /// Every known version of GD, oldest first. Does not include [`GDVersion::Unknown`].
+            pub const ALL: &[GDVersion] = &[$(Self::$variant),+];
+
+            /// The newest known version of GD.
+            pub const LATEST: GDVersion = Self::ALL[Self::ALL.len() - 1];
+
+            /// Converts this `GDVersion` to a game version ID. This function returns `None` if the binary version does not have a known game version.
+            ///
+            /// Reference: <https://a-zalt.github.io/gdknowledge/versions.html>
+            pub fn to_game_version_id(&self) -> Option<i32> {
+                match self {
+                    $(Self::$variant => $game,)+
+                    Self::Unknown(_) => None,
+                }
+            }
+
+            /// Returns the binary version for a specific GD version.
+            ///
+            /// `binaryVersion` is a value that is present in `LLM_02` in CCLocalLevels and necessary for levels in GD to open correctly.
+            /// If this value is not present in the `GDLevel.identity.binary_version` field of a `GDLevel`, GD will ignore existing level data and replace it with a new blank level.
+            ///
+            /// The variants of this enum correspond to different builds of GD. Not all of the values of this enum are known.
+            ///
+            /// **WARNING:** This function will NOT return a value for the following versions:
+            /// * 2.207
+            /// * 2.2071
+            /// * 2.2072
+            /// * 2.2073
+            ///
+            /// For `Self::Unknown`, the internal value is returned.
+            pub fn to_binary_version_id(&self) -> Option<i32> {
+                match self {
+                    $(Self::$variant => $bin,)+
+                    Self::Unknown(u) => Some(*u),
+                }
+            }
+
+            /// Returns the manifest version of a specific GD version.
+            ///
+            // Maintainer's note: I have no clue where this is used.
+            pub fn to_manifest_version(&self) -> Option<i32> {
+                match self {
+                    $(Self::$variant => $man,)+
+                    Self::Unknown(_) => None,
+                }
+            }
+        }
+    };
+}
+
+// columns: game version id (`gameVersion`), binary version (`binaryVersion`), manifest version
+gd_versions! {
     /// GD Version 1.000
     #[default]
-    GD1000,
+    GD1000 => game: Some(1), binary: Some(0), manifest: Some(2);
     /// GD Version 1.010
-    GD1010,
+    GD1010 => game: Some(1), binary: Some(0), manifest: Some(3);
     /// GD Version 1.020
-    GD1020,
+    GD1020 => game: Some(1), binary: Some(0), manifest: Some(4);
     /// GD Version 1.100
-    GD1100,
+    GD1100 => game: Some(2), binary: Some(0), manifest: Some(5);
     /// GD Version 1.110
-    GD1110,
+    GD1110 => game: Some(2), binary: Some(1), manifest: Some(6);
     /// GD Version 1.200
-    GD1200,
+    GD1200 => game: Some(3), binary: Some(2), manifest: Some(7);
     /// GD Version 1.210
-    GD1210,
+    GD1210 => game: Some(3), binary: Some(2), manifest: Some(8);
     /// GD Version 1.220
-    GD1220,
+    GD1220 => game: Some(3), binary: Some(2), manifest: Some(9);
     /// GD Version 1.300
-    GD1300,
+    GD1300 => game: Some(4), binary: Some(4), manifest: Some(10);
     /// GD Version 1.400
-    GD1400,
+    GD1400 => game: Some(5), binary: Some(5), manifest: Some(11);
     /// GD Version 1.410
-    GD1410,
+    GD1410 => game: Some(5), binary: Some(5), manifest: Some(12);
     /// GD Version 1.500
-    GD1500,
+    GD1500 => game: Some(6), binary: Some(6), manifest: Some(13);
     /// GD Version 1.510
-    GD1510,
+    GD1510 => game: Some(6), binary: Some(6), manifest: Some(14);
     /// GD Version 1.600
-    GD1600,
+    GD1600 => game: Some(7), binary: Some(7), manifest: Some(16);
     /// GD Version 1.700
-    GD1700,
+    GD1700 => game: Some(10), binary: Some(10), manifest: Some(17);
     /// GD Version 1.710
-    GD1710,
+    GD1710 => game: Some(10), binary: Some(11), manifest: Some(18);
     /// GD Version 1.800
-    GD1800,
+    GD1800 => game: Some(11), binary: Some(12), manifest: Some(19);
     /// GD Version 1.810
-    GD1810,
+    GD1810 => game: Some(18), binary: Some(13), manifest: Some(20);
     /// GD Version 1.811
-    GD1811,
+    GD1811 => game: Some(18), binary: Some(14), manifest: Some(21);
     /// GD Version 1.900
     ///
     /// There are actually two (slightly) different GD 1.900s. They share a `GDVersion` and a `gameVersion` - their only (known) difference is in manifest versions.
-    /// The first has a manifest version 22, and the second ahs a manifest version 23.
-    GD1900,
+    /// The first has a manifest version 22, and the second has a manifest version 23.
+    GD1900 => game: Some(19), binary: Some(20), manifest: Some(22);
     /// GD Version 1.910
-    GD1910,
+    GD1910 => game: Some(19), binary: Some(20), manifest: Some(24);
     /// GD Version 1.920
-    GD1920,
+    GD1920 => game: Some(19), binary: Some(24), manifest: Some(25);
     /// GD Version 1.930
-    GD1930,
+    GD1930 => game: Some(19), binary: Some(25), manifest: Some(26);
     /// GD Version 2.000
-    GD2000,
+    GD2000 => game: Some(20), binary: Some(27), manifest: Some(27);
     /// GD Version 2.001
-    GD2001,
+    GD2001 => game: Some(20), binary: Some(28), manifest: Some(28);
     /// GD Version 2.010
-    GD2010,
+    GD2010 => game: Some(20), binary: Some(29), manifest: Some(29);
     /// GD Version 2.011
-    GD2011,
+    GD2011 => game: Some(20), binary: Some(29), manifest: Some(30);
     /// GD Version 2.100
-    GD2100,
+    GD2100 => game: Some(21), binary: Some(33), manifest: Some(31);
     /// GD Version 2.110
-    GD2110,
+    GD2110 => game: Some(21), binary: Some(34), manifest: Some(32);
     /// GD Version 2.111
-    GD2111,
+    GD2111 => game: Some(21), binary: Some(34), manifest: Some(33);
     /// GD Version 2.113
-    GD2113,
+    GD2113 => game: Some(21), binary: Some(35), manifest: None;
     /// GD Version 2.200
-    GD2200,
+    GD2200 => game: Some(22), binary: Some(38), manifest: Some(38);
     /// GD Version 2.201
-    GD2201,
+    GD2201 => game: Some(22), binary: Some(38), manifest: None;
     /// GD Version 2.202
-    GD2202,
+    GD2202 => game: Some(22), binary: Some(39), manifest: None;
     /// GD Version 2.203
-    GD2203,
+    GD2203 => game: Some(22), binary: Some(40), manifest: None;
     /// GD Version 2.204
-    GD2204,
+    GD2204 => game: Some(22), binary: Some(40), manifest: None;
     /// GD Version 2.205
-    GD2205,
+    GD2205 => game: Some(22), binary: Some(41), manifest: None;
     /// GD Version 2.206
-    GD2206,
+    GD2206 => game: Some(22), binary: Some(42), manifest: None;
+    /* presumably these ones have 42 < binaryVersion < 45 */
     /// GD Version 2.207
     ///
     /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD2207,
+    GD2207 => game: Some(22), binary: None, manifest: None;
     /// GD Version 2.2071
     ///
     /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22071,
+    GD22071 => game: Some(22), binary: None, manifest: None;
     /// GD Version 2.2072
     ///
     /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22072,
+    GD22072 => game: Some(22), binary: None, manifest: None;
     /// GD Version 2.2073
     ///
     /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22073,
+    GD22073 => game: Some(22), binary: None, manifest: None;
     /// GD Version 2.2074
-    GD22074,
+    GD22074 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.208
-    GD2208,
+    GD2208 => game: Some(22), binary: Some(46), manifest: None;
     /// GD Version 2.2081
-    GD22081,
+    GD22081 => game: Some(22), binary: Some(47), manifest: None;
     /// GD Version 2.2082
-    GD22082,
+    GD22082 => game: Some(22), binary: Some(48), manifest: None;
     /// GD Version 2.209
-    GD2209,
+    GD2209 => game: Some(22), binary: Some(49), manifest: None;
     /// GD Version 2.2091
-    GD22091,
-    /// Unknown version. Internal value is `binaryVersion`.
-    Unknown(i32),
+    GD22091 => game: Some(22), binary: Some(51), manifest: None;
 }
 
 impl GDVersion {
-    /// Converts this `GDVersion` to a game version ID. This function returns `None` if the binary version does not have a known game version.
-    ///
-    /// Reference: <https://a-zalt.github.io/gdknowledge/versions.html>
-    pub fn to_game_version_id(&self) -> Option<i32> {
-        match &self {
-            Self::GD1000 => Some(1),
-            Self::GD1010 => Some(1),
-            Self::GD1020 => Some(1),
-            Self::GD1100 => Some(2),
-            Self::GD1110 => Some(2),
-            Self::GD1200 => Some(3),
-            Self::GD1210 => Some(3),
-            Self::GD1220 => Some(3),
-            Self::GD1300 => Some(4),
-            Self::GD1400 => Some(5),
-            Self::GD1410 => Some(5),
-            Self::GD1500 => Some(6),
-            Self::GD1510 => Some(6),
-            Self::GD1600 => Some(7),
-            Self::GD1700 => Some(10),
-            Self::GD1710 => Some(10),
-            Self::GD1800 => Some(11),
-            Self::GD1810 => Some(18),
-            Self::GD1811 => Some(18),
-            Self::GD1900 => Some(19),
-            Self::GD1910 => Some(19),
-            Self::GD1920 => Some(19),
-            Self::GD1930 => Some(19),
-            Self::GD2000 => Some(20),
-            Self::GD2001 => Some(20),
-            Self::GD2010 => Some(20),
-            Self::GD2011 => Some(20),
-            Self::GD2100 => Some(21),
-            Self::GD2110 => Some(21),
-            Self::GD2111 => Some(21),
-            Self::GD2113 => Some(21),
-            Self::GD2200 => Some(22),
-            Self::GD2201 => Some(22),
-            Self::GD2202 => Some(22),
-            Self::GD2203 => Some(22),
-            Self::GD2204 => Some(22),
-            Self::GD2205 => Some(22),
-            Self::GD2206 => Some(22),
-            Self::GD2207 => Some(22),
-            Self::GD22071 => Some(22),
-            Self::GD22072 => Some(22),
-            Self::GD22073 => Some(22),
-            Self::GD22074 => Some(22),
-            Self::GD2208 => Some(22),
-            Self::GD22081 => Some(22),
-            Self::GD22082 => Some(22),
-            _ => None, // unknown
-        }
-    }
-
     /// Converts a raw binary version to a `GDVersion`. Since multiple game versions share the same binary version, only the earliest game version with a specific ID will be returned.
     ///
     /// This function ensured preservation of the argument value when `to_game_version_id` is called on the returned object.
     pub fn from_binary_version(bv: i32) -> Self {
-        match bv {
-            0 => Self::GD1000,
-            // also 0: Self::GD1010,
-            // also 0: Self::GD1020,
-            // also 0: Self::GD1100,
-            1 => Self::GD1110,
-            2 => Self::GD1200,
-            // also 2: Self::GD1210,
-            // also 2: Self::GD1220,
-            4 => Self::GD1300,
-            5 => Self::GD1400,
-            // also 5: Self::GD1410,
-            6 => Self::GD1500,
-            // also 6: Self::GD1510,
-            7 => Self::GD1600,
-            10 => Self::GD1700,
-            11 => Self::GD1710,
-            12 => Self::GD1800,
-            13 => Self::GD1810,
-            14 => Self::GD1811,
-            20 => Self::GD1900,
-            // also 20: Self::GD1910,
-            24 => Self::GD1920,
-            25 => Self::GD1930,
-            27 => Self::GD2000,
-            28 => Self::GD2001,
-            29 => Self::GD2010,
-            // also 29: Self::GD2011,
-            33 => Self::GD2100,
-            34 => Self::GD2110,
-            // also 34: Self::GD2111,
-            35 => Self::GD2113,
-            38 => Self::GD2200,
-            // also 38: Self::GD2201,
-            39 => Self::GD2202,
-            40 => Self::GD2203,
-            // also 40: Self::GD2204,
-            41 => Self::GD2205,
-            42 => Self::GD2206,
-            45 => Self::GD22074,
-            46 => Self::GD2208,
-            47 => Self::GD22081,
-            48 => Self::GD22082,
-            49 => Self::GD2209,
-            51 => Self::GD22091,
-            n => Self::Unknown(n),
-        }
-    }
-
-    /// Returns the binary version for a specific GD version.
-    ///
-    /// `binaryVersion` is a value that is present in `LLM_02` in CCLocalLevels and necessary for levels in GD to open correctly.
-    /// If this value is not present in the `GDLevel.identity.binary_version` field of a `GDLevel`, GD will ignore existing level data and replace it with a new blank level.
-    ///
-    /// The variants of this enum correspond to different builds of GD. Not all of the values of this enum are known.
-    ///
-    /// **WARNING:** This function will NOT return a value for the following versions:
-    /// * 2.207
-    /// * 2.2071
-    /// * 2.2072
-    /// * 2.2073
-    /// * `Self::Unknown`.
-    pub fn to_binary_version_id(&self) -> Option<i32> {
-        match self {
-            Self::GD1000 => Some(0),
-            Self::GD1010 => Some(0),
-            Self::GD1020 => Some(0),
-            Self::GD1100 => Some(0),
-            Self::GD1110 => Some(1),
-            Self::GD1200 => Some(2),
-            Self::GD1210 => Some(2),
-            Self::GD1220 => Some(2),
-            Self::GD1300 => Some(4),
-            Self::GD1400 => Some(5),
-            Self::GD1410 => Some(5),
-            Self::GD1500 => Some(6),
-            Self::GD1510 => Some(6),
-            Self::GD1600 => Some(7),
-            Self::GD1700 => Some(10),
-            Self::GD1710 => Some(11),
-            Self::GD1800 => Some(12),
-            Self::GD1810 => Some(13),
-            Self::GD1811 => Some(14),
-            Self::GD1900 => Some(20),
-            Self::GD1910 => Some(20),
-            Self::GD1920 => Some(24),
-            Self::GD1930 => Some(25),
-            Self::GD2000 => Some(27),
-            Self::GD2001 => Some(28),
-            Self::GD2010 => Some(29),
-            Self::GD2011 => Some(29),
-            Self::GD2100 => Some(33),
-            Self::GD2110 => Some(34),
-            Self::GD2111 => Some(34),
-            Self::GD2113 => Some(35),
-            Self::GD2200 => Some(38),
-            Self::GD2201 => Some(38),
-            Self::GD2202 => Some(39),
-            Self::GD2203 => Some(40),
-            Self::GD2204 => Some(40),
-            Self::GD2205 => Some(41),
-            Self::GD2206 => Some(42),
-            Self::GD2207 => None,
-            Self::GD22071 => None,
-            Self::GD22072 => None,
-            Self::GD22073 => None,
-            Self::GD22074 => Some(45),
-            Self::GD2208 => Some(46),
-            Self::GD22081 => Some(47),
-            Self::GD22082 => Some(48),
-            Self::GD2209 => Some(49),
-            Self::GD22091 => Some(51),
-            Self::Unknown(u) => Some(*u),
-        }
-    }
-
-    /// Returns the manifest version of a specific GD version.
-    ///
-    // Maintainer's note: I have no clue where this is used.
-    pub fn to_manifest_version(&self) -> Option<i32> {
-        match self {
-            Self::GD1000 => Some(2),
-            Self::GD1010 => Some(3),
-            Self::GD1020 => Some(4),
-            Self::GD1100 => Some(5),
-            Self::GD1110 => Some(6),
-            Self::GD1200 => Some(7),
-            Self::GD1210 => Some(8),
-            Self::GD1220 => Some(9),
-            Self::GD1300 => Some(10),
-            Self::GD1400 => Some(11),
-            Self::GD1410 => Some(12),
-            Self::GD1500 => Some(13),
-            Self::GD1510 => Some(14),
-            Self::GD1600 => Some(16),
-            Self::GD1700 => Some(17),
-            Self::GD1710 => Some(18),
-            Self::GD1800 => Some(19),
-            Self::GD1810 => Some(20),
-            Self::GD1811 => Some(21),
-            Self::GD1900 => Some(22),
-            Self::GD1910 => Some(24),
-            Self::GD1920 => Some(25),
-            Self::GD1930 => Some(26),
-            Self::GD2000 => Some(27),
-            Self::GD2001 => Some(28),
-            Self::GD2010 => Some(29),
-            Self::GD2011 => Some(30),
-            Self::GD2100 => Some(31),
-            Self::GD2110 => Some(32),
-            Self::GD2111 => Some(33),
-            Self::GD2113 => None,
-            Self::GD2200 => Some(38),
-            Self::GD2201 => None,
-            Self::GD2202 => None,
-            Self::GD2203 => None,
-            Self::GD2204 => None,
-            Self::GD2205 => None,
-            Self::GD2206 => None,
-            Self::GD2207 => None,
-            Self::GD22071 => None,
-            Self::GD22072 => None,
-            Self::GD22073 => None,
-            Self::GD22074 => None,
-            Self::GD2208 => None,
-            Self::GD22081 => None,
-            Self::GD22082 => None,
-            Self::GD2209 => None,
-            Self::GD22091 => None,
-            Self::Unknown(_) => None,
-        }
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|v| v.to_binary_version_id() == Some(bv))
+            .unwrap_or(Self::Unknown(bv))
     }
 }
 

@@ -322,7 +322,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
-/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`GDLevelHeaderKey::to_id`]
+/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`GDLevelHeaderKey::to_id`].
+/// Use [`GDLevelHeaderKey::from_id`] to convert an integer ID into a usable key.
 ///
 /// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level-components/level-start>
 pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType)> = phf_map! {

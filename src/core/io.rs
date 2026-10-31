@@ -19,6 +19,9 @@ fn zlib_compress(s: &str) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
+/// Xor encryption key for CCLocalLevels.dat and CCGameManager.day
+pub const XOR_KEY_PLAYER_DATA: u8 = 0x0b;
+
 /// Returns the encrypted level string as `Vec<u8>` from a `GDLevel` object string
 #[must_use]
 pub fn encrypt_level_str(s: &str) -> Vec<u8> {
@@ -37,16 +40,20 @@ pub fn encrypt_level_str(s: &str) -> Vec<u8> {
     header
 }
 
-/// Returns the encrypted savefile string from a stringified `Levels` struct
+/// Encrypts a payload into the format of a GD savefile. This function is used to export `CCLocalLevels` and `CCGameManager`.
+///
+/// The raw payload is first encrypted according to [`encrypt_level_str`] and then xored with [`XOR_KEY_PLAYER_DATA`].
 #[must_use]
 pub fn encrypt_savefile_str(s: &str) -> Vec<u8> {
     let mut encrypted = encrypt_level_str(s);
     #[cfg(feature = "parallel")]
-    encrypted.par_iter_mut().for_each(|c| *c ^= 0x000b);
+    encrypted
+        .par_iter_mut()
+        .for_each(|c| *c ^= XOR_KEY_PLAYER_DATA);
 
     #[cfg(not(feature = "parallel"))]
     for byte in &mut encrypted {
-        *byte ^= 0x000b;
+        *byte ^= XOR_KEY_PLAYER_DATA;
     }
     encrypted
 }
@@ -127,22 +134,18 @@ pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
     Ok(decompressed_buf)
 }
 
-/// Decrypts data by xoring with key 11 and decompressing it.
-/// This is the algorithm used to decrypt GD savefiles.
+/// Decrypts data by xoring with [`XOR_KEY_PLAYER_DATA`] and decompressing it, which yields the raw savefile string when used on GD savefiles - CCLocalLevels.dat and CCGameManager.dat.
 ///
-/// # Arguments
-/// * `data`: encrypted payload
-///
-/// Returns the raw file contents as a `Vec<u8>`
+/// The raw file's contents are returned as a byte array.
 #[inline]
 #[must_use]
 pub fn decrypt(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
     #[cfg(feature = "parallel")]
-    data.par_iter_mut().for_each(|c| *c ^= 0x000b);
+    data.par_iter_mut().for_each(|c| *c ^= XOR_KEY_PLAYER_DATA);
 
     #[cfg(not(feature = "parallel"))]
     for c in &mut data {
-        *c ^= 0x000b;
+        *c ^= XOR_KEY_PLAYER_DATA;
     }
     decompress(data)
 }

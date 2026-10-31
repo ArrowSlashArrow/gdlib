@@ -8,6 +8,7 @@ use crate::{
     },
     cclocallevels::{
         gdlevel::{
+            GDLevel,
             enums::*,
             leveldata::{GuidelineColour, PlayerColour},
             version::GDVersion,
@@ -498,4 +499,78 @@ fn speed_portal_speeds_increase() {
     ]
     .map(|s| s.get_speed());
     assert!(speeds.windows(2).all(|w| w[0] < w[1]), "{speeds:?}");
+}
+
+#[test]
+fn gd_version_all_is_complete() {
+    // every variant is in `ALL` exactly once, in declaration order
+    assert_eq!(GDVersion::ALL.first(), Some(&GDVersion::GD1000));
+    let mut seen = GDVersion::ALL.to_vec();
+    seen.dedup();
+    assert_eq!(seen.len(), GDVersion::ALL.len());
+    assert!(
+        !GDVersion::ALL
+            .iter()
+            .any(|v| matches!(v, GDVersion::Unknown(_)))
+    );
+}
+
+#[test]
+fn gd_version_latest_is_newest() {
+    assert_eq!(Some(&GDVersion::LATEST), GDVersion::ALL.last());
+    assert_eq!(GDVersion::LATEST, GDVersion::GD22091);
+    assert!(GDVersion::LATEST.to_binary_version_id().is_some());
+    assert!(GDVersion::LATEST.to_game_version_id().is_some());
+    assert_eq!(
+        GDLevel::new_latest_version().identity.binary_version,
+        GDVersion::LATEST
+    );
+}
+
+#[test]
+fn gd_version_table_is_in_release_order() {
+    // new versions must be appended at the bottom of `gd_versions!`, otherwise `LATEST` is wrong
+    let game = GDVersion::ALL
+        .iter()
+        .map(|v| v.to_game_version_id().unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        game.windows(2).all(|w| w[0] <= w[1]),
+        "game versions: {game:?}"
+    );
+
+    let binary = GDVersion::ALL
+        .iter()
+        .filter_map(|v| v.to_binary_version_id())
+        .collect::<Vec<_>>();
+    assert!(
+        binary.windows(2).all(|w| w[0] <= w[1]),
+        "binary versions: {binary:?}"
+    );
+
+    let manifest = GDVersion::ALL
+        .iter()
+        .filter_map(|v| v.to_manifest_version())
+        .collect::<Vec<_>>();
+    assert!(
+        manifest.windows(2).all(|w| w[0] < w[1]),
+        "manifest versions: {manifest:?}"
+    );
+}
+
+#[test]
+fn gd_version_from_binary_version_returns_earliest() {
+    for &v in GDVersion::ALL {
+        if let Some(bv) = v.to_binary_version_id() {
+            let earliest = GDVersion::ALL
+                .iter()
+                .position(|o| o.to_binary_version_id() == Some(bv))
+                .unwrap();
+            assert_eq!(GDVersion::from_binary_version(bv), GDVersion::ALL[earliest]);
+        }
+    }
+    assert_eq!(GDVersion::from_binary_version(0), GDVersion::GD1000);
+    assert_eq!(GDVersion::from_binary_version(20), GDVersion::GD1900);
+    assert_eq!(GDVersion::from_binary_version(38), GDVersion::GD2200);
+    assert_eq!(GDVersion::from_binary_version(40), GDVersion::GD2203);
 }

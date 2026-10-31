@@ -432,3 +432,21 @@ fn create_level() {
     lvl.export_to_gdlvl("test_gmds/generated_advrandom.gdlvl")
         .unwrap();
 }
+
+#[ignore]
+#[test]
+fn read_level() {
+    let lvl = GDLevel::from_gdlvl("test_gmds/Unnamed 45.gdlvl").unwrap();
+    let data = lvl.get_decrypted_data().unwrap();
+    println!("{data:?}");
+    println!(
+        "guidelines: {:?}",
+        data.headers
+            .get(
+                &crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderKey::from_id(
+                    crate::cclocallevels::gdobj::ids::level_header::GUIDELINES
+                )
+            )
+            .unwrap()
+    );
+}

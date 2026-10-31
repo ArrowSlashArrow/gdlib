@@ -467,18 +467,19 @@ impl GuidelineColour {
 }
 
 impl GuidelineString {
-    /// Parses an input string to this object
+    /// Parses an input string to a guideline string.
+    ///
+    /// Reference: <https://boomlings.dev/resources/client/level-components/guideline-string>
     pub fn parse(s: &str) -> Option<Self> {
-        let guidelines = s
-            .split(".")
-            .filter_map(|g| {
-                let mut split_iter = g.split('~');
-                Some((
-                    split_iter.next()?.to_owned(),
-                    GuidelineColour::from_f32(split_iter.next()?.parse::<f32>().ok()?),
-                ))
-            })
-            .collect::<Vec<_>>();
+        let mut guideline_iter = s.split("~");
+        let mut guidelines = vec![];
+        while let (Some(t), Some(c)) = (guideline_iter.next(), guideline_iter.next()) {
+            guidelines.push((
+                t.to_owned(),
+                GuidelineColour::from_f32(c.parse::<f32>().ok()?),
+            ));
+        }
+
         Some(Self { guidelines })
     }
 
@@ -488,7 +489,7 @@ impl GuidelineString {
             .iter()
             .map(|(t, c)| format!("{t}~{}", c.to_float()))
             .collect::<Vec<String>>()
-            .join(".")
+            .join("~")
     }
 }
 

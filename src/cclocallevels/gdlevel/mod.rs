@@ -701,6 +701,11 @@ impl GDLevel {
         this
     }
 
+    /// Creates a new level for the latest version of GD ([`GDVersion::LATEST`]).
+    pub fn new_latest_version() -> Self {
+        Self::new(GDVersion::LATEST)
+    }
+
     /// Creates a new GD level with level data.
     ///
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
