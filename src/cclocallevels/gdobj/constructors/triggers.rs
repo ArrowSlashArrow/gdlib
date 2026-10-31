@@ -99,32 +99,26 @@ impl ObjectProperties for MoveTrigger {
             MoveMode::Default(config) => {
                 if let Some(lock) = config.x_lock {
                     properties.extend_from_slice(&[
-                        (
-                            match lock {
-                                MoveLock::Player => FOLLOW_PLAYERS_X_MOVEMENT,
-                                MoveLock::Camera => FOLLOW_CAMERAS_X_MOVEMENT,
-                            },
-                            GDValue::Int(1),
-                        ),
-                        (X_MOVEMENT_MULTIPLIER, GDValue::Int(config.dx)),
+                        match lock {
+                            MoveLock::Player => (FOLLOW_PLAYERS_X_MOVEMENT, GDValue::Bool(true)),
+                            MoveLock::Camera => (FOLLOW_CAMERAS_X_MOVEMENT, GDValue::Bool(true)),
+                        },
+                        (X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx)));
+                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
                 }
 
                 if let Some(lock) = config.y_lock {
                     properties.extend_from_slice(&[
-                        (
-                            match lock {
-                                MoveLock::Player => FOLLOW_PLAYERS_Y_MOVEMENT,
-                                MoveLock::Camera => FOLLOW_CAMERAS_Y_MOVEMENT,
-                            },
-                            GDValue::Int(1),
-                        ),
-                        (Y_MOVEMENT_MULTIPLIER, GDValue::Int(config.dy)),
+                        match lock {
+                            MoveLock::Player => (FOLLOW_PLAYERS_Y_MOVEMENT, GDValue::Bool(true)),
+                            MoveLock::Camera => (FOLLOW_CAMERAS_Y_MOVEMENT, GDValue::Bool(true)),
+                        },
+                        (Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy)));
+                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
                 }
             }
             MoveMode::Targeting(config) => {
@@ -137,25 +131,24 @@ impl ObjectProperties for MoveTrigger {
                     properties.push((TARGET_MOVE_MODE_AXIS_LOCK, GDValue::AxisOnlyMove(axis)));
                 }
 
-                match config.target_group_id {
-                    MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                    MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                    MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
-                };
+                properties.push(match config.target_group_id {
+                    MoveTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
+                    MoveTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
+                    MoveTarget::Group(id) => (TARGET_ITEM_2, GDValue::Group(id)),
+                });
             }
             MoveMode::Directional(config) => {
                 if let Some(id) = config.center_group_id {
                     properties.push((CENTER_GROUP_ID, GDValue::Group(id)));
                 }
 
-                match config.target_group_id {
-                    MoveTarget::Player1 => properties.push((CONTROLLING_PLAYER_1, GDValue::Int(1))),
-                    MoveTarget::Player2 => properties.push((CONTROLLING_PLAYER_2, GDValue::Int(1))),
-                    MoveTarget::Group(id) => properties.push((TARGET_ITEM_2, GDValue::Group(id))),
-                };
-
                 properties.extend_from_slice(&[
-                    (DIRECTIONAL_MOVE_MODE, GDValue::Int(1)),
+                    match config.target_group_id {
+                        MoveTarget::Player1 => (CONTROLLING_PLAYER_1, GDValue::Bool(true)),
+                        MoveTarget::Player2 => (CONTROLLING_PLAYER_2, GDValue::Bool(true)),
+                        MoveTarget::Group(id) => (TARGET_ITEM_2, GDValue::Group(id)),
+                    },
+                    (DIRECTIONAL_MOVE_MODE, GDValue::Bool(true)),
                     (DIRECTIONAL_MODE_DISTANCE, GDValue::Int(config.distance)),
                 ]);
             }
@@ -556,8 +549,8 @@ object_descriptor!(
     /// Shake trigger
     ShakeTrigger: SHAKE_TRIGGER => {
         /// Strength of shake
-        strength: i32 => Int SHAKE_STRENGTH,
-        /// Interval in seconds between each shake
+        strength: f32 => Float SHAKE_STRENGTH,
+        /// Interval in seconds between each shake in seconds (range given in editor: 0.00 - 0.10)
         interval: f32 => Float SHAKE_INTERVAL,
         /// Total duration of shaking
         duration: f32 => Float DURATION_GROUP_TRIGGER_CHANCE
@@ -684,10 +677,10 @@ impl ObjectProperties for CounterLabel {
         ];
 
         match self.item {
-            Item::Attempts | Item::MainTime | Item::Points => {
+            n @ (Item::Attempts | Item::MainTime | Item::Points) => {
                 properties.push((
                     SPECIAL_COUNTER_MODE,
-                    GDValue::Int(self.item.as_special_mode_i32().unwrap()),
+                    GDValue::CounterMode(n.as_special_mode().unwrap()),
                 ));
             }
             Item::Counter(c) => {
@@ -731,7 +724,7 @@ impl ObjectProperties for CounterLabel {
 
         Some(Self {
             seconds_only: get_property!(obj, SECONDS_ONLY => Bool => bool),
-            align: get_property!(obj, COUNTER_ALIGNMENT => Int => ItemAlign),
+            align: get_property!(obj, COUNTER_ALIGNMENT => ItemAlign => ItemAlign),
             item,
         })
     }
@@ -787,18 +780,20 @@ pub struct ItemEditTrigger {
 
 impl ObjectProperties for ItemEditTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
-        let mod_op = match self.multiply_mod {
-            true => Op::Mul,
-            false => Op::Div,
-        };
+        // transmute to compare operator since `COMPARE_OPERATOR` is used for this property
+        let mod_op = CompareOp::try_from(match self.multiply_mod {
+            true => Op::Mul as i32,
+            false => Op::Div as i32,
+        })
+        .unwrap();
 
         let mut properties = vec![
-            (TARGET_ITEM, GDValue::Item(self.target.id())),
+            (TARGET_ITEM, GDValue::Group(self.target.id())),
             (TARGET_ITEM_TYPE, GDValue::ItemType(self.target.get_type())),
             (MODIFIER, GDValue::Float(self.modifier)),
             (LEFT_OPERATOR, GDValue::ItemEditOperator(self.assign_op)),
             (RIGHT_OPERATOR, GDValue::ItemEditOperator(self.id_op)),
-            (COMPARE_OPERATOR, GDValue::ItemEditOperator(mod_op)),
+            (COMPARE_OPERATOR, GDValue::ItemCompareOperator(mod_op)),
             (
                 LEFT_ROUND_MODE,
                 GDValue::ItemEditRoundMode(self.id_rounding),
@@ -873,7 +868,7 @@ impl ObjectProperties for ItemEditTrigger {
         let multiply_mod = match obj.get_property(COMPARE_OPERATOR) {
             Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::Less => true, // Op::Mul
             Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::LessOrEquals => false, // Op::Div
-            _ => true,
+            _ => false,
         };
 
         let assign_op = match obj.get_property(LEFT_OPERATOR) {
@@ -1102,7 +1097,7 @@ object_descriptor!(
     /// Enables the value of items to persist across attempts.
     PersistentItemTrigger: PERSISTENT_ITEM_SETUP_TRIGGER => {
         /// Target item ID
-        item_id: i16 => Item TARGET_ITEM,
+        item_id: i16 => Group TARGET_ITEM,
         /// Targets a timer with the corresponding ID if enabled
         timer: bool => Bool TIMER,
         /// make this item persistent?
@@ -1227,7 +1222,7 @@ object_descriptor!(
     /// Collision block object
     CollisionBlock: COLLISION_BLOCK => {
         /// Collision block ID
-        id: i16 => Short INPUT_ITEM_1,
+        id: i16 => Item INPUT_ITEM_1,
         /// Whether this block registers collisions with other collision blocks
         dynamic: bool => Bool DYNAMIC_BLOCK
     }
@@ -1265,9 +1260,9 @@ object_descriptor!(
     /// **Note**: At least one of the collider blocks must be dynamic for this collision to register.
     CollisionTrigger: COLLISION_TRIGGER => {
         /// ID of first collision block
-        collider1: i16 => Short INPUT_ITEM_1,
+        collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
-        collider2: i16 => Short INPUT_ITEM_2,
+        collider2: i16 => Item INPUT_ITEM_2,
         /// ID of group that is activated when the two colliders collide
         target_id: i16 => Group TARGET_ITEM,
         /// Whether to check for collision with player 1 instead of collider 1
@@ -1292,9 +1287,9 @@ object_descriptor!(
     /// This trigger must be called to detect collision
     InstantCollTrigger: INSTANT_COLLISION_TRIGGER => {
         /// ID of first collision block
-        collider1: i16 => Short INPUT_ITEM_1,
+        collider1: i16 => Item INPUT_ITEM_1,
         /// ID of second collision block
-        collider2: i16 => Short INPUT_ITEM_2,
+        collider2: i16 => Item INPUT_ITEM_2,
         /// ID of group that is activated if the two colliders are currently colliding
         true_id: i16 => Group TARGET_ITEM,
         /// ID of group that is activated if the two colliders are not currently colliding
@@ -1372,7 +1367,7 @@ object_descriptor!(
     /// Triggers a group when a given timer reaches a specific time.
     TimeEventTrigger: TIME_EVENT_TRIGGER => {
         /// Timer ID
-        id: i16 => Group INPUT_ITEM_1,
+        id: i16 => Item INPUT_ITEM_1,
         /// If enabled, stops the timer; otherwise, starts the timer.
         target_group: i16 => Group TARGET_ITEM,
         /// At what time the timer should be to activate objects in `target_group`.
@@ -1789,6 +1784,7 @@ object_descriptor!(
     EventTrigger: EVENT_TRIGGER => {
         /// Group to target
         target_group: i16 => Group TARGET_ITEM,
+        /// Events that will activate this trigger. Only one has to be present to meet the condition for activation.
         events: Vec<Event> => Events EVENT_LISTENERS,
         /// Activates group only if the player interacts with certain objects. For example, landing on an object with a specific material ID will activate the group if this ID is set to its material ID.
         /// If this ID is set, blocks with other material IDs will not cause the group to activate
@@ -1802,7 +1798,7 @@ object_descriptor!(
     /// Changes the middle ground
     MiddleGroundTrigger: CHANGE_MIDDLEGROUND_TRIGGER => {
         /// Change to this middleground
-        middleground: MiddleGround => to_i32 MIDDLEGROUND
+        middleground: MiddleGround => MiddleGround MIDDLEGROUND
     }
 );
 
@@ -1825,7 +1821,7 @@ object_descriptor!(
 object_descriptor!(
     /// Stops an area effect
     AreaStopTrigger: AREA_STOP_TRIGGER => {
-        effect_id: i16 => Short TARGET_ITEM
+        effect_id: i16 => Group TARGET_ITEM
     }
 );
 
@@ -1836,7 +1832,7 @@ object_descriptor!(
         /// Beats per bar
         bpb: i32 => Int BEATS_PER_BAR,
         /// How many seconds forward to show the guide
-        duration: i32 => Int DURATION_GROUP_TRIGGER_CHANCE,
+        duration: f32 => Float DURATION_GROUP_TRIGGER_CHANCE,
         /// Speed at which to show the bpm guide
         speed: BPMSpeed => BPMSpeed BPM_GUIDE_SPEED,
         /// Disables the guide
@@ -1872,7 +1868,7 @@ object_descriptor!(
     /// The poor man's ItemEditTrigger.
     PickupTrigger: PICKUP_TRIGGER => {
         /// Item to modify
-        item_id: i32 => Int INPUT_ITEM_1,
+        item_id: i16 => Item INPUT_ITEM_1,
         count: i32 => Int TARGET_COUNT,
         /// What the item's value is multiplied/divided by when using one of those modes in the trigger
         modifier: f32 => Float PICKUP_MODIFIER,

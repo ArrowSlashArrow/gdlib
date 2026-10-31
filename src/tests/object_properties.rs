@@ -255,11 +255,11 @@ object_properties_suite!(move_trigger: MoveTrigger {
             easing: Easing::from(MoveEasing::BackOut, 1.5),
         };
         vec![
-            base(MoveMode::Default(DefaultMove { dx: 45, dy: -30, x_lock: None, y_lock: None }), false),
+            base(MoveMode::Default(DefaultMove { dx: 45.0, dy: -30.0, x_lock: None, y_lock: None }), false),
             base(
                 MoveMode::Default(DefaultMove {
-                    dx: 2,
-                    dy: 3,
+                    dx: 2.0,
+                    dy: 3.0,
                     x_lock: Some(MoveLock::Player),
                     y_lock: Some(MoveLock::Camera),
                 }),
@@ -267,8 +267,8 @@ object_properties_suite!(move_trigger: MoveTrigger {
             ),
             base(
                 MoveMode::Default(DefaultMove {
-                    dx: 1,
-                    dy: 0,
+                    dx: 1.0,
+                    dy: 0.0,
                     x_lock: Some(MoveLock::Camera),
                     y_lock: Some(MoveLock::Player),
                 }),
@@ -525,7 +525,7 @@ object_properties_suite!(group_reset_trigger: GroupResetTrigger {
 
 object_properties_suite!(shake_trigger: ShakeTrigger {
     ids: [SHAKE_TRIGGER],
-    samples: vec![ShakeTrigger { strength: 3, interval: 0.25, duration: 1.5 }],
+    samples: vec![ShakeTrigger { strength: 3.0, interval: 0.25, duration: 1.5 }],
     compare: direct,
 });
 
@@ -1128,8 +1128,8 @@ object_properties_suite!(area_stop_trigger: AreaStopTrigger {
 object_properties_suite!(bpm_guide: BPMGuide {
     ids: [BPM_TRIGGER],
     samples: vec![
-        BPMGuide { bpm: 120, bpb: 4, duration: 30, speed: BPMSpeed::Fast, disabled: true },
-        BPMGuide { bpm: 175, bpb: 3, duration: 10, speed: BPMSpeed::Slow, disabled: false },
+        BPMGuide { bpm: 120, bpb: 4, duration: 30.0, speed: BPMSpeed::Fast, disabled: true },
+        BPMGuide { bpm: 175, bpb: 3, duration: 10.0, speed: BPMSpeed::Slow, disabled: false },
     ],
     compare: direct,
 });
@@ -1596,8 +1596,8 @@ fn move_trigger_mode_properties() {
     let has = |props: &[(u16, GDValue)], id: u16| props.iter().any(|(i, _)| *i == id);
 
     let default = props(MoveMode::Default(DefaultMove {
-        dx: 1,
-        dy: 2,
+        dx: 1.0,
+        dy: 2.0,
         x_lock: None,
         y_lock: None,
     }));

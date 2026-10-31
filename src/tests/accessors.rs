@@ -325,8 +325,8 @@ fn from_config_objects() -> Vec<GDObject> {
             &test_config(),
             MoveTrigger {
                 move_config: MoveMode::Default(DefaultMove {
-                    dx: 45,
-                    dy: -30,
+                    dx: 45.0,
+                    dy: -30.0,
                     x_lock: Some(MoveLock::Player),
                     y_lock: Some(MoveLock::Camera),
                 }),

@@ -289,7 +289,7 @@ impl SpeedPortal {
     ///
     /// In classic mode, this is how fast the player will travel in the forward direction when this portal is hit.
     /// In platformer mode, this is the upper limit of the player's speed either forwards or backwards.
-    pub fn get_speed(&self) -> f64 {
+    pub fn get_speed(&self) -> f32 {
         match self {
             Self::Yellow => SPEED_05X,
             Self::Blue => SPEED_1X,

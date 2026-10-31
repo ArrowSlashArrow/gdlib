@@ -301,22 +301,47 @@ impl From<i32> for ZLayer {
     }
 }
 
-/// Enum for colour channels and their IDs
+/// Enum for colour channels and their IDs.
+///
+/// Reference: <https://boomlings.dev/resources/client/level-components/level-colors#color-channel-id-s>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[allow(missing_docs)]
 pub enum ColourChannel {
     Channel(i16),
     Background,
+    /// Colour of the bottom ground
     Ground1,
+    /// Colour of the top ground
     Ground2,
+    /// Colour of the line that separates the ground from the player area.
     Line,
     #[default]
+    /// Default primary (base) colour of objects.
     Object,
+    /// Line of the 3D objects
     ThreeDLine,
+    /// Primary colour of middleground
     MiddleGround,
+    /// Secondary colour of middleground
     MiddleGround2,
+    /// Lighter version of `Background`.
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    LBG,
+    /// This colour channel cannot be re-assigned a colour.
     P1,
+    /// This colour channel cannot be re-assigned a colour.
     P2,
+    /// Colour that is always `#000000` (pure black).
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    Black,
+    /// Colour that is always `#FFFFFF` (pure white).
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    White,
+    /// Lighter version of the primary colour for objects. Used in a handful of objects
+    Lighter, /* todo: add Black, White, other colour channels */
 }
 
 impl From<i16> for ColourChannel {
@@ -324,14 +349,18 @@ impl From<i16> for ColourChannel {
         match c {
             1000 => Self::Background,
             1001 => Self::Ground1,
-            1009 => Self::Ground2,
             1002 => Self::Line,
-            1004 => Self::Object,
             1003 => Self::ThreeDLine,
-            1013 => Self::MiddleGround,
-            1014 => Self::MiddleGround2,
+            1004 => Self::Object,
             1005 => Self::P1,
             1006 => Self::P2,
+            1007 => Self::LBG,
+            1009 => Self::Ground2,
+            1010 => Self::Black,
+            1011 => Self::White,
+            1012 => Self::Lighter,
+            1013 => Self::MiddleGround,
+            1014 => Self::MiddleGround2,
             n => Self::Channel(n),
         }
     }
@@ -343,14 +372,46 @@ impl From<ColourChannel> for i16 {
             ColourChannel::Channel(n) => n,
             ColourChannel::Background => 1000,
             ColourChannel::Ground1 => 1001,
-            ColourChannel::Ground2 => 1009,
             ColourChannel::Line => 1002,
-            ColourChannel::Object => 1004,
             ColourChannel::ThreeDLine => 1003,
-            ColourChannel::MiddleGround => 1013,
-            ColourChannel::MiddleGround2 => 1014,
+            ColourChannel::Object => 1004,
             ColourChannel::P1 => 1005,
             ColourChannel::P2 => 1006,
+            ColourChannel::LBG => 1007,
+            ColourChannel::Ground2 => 1009,
+            ColourChannel::Black => 1010,
+            ColourChannel::White => 1011,
+            ColourChannel::Lighter => 1012,
+            ColourChannel::MiddleGround => 1013,
+            ColourChannel::MiddleGround2 => 1014,
+        }
+    }
+}
+
+impl ColourChannel {
+    /// Returns the default colour of that colour channel.
+    ///
+    /// Notes:
+    /// * `Self::Line` is white with blending enabled by default
+    /// * `Self::P1` returns the default primary player colour in GD, but is actually whatever the player colour is.
+    /// * `Self::P2` is the same as `Self::P1` but for the secondary player colour
+    pub fn get_default_colour(&self) -> (u8, u8, u8) {
+        match self {
+            Self::Channel(_) => (255, 255, 255),
+            Self::Background => (40, 125, 255),
+            Self::Ground1 => (0, 102, 255),
+            Self::Line => (255, 255, 255), // with blending enabled
+            Self::ThreeDLine => (255, 255, 255),
+            Self::Object => (255, 255, 255),
+            Self::P1 => (0, 125, 255),
+            Self::P2 => (0, 125, 255),
+            Self::LBG => (255, 255, 255),
+            Self::Ground2 => (0, 102, 255),
+            Self::Black => (0, 0, 0),
+            Self::White => (255, 255, 255),
+            Self::Lighter => (255, 255, 255),
+            Self::MiddleGround => (40, 125, 255),
+            Self::MiddleGround2 => (40, 125, 255),
         }
     }
 }
@@ -955,13 +1016,19 @@ impl Op {
 }
 
 repr_t!(
-    /// Enum for item comparison operators
+    /// Enum for item comparison operators in ItemCompareTrigger
     strict CompareOp: i32 {
+        /// a == b
         Equals = 0,
+        /// a > b
         Greater = 1,
+        /// a >= b
         GreaterOrEquals = 2,
+        /// a < b
         Less = 3,
+        /// a <= b
         LessOrEquals = 4,
+        /// a != b
         NotEquals = 5,
     } default Equals
 );
@@ -1120,9 +1187,9 @@ repr_t!(
 #[derive(Debug, Clone, PartialEq)]
 pub struct DefaultMove {
     /// Units to move in x-axis. Used as multiplier of player/camera movement if `x_lock` is used
-    pub dx: i32,
+    pub dx: f32,
     /// Units to move in y-axis. Used as multiplier of player/camera movement if `y_lock` is used
-    pub dy: i32,
+    pub dy: f32,
     /// Optional lock on x movement which allows the object to move relative to either the player or the camera
     pub x_lock: Option<MoveLock>,
     /// Optional lock on y movement which allows the object to move relative to either the player or the camera
@@ -1594,8 +1661,11 @@ impl TeleportConfig {
     /// Convert this struct to a list of GDValues
     pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
+            (
+                TELEPORT_EXIT_GRAVITY,
+                GDValue::TeleportGravity(self.gravity),
+            ),
             (TARGET_ITEM, GDValue::Group(self.target_group_id)),
-            (TELEPORT_EXIT_GRAVITY, GDValue::Int(self.gravity as i32)),
             (TELEPORT_SMOOTH_EASE, GDValue::Bool(self.smooth_ease)),
             (TELEPORT_SAVE_OFFSET, GDValue::Bool(self.save_offset)),
             (TELEPORT_IGNORE_X, GDValue::Bool(self.ignore_x)),

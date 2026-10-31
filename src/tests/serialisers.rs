@@ -623,7 +623,7 @@ fn guideline_string() {
             ("3.25".into(), GuidelineColour::Orange),
         ],
     };
-    assert_eq!(g.to_string(), "1.5~0.9~2~1~3.25~0~");
+    assert_eq!(g.to_string(), "1.5~0.9~2~1~3.25~0");
 }
 
 #[test]

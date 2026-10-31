@@ -46,7 +46,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     47u16 => ("Pulse fade out time", GDObjPropType::Float),
     48u16 => ("HSV is enabled", GDObjPropType::Bool),
     49u16 => ("Copy colour specs", GDObjPropType::Text),
-    50u16 => ("Copy colour from channel", GDObjPropType::Bool),
+    50u16 => ("Copy colour from channel", GDObjPropType::ColourChannel),
     // This property is used for any of the following:
     // - Primarily, the target group in a trigger; for example, the group which is being moved in a move trigger
     // - In the pulse trigger, it can also refer to a colour channel
@@ -175,7 +175,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     351u16 => ("Teleport save offset", GDObjPropType::Bool),
     352u16 => ("Teleport ignore X", GDObjPropType::Bool),
     353u16 => ("Teleport ignore Y", GDObjPropType::Bool),
-    354u16 => ("Teleport exit gravity", GDObjPropType::Unknown),
+    354u16 => ("Teleport exit gravity", GDObjPropType::TeleportGravity),
     356u16 => ("Scale stick", GDObjPropType::Bool),
     368u16 => ("Instant offset", GDObjPropType::Bool),
     369u16 => ("Center effect", GDObjPropType::Bool),
@@ -250,7 +250,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     491u16 => ("Set persistent item", GDObjPropType::Bool),
     492u16 => ("Target all persistent items", GDObjPropType::Bool),
     493u16 => ("Reset item to 0", GDObjPropType::Bool),
-    494u16 => ("Timer", GDObjPropType::Item),
+    // Whether the item ID used in the persistent item trigger refers to a timer.
+    494u16 => ("Timer", GDObjPropType::Bool),
     495u16 => ("Extra sticky", GDObjPropType::Bool),
     496u16 => ("Don't boost Y?", GDObjPropType::Bool),
     498u16 => ("Beats per minute", GDObjPropType::Int),
