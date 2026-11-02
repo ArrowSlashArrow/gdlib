@@ -376,10 +376,11 @@ impl GDPlatformerUI {
             Self::parse_snap,
             Self::parse_split,
         ];
-        s.split(",")
-            .into_iter()
-            .enumerate()
-            .for_each(|(idx, s)| (fns[idx])(&mut this, s));
+        s.split(",").into_iter().enumerate().for_each(|(idx, s)| {
+            if idx < fns.len() {
+                (fns[idx])(&mut this, s)
+            }
+        });
 
         this
     }

@@ -235,7 +235,11 @@ fn sample_level() -> GDLevel {
     level.editor_state.camera_zoom = 0.75;
     level.editor_state.build_tab_page = 2;
     level.editor_state.build_tab = 1;
-    level.editor_state.build_tab_pages = smallvec![0, 1, 2, 3, 0, 0, 4, 0, 0, 0, 0, 5, 0, 6];
+    level.editor_state.build_tab_pages = [0, 1, 2, 3, 0, 0, 4, 0, 0, 0, 0, 5, 0, 6]
+        .iter()
+        .enumerate()
+        .map(|(k, v)| (k as i32, *v))
+        .collect();
     level.editor_state.editor_layer = 4.0;
 
     level.meta.level_order = 1;
@@ -437,8 +441,9 @@ fn create_level() {
 #[test]
 fn read_level() {
     let lvl = GDLevel::from_gdlvl("test_gmds/Unnamed 45.gdlvl").unwrap();
+    println!("{lvl:#?}");
     let data = lvl.get_decrypted_data().unwrap();
-    println!("{data:?}");
+    println!("{data:#?}");
     println!(
         "guidelines: {:?}",
         data.headers

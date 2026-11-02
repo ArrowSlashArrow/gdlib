@@ -914,7 +914,11 @@ fn level_with_unknown_binary_version() {
 #[test]
 fn level_with_short_build_tab_pages() {
     let mut level = GDLevel::default();
-    level.editor_state.build_tab_pages = smallvec![5];
+    level.editor_state.build_tab_pages = {
+        let mut m = HashMap::new();
+        m.insert(0, 5);
+        m
+    };
     assert_levels_eq(&GDLevel::from_dict(&level.to_dict()).unwrap(), &level);
 }
 

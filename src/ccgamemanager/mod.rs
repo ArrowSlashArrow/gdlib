@@ -47,7 +47,7 @@ impl CCGameManager {
     /// Parses the local CCGameManager.dat file if it exists and is a valid file.
     pub fn from_local() -> Result<Self, GDError> {
         let path = get_ccgamemanager_path().ok_or(GDError::MissingSavefile)?;
-        Self::from_raw_string(decrypt_file(path).unwrap())
+        Self::from_raw_string(decrypt_file(path)?)
     }
 
     /// Parses a raw savefile plist to this object. The parser accounts for unknown keys, however it will panic in the case of a mistyped value.
@@ -59,7 +59,9 @@ impl CCGameManager {
         };
 
         let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s)?.as_bytes())) {
-            Ok(v) => v.into_dictionary().unwrap(),
+            Ok(v) => v.into_dictionary().ok_or(GDError::CorruptedSavefile(
+                "XML tree is not a dictionary".into(),
+            ))?,
             Err(e) => return Err(GDError::BadPlist(e)),
         };
 
@@ -170,14 +172,14 @@ impl CCGameManager {
 
         for i in 0..5 {
             parse_val(&mut d, &format!("dpad0{}", i + 1), |v| {
-                self.config.dpads[i] = GDPlatformerUI::from_str(v.as_string().unwrap());
+                self.config.dpads[i] = GDPlatformerUI::from_str(v.as_string()?);
                 Some(())
             })?;
         }
 
         self.config.dpad_layout = d
             .get("dpad_layout")
-            .map(|v| GDPlatformerUI::from_str(v.as_string().unwrap()));
+            .map(|v| GDPlatformerUI::from_str(v.as_string().unwrap_or_default()));
 
         parse_val(&mut d, "resolution", |v| {
             self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32).ok()?;
@@ -227,7 +229,7 @@ impl CCGameManager {
                 Some(
                     v.as_dictionary()?
                         .iter()
-                        .map(|(k, _)| k.parse::<i32>().unwrap())
+                        .map(|(k, _)| k.parse::<i32>().unwrap_or_default())
                         .collect::<Vec<_>>(),
                 )
             },
@@ -268,7 +270,7 @@ impl CCGameManager {
                 .iter()
                 .map(|(k, v)| {
                     (
-                        k.parse::<i32>().unwrap(),
+                        k.parse::<i32>().unwrap_or_default(),
                         GDLevel::from_dict(v.as_dictionary().unwrap()).unwrap(),
                     )
                 })
@@ -288,7 +290,7 @@ impl CCGameManager {
                 .iter()
                 .map(|(k, v)| {
                     (
-                        k.parse::<i32>().unwrap(),
+                        k.parse::<i32>().unwrap_or_default(),
                         parse_objects(v.as_string().unwrap()),
                     )
                 })

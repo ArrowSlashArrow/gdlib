@@ -127,10 +127,11 @@ impl GDObject {
         while let (Some(idx), Some(val)) = (iter.next(), iter.next()) {
             let idx_u16 = match idx.parse::<u16>() {
                 Ok(n) => n,
-                Err(_) => match idx[2..].parse::<u16>() {
-                    Ok(n) => n + KA_PROPERTY_OFFSET,
+                Err(_) if idx.starts_with("kA") => match idx[2..].parse::<u16>() {
+                    Ok(n) => n.saturating_add(KA_PROPERTY_OFFSET),
                     Err(_) => u16::MAX,
                 },
+                Err(_) => u16::MAX,
             };
 
             match idx_u16 {

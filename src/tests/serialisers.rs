@@ -6,7 +6,7 @@ use super::{default_block, object_kv_pairs, sample_level, sample_list, values_of
 use crate::{
     cclocallevels::{
         gdlevel::{
-            CCLocalLevels, GDLevel, PLIST_FOOTER, PLIST_HEADER,
+            CCLocalLevels, GDLVL_NOT_EXPORTED_KEYS, GDLevel, PLIST_FOOTER, PLIST_HEADER,
             leveldata::{
                 ColourString, GDLevelData, GDLevelHeaderKey, GDLevelHeaderValue, GuidelineColour,
                 GuidelineString, PlayerColour,
@@ -728,6 +728,36 @@ fn level_default_dict() {
     // defaults are omitted
     for key in ["k1", "k2", "k3", "k14", "k18", "k42", "k45", "k105"] {
         assert!(!d.contains_key(key), "{key} should be omitted");
+    }
+}
+
+#[test]
+fn level_gdlvl_dict_strips_not_exported_keys() {
+    let mut level = sample_level();
+    level.unknowns.other.insert("k98".into(), Value::from(1));
+    level.unknowns.other.insert("k102".into(), Value::from(2));
+
+    let full = level.to_dict();
+    let d = level.to_dict_gdlvl_keys();
+
+    let stripped: Vec<String> = GDLVL_NOT_EXPORTED_KEYS
+        .iter()
+        .map(|id| format!("k{id}"))
+        .collect();
+
+    assert!(full.contains_key("k1"));
+    assert!(full.contains_key("k98"));
+    for key in &stripped {
+        assert!(!d.contains_key(key), "{key} should be stripped");
+    }
+
+    assert_eq!(d.get("k102"), Some(&Value::from(2)));
+    assert!(d.contains_key("kCEK"));
+    assert!(d.contains_key("kI1"));
+    for (key, value) in &full {
+        if !stripped.contains(key) {
+            assert_eq!(d.get(key), Some(value), "{key} should be kept");
+        }
     }
 }
 

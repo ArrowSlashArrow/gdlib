@@ -9,6 +9,7 @@ use std::{
     path::PathBuf,
 };
 
+use phf::phf_set;
 use plist::{Dictionary, Value};
 use smallvec::SmallVec;
 
@@ -29,7 +30,7 @@ use crate::{
         GDError, b64_decode, b64_encode, get_cclocallevels_path,
         io::{
             decompress, decrypt_file, encrypt_level_str, encrypt_savefile_str, stringify_xml,
-            vec_as_str,
+            vec_as_str, vec_as_str_lossy,
         },
         proper_plist_tags,
         structs::KCEKValue,
@@ -42,6 +43,17 @@ use rayon::prelude::*;
 pub mod enums;
 pub mod leveldata;
 pub mod version;
+
+/// Keys that are stripped from in-game .gdlvl exports of levels.
+///
+/// Note: All keys here are stored as their numerical form. For each key, its string counterpart is `k{id}`.
+pub static GDLVL_NOT_EXPORTED_KEYS: &[u16] = &[
+    1, 5, 6, 60, 15, 16, 98, 99, 41, 42, 47, 67, 14, 65, 61, 62, 63, 9, 10, 11, 22, 24, 27, 75, 7,
+    26, 25, 76, 74, 77, 78, 82, 84, 83, 18, 154, 36, 85, 86, 87, 88, 89, 19, 71, 90, 20, 68, 107,
+    115, 117, 121, 119, 108, 116, 118, 122, 120, 111, 123, 124, 128, 130, 132, 131, 129, 109, 110,
+    133, 134, 135, 136, 137, 138, 139, 142, 143, 145, 146, 140, 141, 151, 152, 69, 93, 73, 112,
+    126, 127,
+];
 
 /// Standard header of a GD plist.
 pub const PLIST_HEADER: &str = "<?xml version=\"1.0\"?><plist version=\"1.0\" gjver=\"2.0\">";
@@ -647,10 +659,10 @@ pub struct GDLevelEditorState {
     // STORE: enumerate arary elements and pack into: {idx: val, idx: val}
     // note: this array is usually 14 elements long. sometimes it is not. not known why.
     /// A list of indices for each editor tab that describes where the user is currently.
-    /// For example, `build_tab_pages[0]` is the page of the first tab that the user was last in.
+    /// For example, `build_tab_pages.get(&0)` is the page of the first tab that the user was last in.
     ///
     /// Internal key: `kI6`
-    pub build_tab_pages: smallvec::SmallVec<[i32; 16]>,
+    pub build_tab_pages: HashMap<i32, i32>,
     /// Internal key: `kI7`
     pub editor_layer: f32,
 }
@@ -724,11 +736,14 @@ impl GDLevel {
     ///
     /// **NOTE:** Levels modified by Geode mods may be parsed **incorrectly** or may fail to be parsed at all!
     pub fn from_gmd<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
-        let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
+        let file = proper_plist_tags(vec_as_str_lossy(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
-            Self::from_dict(xmltree.as_dictionary().unwrap()).ok_or(GDError::CorruptedSavefile(
+            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+                "XML tree is not a dictionary".into(),
+            ))?)
+            .ok_or(GDError::CorruptedSavefile(
                 "Unable to parse file to valid level.".into(),
             ))?,
         )
@@ -742,11 +757,14 @@ impl GDLevel {
     ///
     /// **NOTE:** Levels modified by Geode mods may be parsed **incorrectly** or may fail to be parsed at all!
     pub fn from_gdlvl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
-        let file = proper_plist_tags(vec_as_str(&decompress(read(path.into())?)?))?;
+        let file = proper_plist_tags(vec_as_str_lossy(&decompress(read(path.into())?)?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
-            Self::from_dict(xmltree.as_dictionary().unwrap()).ok_or(GDError::CorruptedSavefile(
+            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+                "XML tree is not a dictionary".into(),
+            ))?)
+            .ok_or(GDError::CorruptedSavefile(
                 "Unable to parse file to valid level.".into(),
             ))?,
         )
@@ -781,6 +799,14 @@ impl GDLevel {
         vec_as_str(&encrypt_level_str(&Self::format_to_gmd(data)))
     }
 
+    #[inline]
+    /// Formats a payload of raw level data to .gdlvl format excluding all keys in [`GDLVL_NOT_EXPORTED_KEYS`].
+    ///
+    /// When exporting a level to .gdlvl, GD strips some keys. This function returns the level serialized
+    pub fn serialise_to_gdlvl_stripped_keys(&self) -> String {
+        Self::format_to_gdlvl(&stringify_xml(&self.to_dict_gdlvl_keys(), true))
+    }
+
     /// Serialize this object to a raw string. The returned string is in the format of a .gmd file and is not encrypted. This is the same format that is required for the level to be serialised as into the savefile.
     #[inline]
     pub fn serialise_to_string(&self) -> String {
@@ -799,7 +825,10 @@ impl GDLevel {
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
-            Self::from_dict(xmltree.as_dictionary().unwrap()).ok_or(GDError::CorruptedSavefile(
+            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+                "XML tree is not a dictionary".into(),
+            ))?)
+            .ok_or(GDError::CorruptedSavefile(
                 "Unable to parse file to valid level.".into(),
             ))?,
         )
@@ -860,32 +889,34 @@ impl GDLevel {
                 && let Ok(key_id) = k[2..].parse::<i32>()
             {
                 match key_id {
-                    1 => level.editor_state.camera_x = to_float(v)?,
-                    2 => level.editor_state.camera_y = to_float(v)?,
-                    3 => level.editor_state.camera_zoom = to_float(v)?,
-                    4 => level.editor_state.build_tab_page = v.as_signed_integer()? as i32,
-                    5 => level.editor_state.build_tab = v.as_signed_integer()? as i32,
+                    1 => level.editor_state.camera_x = to_float(v).unwrap_or_default(),
+                    2 => level.editor_state.camera_y = to_float(v).unwrap_or_default(),
+                    3 => level.editor_state.camera_zoom = to_float(v).unwrap_or_default(),
+                    4 => {
+                        level.editor_state.build_tab_page =
+                            v.as_signed_integer().unwrap_or_default() as i32
+                    }
+                    5 => {
+                        level.editor_state.build_tab =
+                            v.as_signed_integer().unwrap_or_default() as i32
+                    }
                     6 => {
                         level.editor_state.build_tab_pages = {
-                            let mut pages = SmallVec::new();
-                            for (tab, page) in v.as_dictionary()? {
-                                let tab_idx = tab.parse::<usize>().ok().unwrap();
-                                // this is horrible but necessary due to rob's savefile format
-                                let page_idx = page
-                                    .as_string()
-                                    .unwrap()
-                                    .to_string()
-                                    .parse::<i32>()
-                                    .ok()
-                                    .unwrap();
-
-                                // resize array
-                                if tab_idx >= pages.len() {
-                                    pages.resize(tab_idx + 1, 0);
-                                }
-                                pages[tab_idx] = page_idx;
-                            }
-                            pages
+                            v.as_dictionary()
+                                .unwrap_or(&Dictionary::default())
+                                .iter()
+                                .map(|(tab, page)| {
+                                    (
+                                        tab.parse::<i32>().ok().unwrap_or_default(),
+                                        page.as_string()
+                                            .unwrap()
+                                            .to_string()
+                                            .parse::<i32>()
+                                            .ok()
+                                            .unwrap(),
+                                    )
+                                })
+                                .collect::<HashMap<_, _>>()
                         }
                     }
                     7 => level.editor_state.editor_layer = to_float(v)?,
@@ -904,7 +935,7 @@ impl GDLevel {
                     3 => {
                         // special case: b64-encoded data
                         level.identity.description =
-                            Some(vec_as_str(&b64_decode(&v.as_string()?[..]).ok()?[..]))
+                            Some(vec_as_str_lossy(&b64_decode(&v.as_string()?[..]).ok()?[..]))
                     }
                     4 => {
                         // special case: level data
@@ -938,7 +969,7 @@ impl GDLevel {
                         level.identity.level_type =
                             GDLevelType::try_from(v.as_signed_integer()? as i32)
                                 .ok()
-                                .unwrap()
+                                .unwrap_or_default()
                     }
                     22 => level.ratings.like_rating = v.as_signed_integer()? as i32,
                     23 => level.content.length = Length::from(v.as_signed_integer()? as i32),
@@ -1014,10 +1045,8 @@ impl GDLevel {
                     85 => level.player_stats.clicks = v.as_signed_integer()? as i32,
                     86 => level.player_stats.best_attempt_time = v.as_signed_integer()? as i32,
                     87 => level.integrity.level_seed = Some(v.as_signed_integer()? as i32),
-                    88 => {
-                        // special case: comma-separated list
-                        level.player_stats.progress_diffs = parse_csv(v)?;
-                    }
+                    // special case: comma-separated list
+                    88 => level.player_stats.progress_diffs = parse_csv(v),
                     89 => level.integrity.vfd_chk = v.as_boolean()?,
                     90 => level.player_stats.leaderboard_percentage = v.as_signed_integer()? as i32,
                     91 => level.unknowns.k91 = Some(v.as_string()?.to_string()),
@@ -1030,25 +1059,17 @@ impl GDLevel {
                     /* 96 - 100 are unused */
                     101 => level.unknowns.k101 = Some(v.as_string()?.to_string()),
                     /* todo: 102 - 103 */
-                    104 => {
-                        // special case: comma-separated list
-                        level.content.song_list = parse_csv(v)?;
-                    }
-                    105 => {
-                        // special case: comma-separated list
-                        level.content.sfx_list = Some(parse_csv(v)?);
-                    }
+                    // special case: comma-separated list
+                    104 => level.content.song_list = parse_csv(v),
+                    // special case: comma-separated list
+                    105 => level.content.sfx_list = Some(parse_csv(v)),
                     106 => level.unknowns.k106 = Some(v.as_signed_integer()? as i32),
                     107 => level.player_stats.best_time_ms = Some(v.as_signed_integer()? as i32),
                     108 => level.player_stats.best_points = Some(v.as_signed_integer()? as i32),
-                    109 => {
-                        // special case: comma-separated list
-                        level.player_stats.local_best_times = parse_csv(v)?;
-                    }
-                    110 => {
-                        // special case: comma-separated list
-                        level.player_stats.local_best_points = parse_csv(v)?;
-                    }
+                    // special case: comma-separated list
+                    109 => level.player_stats.local_best_times = parse_csv(v),
+                    // special case: comma-separated list
+                    110 => level.player_stats.local_best_points = parse_csv(v),
                     111 => level.integrity.platformer_seed = Some(v.as_signed_integer()? as i32),
                     112 => level.flags.no_shake = v.as_boolean()?,
                     _ => {
@@ -1276,13 +1297,23 @@ impl GDLevel {
                 self.editor_state
                     .build_tab_pages
                     .iter()
-                    .enumerate()
                     .map(|(tab_idx, page)| (tab_idx.to_string(), page.to_string())),
             )),
         );
 
         d.extend(self.unknowns.other.clone());
 
+        d
+    }
+
+    /// Returns this object as a `plist::Dictionary`, without the keys in [`GDLVL_NOT_EXPORTED_KEYS`].
+    pub(crate) fn to_dict_gdlvl_keys(&self) -> Dictionary {
+        let mut d = self.to_dict();
+        d.retain(|k, _| {
+            !k.strip_prefix('k')
+                .and_then(|id| id.parse::<u16>().ok())
+                .is_some_and(|id| GDLVL_NOT_EXPORTED_KEYS.contains(&id))
+        });
         d
     }
 
@@ -1335,7 +1366,7 @@ impl GDLevel {
     /// Returns a mutable reference to the decrypted level data as a `GDLevelContents` object if there is data.
     /// This method calls [`Self::decrypt_level_data`] before attempt to return the decrypted level data.
     pub fn get_decrypted_data_ref(&mut self) -> Option<&mut GDLevelData> {
-        self.decrypt_level_data().ok().unwrap();
+        self.decrypt_level_data().ok()?;
         match &mut self.content.data {
             Some(d) => {
                 if let GDLevelState::Decrypted(data) = d {
@@ -1525,12 +1556,13 @@ fn to_float(v: &Value) -> Option<f32> {
     }
 }
 
-pub(crate) fn parse_csv(v: &Value) -> Option<Vec<i32>> {
+/// replaces unparsable values with 0
+pub(crate) fn parse_csv(v: &Value) -> Vec<i32> {
     v.as_string()
-        .unwrap()
+        .unwrap_or_default()
         .split(",")
-        .map(|d| d.parse::<i32>().ok())
-        .collect::<Option<Vec<i32>>>()
+        .map(|d| d.parse::<i32>().unwrap_or_default())
+        .collect::<Vec<i32>>()
 }
 
 pub(crate) fn to_csv<T: ToString>(v: &Vec<T>) -> String {

@@ -123,6 +123,11 @@ pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
 
     // decode DEFLATE payload
     let decoded = general_purpose::URL_SAFE.decode(data)?;
+    if decoded.len() <= 10 {
+        return Err(GDError::CorruptedSavefile(
+            "compressed payload is not gzipped".into(),
+        ));
+    }
     // remove gzip header
     let sliced = &decoded[10..];
 
@@ -166,4 +171,9 @@ pub fn decrypt_file(file: PathBuf) -> Result<String, GDError> {
 #[inline]
 pub(crate) fn vec_as_str(data: &[u8]) -> String {
     core::str::from_utf8(data).unwrap().to_string()
+}
+
+#[inline]
+pub(crate) fn vec_as_str_lossy(data: &[u8]) -> String {
+    String::from_utf8_lossy(data).to_string()
 }

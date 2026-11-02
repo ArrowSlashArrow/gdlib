@@ -680,7 +680,7 @@ impl GDLevelHeaderKey {
     pub fn to_id(&self) -> Option<u16> {
         match self {
             A(n) => Some(*n),
-            S(n) => Some(*n + LEVEL_HEADER_PROP_ID_OFFSET),
+            S(n) => Some(n.saturating_add(LEVEL_HEADER_PROP_ID_OFFSET)),
             _ => None,
         }
     }

@@ -184,7 +184,13 @@ impl GDList {
 
         for (k, v) in d {
             if k == "kCEK" {
-                list.kcek = KCEKValue::try_from(v.as_signed_integer().unwrap() as i32).unwrap();
+                list.kcek = KCEKValue::try_from(v.as_signed_integer().unwrap() as i32)
+                    .unwrap_or(KCEKValue::GJLevelList);
+                continue;
+            }
+
+            if k.len() < 2 || k.chars().next().unwrap() != 'k' {
+                list.other_properties.insert(k.clone(), v.clone());
                 continue;
             }
 
@@ -226,10 +232,8 @@ impl GDList {
                 79 => list.unlisted = v.as_boolean()?,
                 82 => list.favourited = v.as_boolean()?,
                 83 => list.order = v.as_signed_integer()? as i32,
-                96 => {
-                    // special case: comma-separated list of ids
-                    list.level_ids = parse_csv(v)?
-                }
+                // special case: comma-separated list of ids
+                96 => list.level_ids = parse_csv(v),
                 97 => {
                     // special case: levels dictionary
                     // omit id (key) since it is found in the level anyway
@@ -237,11 +241,12 @@ impl GDList {
                         .as_dictionary()
                         .unwrap()
                         .iter()
-                        .map(|(_id, level_dict)| {
+                        .filter_map(|(_id, level_dict)| {
                             match GDLevel::from_dict(level_dict.as_dictionary().unwrap()) {
-                                Some(l) => l,
+                                Some(l) => Some(l),
                                 None => {
-                                    panic!("couldnt parse {level_dict:#?}")
+                                    dbg!("couldnt parse {level_dict:#?}");
+                                    None
                                 }
                             }
                         })

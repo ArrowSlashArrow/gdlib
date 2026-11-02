@@ -2,6 +2,8 @@
 //!
 //! Parsers in this crate should never panic on bad input. Tests named `*_does_not_panic` only
 //! check exactly that; a panic inside one of them is a bug.
+use std::collections::HashMap;
+
 use plist::{Dictionary, Value};
 use smallvec::{SmallVec, smallvec};
 
@@ -1018,7 +1020,13 @@ fn level_fields() {
     assert_eq!(level.editor_state.camera_zoom, 0.5);
     assert_eq!(level.editor_state.build_tab_page, 2);
     assert_eq!(level.editor_state.build_tab, 1);
-    assert_eq!(level.editor_state.build_tab_pages.as_slice(), &[1, 0, 0, 4]);
+    assert_eq!(
+        level.editor_state.build_tab_pages,
+        [(0i32, 1i32), (3, 4)]
+            .iter()
+            .map(|&(k, v)| (k, v))
+            .collect::<HashMap<_, _>>()
+    );
     assert_eq!(level.editor_state.editor_layer, 2.0);
     assert!(matches!(
         level.content.data,
