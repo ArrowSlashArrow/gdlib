@@ -409,7 +409,7 @@ impl GDLevelHeaderValue {
         match ptype {
             GDLevelHeaderValType::Int => Some(Self::Int(val.parse::<i32>().ok()?)),
             GDLevelHeaderValType::Float => Some(Self::Float(val.parse::<f32>().ok()?)),
-            GDLevelHeaderValType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? != 0)),
+            GDLevelHeaderValType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? == 1)),
             GDLevelHeaderValType::Gamemode => Some(Self::Gamemode(
                 Gamemode::try_from(val.parse::<i32>().ok()?).ok()?,
             )),

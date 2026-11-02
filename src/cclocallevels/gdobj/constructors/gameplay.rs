@@ -330,7 +330,7 @@ repr_t!(
         /// When said object is placed, another object is created on the same y-position as the blue portal (object 749, [`LINKED_ORANGE_TELEPORT_PORTAL`]).
         ///
         /// Normally, the game tries to keep these two objects linked as much as possible - it won't let you delete just the orange portal or move it away from the blue one on the x-axis.
-        /// If the blue portal is deleted, so is the orange one. Part of this effort is revealed in how the game serializes this object. For each pair of linked teleportals,
+        /// If the blue portal is deleted, so is the orange one. This is revealed in how the game serializes this object. For each pair of linked teleportals,
         /// the y-position of the orange portal relative to the blue one is stored *in this object* (specifically in property 54, [`LINKED_ORANGE_TELEPORTAL_YOFFSET`])
         ///
         /// **TL;DR** - This is only one of two linked teleportal objects (the blue one), however, this object also stores the position of the orange counterpart.
@@ -383,11 +383,6 @@ pub struct PortalCameraOptions {
     /// * Padding: how close the player has to be to the edge of the screen for the camera to move
     pub edit_camera_settings: Option<(i32, f32)>,
 }
-
-// 1,1933,2,2295,3,855,155,9,36,1                                      ;    nothing
-// 1,1933,2,2355,3,855,155,9,36,1                                ,370,1;    + disable gridsnap
-// 1,1933,2,2415,3,855,155,9,36,1,111,1                          ,370,1;    + free mode
-// 1,1933,2,2475,3,855,155,9,36,1,111,1,112,1,113,26,114,0.306667,370,1;    + edit camera settings
 
 impl PortalCameraOptions {
     /// Serializes this object to a list of GDValues

@@ -178,16 +178,19 @@ impl CCGameManager {
         }
 
         self.config.dpad_layout = d
-            .get("dpad_layout")
+            .remove("dpad_layout")
             .map(|v| GDPlatformerUI::from_str(v.as_string().unwrap_or_default()));
 
         parse_val(&mut d, "resolution", |v| {
-            self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32).ok()?;
+            self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32)
+                .ok()
+                .unwrap_or_default();
             Some(())
         })?;
         parse_val(&mut d, "texQuality", |v| {
-            self.config.texture_quality =
-                TextureQuality::try_from(v.as_signed_integer()? as i32).ok()?;
+            self.config.texture_quality = TextureQuality::try_from(v.as_signed_integer()? as i32)
+                .ok()
+                .unwrap_or_default();
             Some(())
         })?;
 

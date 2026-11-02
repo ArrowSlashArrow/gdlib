@@ -113,11 +113,11 @@ pub struct GDList {
     ///
     /// Internal key: `k97`
     pub levels: Vec<GDLevel>,
-    /// UNIX timestamp of the level's upload time in seconds.
+    /// UNIX timestamp of the list's upload time in seconds.
     ///
     /// Internal key: `k98`
     pub upload_time: i32,
-    /// UNIX timestamp of the level's update time in seconds.
+    /// UNIX timestamp of the list's update time in seconds.
     ///
     /// Internal key: `k99`
     pub update_time: Option<i32>,
@@ -345,19 +345,19 @@ impl GDList {
         d
     }
 
-    /// Parses a .gmdl file to a `Self` object
+    /// Parses a .gmdl file to a GDList
     pub fn from_gmdl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
         let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
         Ok(
             Self::from_dictionary(xmltree.as_dictionary().unwrap()).ok_or(
-                GDError::CorruptedSavefile("Unable to parse file to valid level.".into()),
+                GDError::CorruptedSavefile("Unable to parse file to valid list.".into()),
             )?,
         )
     }
 
-    /// Exports the level to a .gmdl file
+    /// Exports the list to a .gmdl file
     pub fn export_to_gmdl<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         let export_str = format!(
             "{PLIST_HEADER}{}{PLIST_FOOTER}",

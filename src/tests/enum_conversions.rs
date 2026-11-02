@@ -267,7 +267,7 @@ fn z_layers() {
         ZLayer::T3,
         ZLayer::T4,
     ] {
-        assert_eq!(ZLayer::from(z as i32), z);
+        assert_eq!(ZLayer::from(z.to_num()), z);
     }
 }
 

@@ -406,7 +406,7 @@ object_descriptor!(
 object_descriptor!(
     /// Alpha trigger
     AlphaTrigger: ALPHA_TRIGGER => {
-        /// Target group to stop/pause/resume
+        /// Target group to change opacity of
         target_group: i16 => Group TARGET_ITEM,
         /// Opacity to set group at
         opacity: f32 => Float OPACITY,
@@ -418,7 +418,7 @@ object_descriptor!(
 object_descriptor!(
     /// Toggle trigger
     ToggleTrigger: TOGGLE_TRIGGER => {
-        /// Target group to stop/pause/resume
+        /// Target group to toggle
         target_group: i16 => Group TARGET_ITEM,
         /// Active group instead of deactivating?
         activate_group: bool => Bool ACTIVATE_GROUP
@@ -977,11 +977,9 @@ pub struct ItemCompareTrigger {
     pub tolerance: f32,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for ItemCompareTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
-            (155, GDValue::Int(1)), // for good measure
             (TARGET_ITEM, GDValue::Group(self.true_id)),
             (TARGET_ITEM_2, GDValue::Group(self.false_id)),
             (INPUT_ITEM_1, GDValue::Item(self.lhs.operand_item.id())),
@@ -1368,7 +1366,7 @@ object_descriptor!(
     TimeEventTrigger: TIME_EVENT_TRIGGER => {
         /// Timer ID
         id: i16 => Item INPUT_ITEM_1,
-        /// If enabled, stops the timer; otherwise, starts the timer.
+        /// Group that is triggered
         target_group: i16 => Group TARGET_ITEM,
         /// At what time the timer should be to activate objects in `target_group`.
         target_time: f32 => Float TARGET_TIME,
@@ -1754,7 +1752,6 @@ pub struct MiddleGroundConfigTrigger {
     pub easing: Easing,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for MiddleGroundConfigTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(self.offset_y))];

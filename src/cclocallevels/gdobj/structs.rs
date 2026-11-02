@@ -267,39 +267,20 @@ pub enum GDObjPropType {
     Unknown,
 }
 
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[allow(missing_docs)]
-pub enum ZLayer {
-    B5 = -5,
-    B4 = -3,
-    B3 = -1,
-    B2 = 1,
-    B1 = 3,
-    #[default]
-    Default = 0,
-    T1 = 5,
-    T2 = 7,
-    T3 = 9,
-    T4 = 11,
-}
-
-impl From<i32> for ZLayer {
-    fn from(int: i32) -> Self {
-        match int {
-            -5 => Self::B5,
-            -3 => Self::B4,
-            -1 => Self::B3,
-            1 => Self::B2,
-            3 => Self::B1,
-            5 => Self::T1,
-            7 => Self::T2,
-            9 => Self::T3,
-            11 => Self::T4,
-            _ => Self::Default,
-        }
-    }
-}
+repr_t!(
+    ZLayer: i32 {
+        B5 = -5,
+        B4 = -3,
+        B3 = -1,
+        B2 = 1,
+        B1 = 3,
+        Default = 0,
+        T1 = 5,
+        T2 = 7,
+        T3 = 9,
+        T4 = 11,
+    } default Default
+);
 
 /// Enum for colour channels and their IDs.
 ///
@@ -789,7 +770,7 @@ impl Display for GDValue {
             GDValue::SpawnRemapsList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::Int(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
-            GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(v.to_num())),
             GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts => i_buf)),
             GDValue::BPMSpeed(b) => write!(f, "{}", i_buf.format(*b as i32)),
             GDValue::Gamemode(g) => write!(f, "{}", i_buf.format(*g as i32)),

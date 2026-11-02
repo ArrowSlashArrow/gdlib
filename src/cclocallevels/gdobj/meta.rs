@@ -161,7 +161,11 @@ impl GDObjConfig {
                     ColourChannel::Object.into(),
                 ),
                 ("22", self.colour_channels.1.into(), 1),
-                ("24", self.z_layer as i16, ZLayer::T1 as i16),
+                (
+                    "24",
+                    self.z_layer.to_num() as i16,
+                    ZLayer::T1.to_num() as i16,
+                ),
                 ("343", self.enter_effect_channel, 0),
                 ("446", self.material_id, 0),
                 ("534", self.control_id, 0),
@@ -229,7 +233,7 @@ impl GDObjConfig {
     #[inline]
     pub fn remove_group(&mut self, group: i16) {
         if let Some(idx) = self.groups.iter().position(|&g| g == group) {
-            self.groups.swap_remove(idx);
+            self.groups.remove(idx);
         }
     }
 
@@ -275,7 +279,7 @@ impl GDObjConfig {
     }
 
     config_fn!(
-        /// Sets this object's y-position.
+        /// Sets this object's x-position.
         x(f32) => pos.0
     );
     config_fn!(

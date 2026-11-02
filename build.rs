@@ -2,7 +2,6 @@ use std::{env, fmt::Write, fs, path::Path};
 
 // this file autogenerates `src/gdobj/ids.rs`, which is a file with
 // all of the currently implemented ids for objects and properties as consts.
-// currently broken due to `kAXX` properties
 
 fn to_const_name(s: &str) -> String {
     let mut seen_underscore = false;

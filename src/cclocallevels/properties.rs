@@ -146,7 +146,13 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     152u16 => ("Random probabilities list", GDObjPropType::ProbabilitiesList),
     153u16 => ("Div by value X", GDObjPropType::Bool),
     154u16 => ("Div by value Y", GDObjPropType::Bool),
-    /* we have yet to figure out this elusive property 155 */
+    /*  developer's note: property 155 has eluded me for close to a year */
+    /*  and i have finally found out what it does by virtue of a message */
+    /*   sent by @hdanke in the game creating discord server             */
+    // This property is present on most objects and is never negative. This property also
+    // does not need to correspond to a valid colour channel (i.e. 1 - 1014)
+    155u16 => ("Base colour cached index", GDObjPropType::Int),
+    156u16 => ("Detail colour cached index", GDObjPropType::Int),
     166u16 => ("Gravity direction", GDObjPropType::ArrowDirection),
     // Direction of rotate gameplay trigger
     167u16 => ("Arrow direction", GDObjPropType::ArrowDirection),

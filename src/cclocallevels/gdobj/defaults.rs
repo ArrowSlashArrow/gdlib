@@ -47,7 +47,7 @@ use super::GDObject;
  * ,2,0,3,0,128,30,129,1.875; 3274 3429 4227 4303
  * ,2,0,3,0,128,1.071,129,1.071; 2524 2525
  * ,2,0,3,0,128,2.143,129,15; 4115 4130
- * ,2,0,3,0,128,30,129,2.5; 4104 4107 412
+ * ,2,0,3,0,128,30,129,2.5; 4104 4107 4122
  * ,2,0,3,0,36,1,566,1,568,1; 3660 3661
  * ,2,0,3,0,128,2.5,129,30; 4105 4106
  * ,2,0,3,0,36,1,143,1,144,1; 3606 3612
@@ -127,7 +127,7 @@ pub fn default_object(id: i32) -> GDObject {
     match OBJECT_DEFAULTS_UNIQUE.get(&id) {
         Some(s) => GDObject::parse_str(s),
         None => match check_common_suffix(id) {
-            Some(suf) => GDObject::parse_str(&format!("1,{id}{suf}")),
+            Some(suf) => GDObject::parse_str(&format!("1,{id}{suf};")),
             None => GDObject::new(id, &GDObjConfig::default(), vec![]),
         },
     }
@@ -147,7 +147,9 @@ pub fn default_object_string(id: i32) -> String {
 }
 
 /// Returns a common suffix if a default object ID uses it.
-/// Example: IDs 1 through 9 all end with `,2,0,3,0;`
+/// Example: IDs 1 through 9 all end with `,2,0,3,0;`.
+///
+/// Note: This function only returns a known suffix for documented IDs (which is every object placable in the editor)
 #[must_use]
 pub const fn check_common_suffix(id: i32) -> Option<&'static str> {
     // this match statement is particularly messy, so line breaks are forced through comments
