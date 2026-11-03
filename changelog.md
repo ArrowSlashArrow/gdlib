@@ -1,5 +1,26 @@
 # Changelog
 
+## Update v0.4.4
+A lot of issues fixed and cleanup:  
+1. boolean flags are now encoded properly
+2. pink groups are serialized
+3. unknown binary versions not written as 0
+4. all setter methods for `GDObjConfig` now work properly
+5. `CounterLabel::from_object` is implemented correctly
+6. `GDOrb::Blue` now has the correct ID
+7. Pulse trigger is properly encoded for group pulse mode
+8. HSV string checkboxes are parsed in the correct order
+9. Duplicate properties are no longer possible 
+10. Item edit trigger `eval_result` works properly
+11. Guideline strings are read and encoded correctly
+12. All object constructors use the correct types when serialising objects.
+13. Methods do not panic where they shouldn't
+14. Property 155 and 156 have been discovered
+15. The linux file path for GD files has been fixed
+16. Atomic file writes are used to prevent savefile corruption
+17. Plist aho-corasick automaton is built only once
+18. Keys others than LLM_01/2/3 are preserved in CCLocalLevels
+
 ## Update v0.4.3
 * Introduced `ObjectProperties` trait which defines functions for seriailization and an optional function for converting from GDObject.
 * Refactored all items under `constructors/` to use the ObjectProperties trait
