@@ -3,7 +3,8 @@
 //! Since most triggers have parameters, structs are defined for most triggers which implement [`ObjectProperties`].
 //! This allows the programmer to construct a Trigger struct and easily create an object from it by using [`GDObject::from_config`].
 //!
-//! The few triggers that do not have any parameters can be created by calling their respective function to get a GDObject directly. There are 6 of these:
+//! The few triggers that do not have any parameters can be created by calling their respective function to get a GDObject directly.
+//! There are 7 of these:
 //! - [`show_player`]
 //! - [`hide_player`]
 //! - [`show_player_trail`]
@@ -328,6 +329,7 @@ impl ObjectProperties for ColourTrigger {
 }
 
 /// Temporarily changes the colour of a colour channel/group by fading the colour in/out.
+#[derive(Debug, Clone, PartialEq)]
 pub struct PulseTrigger {
     /// Fade-in time of the pulse in seconds  
     pub pulse_fade_in_time: f32,
@@ -596,6 +598,7 @@ object_descriptor!(
 );
 
 /// Sets the gravity intensity.
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct GravityTrigger {
     /// Intensity of gravity. 0 = no gravity, <1 = decreased gravity, 1 = normal gravity >1 = boosted gravity
     pub gravity: f32,
@@ -955,6 +958,7 @@ impl ItemEditTrigger {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 /// Spawns groups based on a comparsion between two items.
 ///
 /// The comparison evalutes both sides at the time of being called. Each side is evaluted as follows:
@@ -1745,6 +1749,7 @@ object_descriptor!(
 );
 
 /// Moves the middleground.
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct MiddleGroundConfigTrigger {
     /// Where to move it relative to its normal position
     pub offset_y: i32,

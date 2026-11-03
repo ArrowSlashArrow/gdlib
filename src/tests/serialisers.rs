@@ -1,4 +1,6 @@
 //! Tests for turning structs into raw strings and plist dictionaries.
+use std::collections::HashMap;
+
 use plist::{Dictionary, Value};
 use smallvec::smallvec;
 
@@ -569,7 +571,7 @@ fn header_values() {
 fn colour_string_default() {
     // properties 1, 2, 3, 8, 11, 12, 13, 18 are always present. 4 is present since its default is -1
     assert_eq!(
-        ColourString::default().to_string(),
+        ColourString::default().serialise(),
         "1_0_2_0_3_0_4_-1_8_0_11_0_12_0_13_0_18_0"
     );
 }
@@ -599,7 +601,7 @@ fn colour_string_full() {
         unknown_property18: true,
     };
     assert_eq!(
-        cs.to_string(),
+        cs.serialise(),
         "1_40_2_125_3_255_4_2_5_1_6_1000_7_0.5_8_1_9_3_11_1_12_2_13_3_14_0.75_15_0.25_16_2_17_1_18_1_10_10a1a0.5a0a1"
     );
 }
@@ -623,7 +625,7 @@ fn guideline_string() {
             ("3.25".into(), GuidelineColour::Orange),
         ],
     };
-    assert_eq!(g.to_string(), "1.5~0.9~2~1~3.25~0");
+    assert_eq!(g.serialise(), "1.5~0.9~2~1~3.25~0");
 }
 
 #[test]
@@ -875,6 +877,7 @@ fn cclocallevels_string() {
         levels: vec![GDLevel::default()],
         binary_version: GDVersion::GD22082,
         lists: vec![],
+        other: HashMap::new(),
     };
     let s = cc.serialise_to_string();
     assert!(s.starts_with(PLIST_HEADER));

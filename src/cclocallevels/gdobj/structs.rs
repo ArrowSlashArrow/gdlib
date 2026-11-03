@@ -2,7 +2,6 @@
 
 use std::{f32::consts::PI, fmt::Display, str::FromStr};
 
-use anyhow::anyhow;
 use smallvec::SmallVec;
 
 use crate::{
@@ -596,11 +595,13 @@ impl GDValue {
             GDObjPropType::Double => Self::Double(parse!(s => f64)),
             GDObjPropType::Float => Self::Float(parse!(s => f32)),
             GDObjPropType::Int => Self::Int(parse!(s => i32)),
-            GDObjPropType::EventsList => Self::Events(
+            GDObjPropType::EventsList => Self::Events(if s.trim().is_empty() {
+                vec![]
+            } else {
                 s.split('.')
                     .map(|i| Event::from(parse!(i => i32)))
-                    .collect(),
-            ),
+                    .collect()
+            }),
             GDObjPropType::ProbabilitiesList => {
                 let tuples = parse_sibling_items::<i16, i32>(s);
                 Self::ProbabilitiesList(SmallVec::from_vec(tuples))
@@ -610,9 +611,11 @@ impl GDValue {
                 Self::SpawnRemapsList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
-            GDObjPropType::GroupList => {
-                Self::GroupList(s.split('.').map(|i| parse!(i => i16)).collect())
-            }
+            GDObjPropType::GroupList => Self::GroupList(if s.trim().is_empty() {
+                SmallVec::new()
+            } else {
+                s.split('.').map(|i| parse!(i => i16)).collect()
+            }),
             GDObjPropType::Item => Self::Item(parse!(s => i16)),
             GDObjPropType::BPMSpeed => Self::BPMSpeed(parse!(s => i32 => BPMSpeed)),
             GDObjPropType::Gamemode => Self::Gamemode(parse!(s => i32 => Gamemode)),
@@ -852,7 +855,7 @@ repr_t!(
         PortalGravityFlip = 50,
         PortalGravityNormal = 51,
         PortalGravityInvert = 52,
-        PoratlFlip = 53,
+        PortalFlip = 53,
         PortalUnflip = 54,
         PortalNormalScale = 55,
         PortalMiniScale = 56,
@@ -1057,7 +1060,7 @@ impl CompareOperand {
     }
 }
 
-/// Used internally by GD to round some things like items. This function truncates the last three decimal places of the given number towards zero. `NaN` returns 0.
+/// Used internally by GD to round some things like items. This function truncates everything past the last three decimal places of the given number towards zero. `NaN` returns 0.
 pub fn round_3dp(num: f64) -> f64 {
     // in gd, the i32 is cast to an f32 instead of f64.
     ((num * 1000.0) as i32) as f64 / 1000.0
@@ -1323,6 +1326,7 @@ pub struct PulseGroup {
 }
 
 /// Enum for pulse mode
+#[derive(Debug, Clone, PartialEq)]
 pub enum PulseMode {
     /// Pulse with colour
     Colour(Colour),
@@ -1349,20 +1353,21 @@ impl Colour {
         }
     }
 
-    /// Parses a hex code (#123456) to a [`Colour`]. The hex code must start with a `#` and be seven chars in length, the last 6 being hexadecimal digits.
-    pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Result<Self, anyhow::Error> {
+    /// Parses a hex code (#123456) to a [`Colour`]. The hex code must start with a `#` and end with 6 hexadecimal digits without any whitespace.
+    ///
+    /// Returns `None` if the given string could not be parsed as a hex code.
+    pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Option<Self> {
         let str = hex_str.as_ref();
         if str.len() != 7 || !str.starts_with('#') {
-            return Err(anyhow!(
-                "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
-            ));
+            // "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
+            return None;
         }
 
         let mut owned = str.to_string();
         owned.remove(0);
 
-        let hex = i32::from_str_radix(&owned, 16)?;
-        Ok(Self {
+        let hex = i32::from_str_radix(&owned, 16).ok()?;
+        Some(Self {
             red: (hex >> 16 & 0xFF) as u8,
             green: (hex >> 8 & 0xFF) as u8,
             blue: (hex & 0xFF) as u8,

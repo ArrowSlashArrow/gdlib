@@ -165,7 +165,7 @@ pub struct GDConfig {
     pub has_rated_game: bool,
     /// Internal key: `binaryVersion`
     pub binary_version: i32,
-    /// Respective internal keys: `practicePosX`, `praticePosY`
+    /// Respective internal keys: `practicePosX`, `practicePosY`
     pub practice_ui_pos: (f32, f32),
     /// Internal key: `practiceOpacity`
     pub practice_ui_opacity: f32,
@@ -361,7 +361,7 @@ pub struct GDPlatformerUI {
 
 impl GDPlatformerUI {
     /// Parses a comma-separated list of values to this object
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         let mut this = Self::default();
         let fns = &[
             Self::parse_width,

@@ -9,9 +9,7 @@ use std::{
     path::PathBuf,
 };
 
-use phf::phf_set;
 use plist::{Dictionary, Value};
-use smallvec::SmallVec;
 
 use crate::{
     cclocallevels::{
@@ -29,8 +27,8 @@ use crate::{
     core::{
         GDError, b64_decode, b64_encode, get_cclocallevels_path,
         io::{
-            decompress, decrypt_file, encrypt_level_str, encrypt_savefile_str, stringify_xml,
-            vec_as_str, vec_as_str_lossy,
+            atomic_export, decompress, decrypt_file, encrypt_level_str, encrypt_savefile_str,
+            stringify_xml, vec_as_str, vec_as_str_lossy,
         },
         proper_plist_tags,
         structs::KCEKValue,
@@ -65,10 +63,12 @@ pub const PLIST_FOOTER: &str = "</plist>";
 pub struct CCLocalLevels {
     /// All levels in the savefile in order from newest to oldest.
     pub levels: Vec<GDLevel>,
-    /// Headers of the level file. This struct contains other data that is present in the savefile but that is not used or parsable by this crate.
+    /// The version of the GD binary that this savefile is from. This value is **CRUCIAL** for `CCLocalLevels.dat` and ***<u>MUST NOT BE REMOVED!</u>***
     pub binary_version: GDVersion,
     /// All lists in the savefile in order from newest to oldest.
     pub lists: Vec<GDList>,
+    /// Other keys in CCLocalLevels.dat that weren't parsed.
+    pub other: HashMap<String, Value>,
 }
 
 impl CCLocalLevels {
@@ -85,8 +85,6 @@ impl CCLocalLevels {
         if !s.starts_with(PLIST_HEADER) {
             return Err(GDError::CorruptedSavefile("Savefile header does not match the expected header. This may be due to a corrupted savefile or a savefile from a previous version of GD.".into()));
         };
-
-        // println!("{}", &s[..500]);
 
         let mut xmltree = Value::from_reader_xml(Cursor::new(proper_plist_tags(s)?.as_bytes()))?
             .into_dictionary()
@@ -112,7 +110,7 @@ impl CCLocalLevels {
             ))? as i32;
         let llm_03 = xmltree
             .remove("LLM_03")
-            .ok_or(GDError::CorruptedSavefile("No LLM_03 (lists)".into()))?;
+            .unwrap_or_else(|| Value::Array(vec![]));
 
         // these are stored as "k_0": <level>, "k_1": <level>, etc. in the savefile,
         // the vec prserves that order.
@@ -144,6 +142,7 @@ impl CCLocalLevels {
             levels: levels_parsed,
             binary_version: GDVersion::from_binary_version(llm_02),
             lists,
+            other: xmltree.into_iter().collect(),
         };
 
         Ok(levels)
@@ -178,7 +177,7 @@ impl CCLocalLevels {
 
     /// Serialises this object to a formatted .plist structure.
     ///
-    /// **NOTE:** The caller *MUST* ensure that `self.binary_version` is a value that will return
+    /// **NOTE:** The caller *MUST* ensure that `self.binary_version` is a value that will return `Some`.
     pub fn serialise_to_string(&mut self) -> String {
         let mut dict = Dictionary::new();
 
@@ -250,7 +249,7 @@ impl CCLocalLevels {
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
         let export_str = encrypt_savefile_str(&&self.serialise_to_string());
-        write(savefile, export_str)?;
+        atomic_export(savefile, &export_str)?;
         Ok(())
     }
 
@@ -268,7 +267,7 @@ impl CCLocalLevels {
         write(backup_path, read(&savefile)?)?;
 
         let export_str = encrypt_savefile_str(&self.serialise_to_string());
-        write(savefile, export_str)?;
+        atomic_export(savefile, &export_str)?;
         Ok(())
     }
 }
@@ -286,7 +285,7 @@ impl CCLocalLevels {
 #[derive(Debug, Clone)]
 /// The descriptor struct for GD levels which contains all known properties.
 ///
-/// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level>
+/// Reference: <https://boomlings.dev/resources/client/level>
 pub struct GDLevel {
     /// Identity info: ID, name, descriptior, creator, version, level type, password
     pub identity: GDLevelIdentity,
@@ -1317,8 +1316,16 @@ impl GDLevel {
         d
     }
 
-    /// Returns the Level data as unencrypted.
-    /// Level data is left unencrypted when parsing the Level as it is slow.
+    /// Decrypts level data if the payload in `self.content.data` is valid, decryptable level data.
+    ///
+    /// When parsing a level from `CCLocalLevels::from_local`, `GDLevel::from_gmd`, `GDLevel::from_gdlvl`,
+    /// or any other methods that handle reading a GD level, the level data itself is not automatically
+    /// decrypted for the sake of not wasting time on potentially unwanted decryptions (i.e. not decrypting
+    /// the entire savefile when all you need is one level). For this reason, you need to call this method
+    /// on any parsed level to fetch its data, otherwise you will not read anything meaningful.
+    ///
+    /// **TL;DR**: Call this method on `GDLevel`s after using `CCLocalLevels::from_local`, `GDLevel::from_gmd`
+    /// or `GDLevel::from_gdlvl` (or any other method in this crate that parses GD levels).
     pub fn decrypt_level_data(&mut self) -> Result<(), GDError> {
         let raw_data = if let Some(data) = &self.content.data
             && let GDLevelState::Encrypted(enc) = data
@@ -1565,7 +1572,7 @@ pub(crate) fn parse_csv(v: &Value) -> Vec<i32> {
         .collect::<Vec<i32>>()
 }
 
-pub(crate) fn to_csv<T: ToString>(v: &Vec<T>) -> String {
+pub(crate) fn to_csv<T: ToString>(v: &[T]) -> String {
     v.iter()
         .map(|i| i.to_string())
         .collect::<Vec<_>>()

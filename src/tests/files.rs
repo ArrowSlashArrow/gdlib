@@ -1,7 +1,7 @@
 //! Tests that read and write the level and list files in `test_gmds/`.
 //!
 //! Files written by these tests are named `test_gmds/generated_*` and are gitignored.
-use std::fs;
+use std::{collections::HashMap, fs};
 
 use super::{
     assert_levels_eq, assert_lists_eq, benchmark, generated_path, sample_level, sample_list,
@@ -15,7 +15,7 @@ use crate::{
         },
         gdlist::GDList,
         gdobj::{
-            self, GDObject,
+            GDObject,
             constructors::triggers::{
                 AdvancedRandomTrigger, EventTrigger, ItemCompareTrigger, MoveTrigger,
             },
@@ -322,6 +322,7 @@ fn cclocallevels_file_roundtrip() {
         levels: vec![sample_level(), GDLevel::default()],
         binary_version: GDVersion::GD22082,
         lists: vec![sample_list()],
+        other: HashMap::new(),
     };
     let out = generated_path("CCLocalLevels.dat");
     cc.export_to_file(out.clone()).unwrap();
@@ -346,6 +347,7 @@ fn cclocallevels_file_keeps_non_ascii_text() {
         levels: vec![level],
         binary_version: GDVersion::GD22082,
         lists: vec![],
+        other: HashMap::new(),
     };
     let out = generated_path("CCLocalLevels_unicode.dat");
     cc.export_to_file(out.clone()).unwrap();

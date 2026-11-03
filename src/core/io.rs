@@ -1,9 +1,11 @@
 //! This module contains all of the de/serialization code for GD savefiles.
 use std::{
+    borrow::Cow,
+    env,
     fmt::Write,
     fs,
     io::{Read, Write as IoWrite},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::core::{GDError, b64_encode};
@@ -12,6 +14,7 @@ use flate2::{Compression, read::DeflateDecoder, write::ZlibEncoder};
 use plist::{Dictionary, Value};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use tempfile::NamedTempFile;
 
 fn zlib_compress(s: &str) -> Vec<u8> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -78,10 +81,10 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
     });
 
     for (key, value) in dict {
-        let _ = write!(dict_str, "<k>{key}</k>");
+        let _ = write!(dict_str, "<k>{}</k>", escape_xml(key));
         match value {
             Value::String(s) => {
-                let _ = write!(dict_str, "<s>{s}</s>");
+                let _ = write!(dict_str, "<s>{}</s>", escape_xml(s));
             }
             Value::Integer(int) => {
                 let _ = write!(dict_str, "<i>{int}</i>");
@@ -176,4 +179,41 @@ pub(crate) fn vec_as_str(data: &[u8]) -> String {
 #[inline]
 pub(crate) fn vec_as_str_lossy(data: &[u8]) -> String {
     String::from_utf8_lossy(data).to_string()
+}
+
+/// Exports files atomically to prevent corruption on important files
+pub(crate) fn atomic_export<P: Into<PathBuf>>(path: P, data: &[u8]) -> Result<(), std::io::Error> {
+    let path = path.into();
+    let path_parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut tempfile = NamedTempFile::new_in(path_parent).unwrap();
+    tempfile.write_all(data)?;
+    tempfile.flush()?;
+
+    tempfile.as_file().sync_all()?;
+    tempfile.persist(path)?;
+
+    Ok(())
+}
+
+/// Returns the standard file path of GD savefiles on linux.
+pub fn linux_gd_files_path() -> Option<PathBuf> {
+    Some(PathBuf::from(env::var("HOME").ok()?).join(".local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash"))
+}
+
+/// Escapes the characters that are not allowed in XML text.
+fn escape_xml(s: &str) -> Cow<'_, str> {
+    if !s.contains(['&', '<', '>']) {
+        return Cow::Borrowed(s);
+    }
+
+    let mut escaped = String::with_capacity(s.len() + 8);
+    for c in s.chars() {
+        match c {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            _ => escaped.push(c),
+        }
+    }
+    Cow::Owned(escaped)
 }

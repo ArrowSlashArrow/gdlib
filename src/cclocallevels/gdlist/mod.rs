@@ -7,7 +7,6 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Result;
 use plist::{Dictionary, Value};
 
 use crate::{

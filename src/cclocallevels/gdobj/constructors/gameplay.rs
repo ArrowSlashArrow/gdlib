@@ -118,6 +118,7 @@ impl GDOrbType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 /// Configuration struct for orbs.
 pub struct GDOrb {
     /// What type of pad this object is.

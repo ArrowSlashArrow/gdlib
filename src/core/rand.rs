@@ -57,9 +57,9 @@ pub fn check_seed_random(seed: u64, chance: f32) -> bool {
 ///
 /// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`] or [`next_seed_mut`].
 ///
-/// This algorithm was sourced from the Android APK for GD and is verified to work as of GD 2.2901.
+/// This algorithm was sourced from the Android APK for GD and is verified to work as of GD 2.2091.
 #[must_use]
-pub fn check_seed_advanced_random(seed: u64, probabilities: &Vec<(i16, i32)>) -> Option<i16> {
+pub fn check_seed_advanced_random(seed: u64, probabilities: &[(i16, i32)]) -> Option<i16> {
     if probabilities.is_empty() {
         return None;
     }

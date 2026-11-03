@@ -172,14 +172,14 @@ impl CCGameManager {
 
         for i in 0..5 {
             parse_val(&mut d, &format!("dpad0{}", i + 1), |v| {
-                self.config.dpads[i] = GDPlatformerUI::from_str(v.as_string()?);
+                self.config.dpads[i] = GDPlatformerUI::parse(v.as_string()?);
                 Some(())
             })?;
         }
 
         self.config.dpad_layout = d
             .remove("dpad_layout")
-            .map(|v| GDPlatformerUI::from_str(v.as_string().unwrap_or_default()));
+            .map(|v| GDPlatformerUI::parse(v.as_string().unwrap_or_default()));
 
         parse_val(&mut d, "resolution", |v| {
             self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32)
@@ -257,7 +257,7 @@ impl CCGameManager {
                     .iter()
                     .map(|(k, _)| {
                         let mut split = k.split("_").into_iter();
-                        let _ = split.next(); // skip `like`
+                        let _ = split.next(); // skip `likes`
                         let keys =
                             array::from_fn(|_| split.next().unwrap().parse::<i32>().unwrap());
                         keys

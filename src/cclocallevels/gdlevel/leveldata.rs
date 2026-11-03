@@ -484,7 +484,7 @@ impl GuidelineString {
     }
 
     /// Serialises this object to a string
-    pub fn to_string(&self) -> String {
+    pub fn serialise(&self) -> String {
         self.guidelines
             .iter()
             .map(|(t, c)| format!("{t}~{}", c.to_float()))
@@ -564,7 +564,7 @@ impl ColourString {
     }
 
     /// Serialises this object to a String.
-    pub fn to_string(&self) -> String {
+    pub fn serialise(&self) -> String {
         // properties 1, 2, 3, 11, 12, 13, 18 are always present
 
         // casting to f32 is essential to keep all properties as one type
@@ -640,9 +640,9 @@ impl Display for GDLevelHeaderValue {
                 Self::Gamemode(g) => (*g as i32).to_string(),
                 Self::ColourString(c) => c
                     .iter()
-                    .map(|cl| format!("{}|", cl.to_string()))
+                    .map(|cl| format!("{}|", cl.serialise()))
                     .collect::<String>(),
-                Self::GuidelineString(g) => g.to_string(),
+                Self::GuidelineString(g) => g.serialise(),
             },
         )
     }
@@ -689,7 +689,7 @@ impl GDLevelHeaderKey {
     ///
     /// Please use values defined in [`crate::cclocallevels::gdobj::ids::level_header`] to create instances of this object.
     pub fn from_id(id: u16) -> Self {
-        if id > LEVEL_HEADER_PROP_ID_OFFSET {
+        if id >= LEVEL_HEADER_PROP_ID_OFFSET {
             Self::S(id - LEVEL_HEADER_PROP_ID_OFFSET)
         } else {
             Self::A(id)

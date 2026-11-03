@@ -636,7 +636,7 @@ fn colour_from_hex_invalid() {
         "#-12345",
         "#+12345",
     ] {
-        assert!(Colour::from_hex(s).is_err(), "{s:?}");
+        assert!(Colour::from_hex(s).is_none(), "{s:?}");
     }
 }
 
@@ -1549,7 +1549,7 @@ fn search_filters_invalid() {
 
 #[test]
 fn platformer_ui_partial_input() {
-    let ui = GDPlatformerUI::from_str("10,20");
+    let ui = GDPlatformerUI::parse("10,20");
     assert_eq!(ui.width, 10);
     assert_eq!(ui.height, 20);
     assert_eq!(ui.scale, 0.0);
@@ -1557,13 +1557,13 @@ fn platformer_ui_partial_input() {
 
 #[test]
 fn platformer_ui_too_many_fields_does_not_panic() {
-    let _ = GDPlatformerUI::from_str("1,2,3,4,5,6,7,8,9,10,11,12,13");
+    let _ = GDPlatformerUI::parse("1,2,3,4,5,6,7,8,9,10,11,12,13");
 }
 
 #[test]
 fn platformer_ui_malformed_field_does_not_panic() {
-    let _ = GDPlatformerUI::from_str("wide,tall");
-    let _ = GDPlatformerUI::from_str("");
+    let _ = GDPlatformerUI::parse("wide,tall");
+    let _ = GDPlatformerUI::parse("");
 }
 
 // ---------------- core::io / core ----------------

@@ -4,7 +4,7 @@ A typesafe, rust library to interface with GD savefiles. It is intended to enabl
 Documentation can be found on [docs.rs](https://docs.rs/gdlib/latest/gdlib/).  
 As of v0.4.3, GDLib is in active development.
 
-Latest supported version of GD: **2.2081**.
+Latest supported version of GD: **2.2091**.
 
 ## Overview
 GDLib is an API that is designed to parse the Geometry Dash savefile format. It can parse levels and objects from the savefile (CCLocalLevels.dat) and from .gmd files. 
@@ -19,6 +19,7 @@ Features
 This crate is intended to have provide full coverage of both GD savefiles and full support for editing each individual component within.  
 As of v0.4.1, this crate only supports decoding files from Windows and Linux. This crate also currently does not support any old savefile versions. 
 **Note: Gamesaves from spinoff games are NOT tested. GDLib is not guaranteed to be able to parse savefiles from any of those games which include: GD Meltdown, GD Subzero, GD World, GD Lite**.
+**Note 2: MacOS is currently NOT supported.**
 
 ## Repository structure
 - `.github`: workflows for GitHub.

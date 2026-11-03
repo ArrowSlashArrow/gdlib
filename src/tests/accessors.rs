@@ -1,4 +1,6 @@
 //! Tests for getters, setters and builder methods on objects, object configs, levels and level data.
+use std::collections::HashMap;
+
 use super::{CONFIG_PROPERTY_IDS, default_block, test_config};
 use crate::cclocallevels::{
     gdlevel::{
@@ -843,6 +845,7 @@ fn add_level_inserts_at_front() {
         levels: vec![],
         binary_version: GDVersion::GD22082,
         lists: vec![],
+        other: HashMap::new(),
     };
     for name in ["a", "b", "c"] {
         let mut level = GDLevel::default();

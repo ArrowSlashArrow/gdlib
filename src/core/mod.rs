@@ -5,16 +5,16 @@ use std::{
     env,
     error::Error,
     fmt::{Debug, Display},
-    path::{Path, PathBuf},
+    path::PathBuf,
+    sync::LazyLock,
 };
+
+use crate::core::io::linux_gd_files_path;
 
 pub mod crypto;
 pub mod io;
 pub mod rand;
 pub mod structs;
-
-/// Standard file path of GD savefiles on linux.
-pub const LINUX_GD_FILES: &str = "~/.local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash";
 
 macro_rules! count_exprs {
     () => { 0 };
@@ -96,7 +96,6 @@ from_error!(plist::Error => BadPlist);
 from_error!(aho_corasick::BuildError => AhoCorasick);
 from_error!(std::string::FromUtf8Error => FromUtf8Error);
 
-// TODO: make this more verbose, probably better?
 impl From<GDError> for std::fmt::Error {
     fn from(_: GDError) -> Self {
         std::fmt::Error
@@ -119,23 +118,20 @@ impl Display for GDError {
 
 /// Returns path of CCLocalLevels.dat if it exists
 #[must_use]
-// -- TODO --: The fn only supports Windows, need to implement other OSes
 pub fn get_cclocallevels_path() -> Option<PathBuf> {
-    // TODO: need better way to validate/ensure Windows platforms
-    // TODO: need better way to check all Windows locations for gd?
-    // TODO: make into const
-    if let Ok(local_appdata) = env::var("LOCALAPPDATA")
-        && Path::new(&local_appdata).exists()
-    {
-        Some(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
-    } else {
-        let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
-        if linux_path.exists() {
-            return Some(linux_path);
+    if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
+        let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
+        if path.exists() {
+            return Some(path);
         }
-
-        None
     }
+
+    let linux_path = linux_gd_files_path()?.join("CCLocalLevels.dat");
+    if linux_path.exists() {
+        return Some(linux_path);
+    }
+
+    None
 }
 
 /// Returns path to CCGameManager.dat if it exists
@@ -147,7 +143,7 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
         }
     }
 
-    let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCGameManager.dat"));
+    let linux_path = linux_gd_files_path()?.join("CCGameManager.dat");
     if linux_path.exists() {
         return Some(linux_path);
     }
@@ -155,11 +151,14 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
     None
 }
 
+static PLIST_TAGS_AC: LazyLock<AhoCorasick> = LazyLock::new(|| {
+    AhoCorasick::new(PLIST_TAGS_FIND).expect("PLIST_TAGS_FIND contains valid patterns")
+});
+
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
 pub fn proper_plist_tags(s: String) -> Result<String, GDError> {
     // replace gd plist with proper plist; use aho-corasick for single-pass instead of many .replace()s
-    let ac = AhoCorasick::new(PLIST_TAGS_FIND)?;
-    Ok(ac.replace_all(&s, &PLIST_TAGS_REPLACE))
+    Ok(PLIST_TAGS_AC.replace_all(&s, &PLIST_TAGS_REPLACE))
 }
 
 /// Quick function for decoding base64 bytes

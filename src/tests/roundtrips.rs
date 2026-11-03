@@ -518,10 +518,10 @@ fn colour_string() {
         },
     ] {
         assert_eq!(
-            ColourString::parse(&cs.to_string()),
+            ColourString::parse(&cs.serialise()),
             Some(cs.clone()),
             "{}",
-            cs.to_string()
+            cs.serialise()
         );
     }
 }
@@ -536,7 +536,7 @@ fn colour_strings_from_default_level() {
         .unwrap();
     for segment in segments.split('|').filter(|s| !s.is_empty()) {
         let cs = ColourString::parse(segment).unwrap();
-        assert_eq!(ColourString::parse(&cs.to_string()), Some(cs), "{segment}");
+        assert_eq!(ColourString::parse(&cs.serialise()), Some(cs), "{segment}");
     }
 }
 
@@ -550,10 +550,10 @@ fn guideline_string() {
         ],
     };
     assert_eq!(
-        GuidelineString::parse(&g.to_string()),
+        GuidelineString::parse(&g.serialise()),
         Some(g.clone()),
         "{}",
-        g.to_string()
+        g.serialise()
     );
 }
 
@@ -1013,6 +1013,7 @@ fn cclocallevels_string() {
         levels: vec![sample_level(), second],
         binary_version: GDVersion::GD22082,
         lists: vec![sample_list(), GDList::default()],
+        other: HashMap::new(),
     };
     let parsed = CCLocalLevels::from_decrypted(cc.serialise_to_string()).unwrap();
 
@@ -1040,6 +1041,7 @@ fn cclocallevels_keeps_level_order_past_ten_levels() {
             .collect(),
         binary_version: GDVersion::GD22082,
         lists: vec![],
+        other: HashMap::new(),
     };
     let parsed = CCLocalLevels::from_decrypted(cc.serialise_to_string()).unwrap();
     let names = |c: &CCLocalLevels| {
@@ -1057,6 +1059,7 @@ fn cclocallevels_empty() {
         levels: vec![],
         binary_version: GDVersion::GD22082,
         lists: vec![],
+        other: HashMap::new(),
     };
     let parsed = CCLocalLevels::from_decrypted(cc.serialise_to_string()).unwrap();
     assert!(parsed.levels.is_empty());
