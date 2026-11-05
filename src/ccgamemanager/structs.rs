@@ -1,4 +1,25 @@
-//! All sub-component structs of ccgamemanager::CCGameManager.
+//! The structs that make up [`CCGameManager`](super::CCGameManager), grouped by area of the savefile.
+//!
+//! **Note:** This file is very much WIP! We don't even have a serialiser for CCGameManager yet! (!!!)
+//!
+//! | Struct | Contains |
+//! |---|---|
+//! | [`GDPlayerInfo`] | Username, UDID, user ID, selected icons |
+//! | [`GDStatistics`] | Statistics and achievement progress |
+//! | [`GDConfig`] | Game settings, including [`Resolution`], [`TextureQuality`] and [`GDPlatformerUI`] |
+//! | [`GDAccount`] | Account details and credentials |
+//! | [`GDCurrentValues`] | Temporary values the game overwrites |
+//! | [`GDSongConfig`] | Song settings |
+//! | [`GDSearchFilters`] | Saved level search filters, with [`GDSearchFilterFlags`] |
+//!
+//! Most fields name the savefile key they're stored under, such as `GJA_001`.
+//!
+//! # Achievements
+//!
+//! [`GDStatistics`] has two ways to access achievement progress:
+//!
+//! - By variant, for vanilla achievements: [`GDStatistics::get_vanilla_achievement`] and [`GDStatistics::set_vanilla_achievement`].
+//! - By identifier string, which also covers non-vanilla ones: [`GDStatistics::get_achievement_by_ident`] and [`GDStatistics::set_achievement_by_ident`].
 
 use std::collections::HashMap;
 

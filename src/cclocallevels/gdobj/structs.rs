@@ -1,4 +1,29 @@
-//! This module contains all structs and enums for values that are present in GD objects.
+//! The value types used by object properties and constructors.
+//!
+//! The most important type is [`GDValue`], which holds any object property value. Its expected variant for each property is given by [`GDObjPropType`] and the [`properties`](crate::cclocallevels::properties) tables.
+//!
+//! # Finding a type
+//!
+//! | Area | Types |
+//! |---|---|
+//! | Property values | [`GDValue`], [`GDObjPropType`] |
+//! | Colours | [`ColourChannel`], [`Colour`], [`HSVColour`], [`CopyColourConfig`] |
+//! | Layers | [`ZLayer`] |
+//! | Movement | [`MoveMode`], [`DefaultMove`], [`TargetMove`], [`DirectionalMove`], [`MoveLock`], [`MoveTarget`], [`AxisOnlyMove`] |
+//! | Easing | [`Easing`], [`MoveEasing`] |
+//! | Pulse | [`PulseMode`], [`PulseTarget`], [`PulseChannel`], [`PulseGroup`], [`PulseHSV`] |
+//! | Rotation and scale | [`RotationMode`], [`RotationNormal`], [`RotationAim`], [`RotationPlayerTarget`], [`ScaleConfig`] |
+//! | Items and counters | [`Item`], [`ItemType`], [`CounterMode`], [`CompareOperand`] |
+//! | Collision | [`ColliderConfig`] |
+//! | Teleports | [`TeleportConfig`], [`TeleportForce`] |
+//! | Events | [`Event`] |
+//!
+//! # Enums and unknown values
+//!
+//! Most enums here have an `Unrecognized` variant, which keeps values gdlib doesn't know about so they can be written back unchanged. Use `to_num` to get the raw value.
+//!
+//! Some enums don't have that variant. Converting an unknown value to one of those either returns an error or falls back to a default, so the original value can be lost.
+//! This behaviour is reserved only for the enums that have a more or less fixed set of values, such as `CompareOp` (the six compare operators).
 
 use std::{f32::consts::PI, fmt::Display, str::FromStr};
 
@@ -509,14 +534,12 @@ pub enum GDValue {
     ///
     /// This enum deals only with normal groups where the distinction between regular and parent groups is not important.
     /// Parent groups should only show up in [`Self::GroupList`] when parsing the `PARENT_GROUPS` property regardless.
-    /// See [`Group`] for the GDLib group struct.
     Group(i16),
     /// Any item ID, which is represented by an `i16`.
     Item(i16),
     /// A list of group IDs as i16 which are stored in a `SmallVec`.
     ///
     /// All groups in this vector are treated as normal groups. Keep this in mind when the distiction between regular and parent groups is important.
-    /// See [`Group`] for the GDLib group struct.
     GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
     /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger.
     ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
@@ -659,7 +682,7 @@ impl GDValue {
     // returns Result<Self, &str> where Ok(Self) if all good, but Err(param) if bad
 
     #[inline]
-    /// Converts a vector of [`Group`]s to a [`GDValue`]
+    /// Converts a vector of group IDs to a [`GDValue::GroupList`]
     pub fn from_group_list(g: &[i16]) -> Self {
         Self::GroupList(SmallVec::from_slice(g))
     }

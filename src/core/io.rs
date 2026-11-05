@@ -1,4 +1,21 @@
-//! This module contains all of the de/serialization code for GD savefiles.
+//! Low-level encoding and decoding for GD savefiles and level strings.
+//!
+//! Most programs don't need this module, because [`GDLevel`](crate::cclocallevels::gdlevel::GDLevel) and [`CCLocalLevels`](crate::cclocallevels::gdlevel::CCLocalLevels) call it for you.
+//!
+//! # Encoding layers
+//!
+//! | Data | Writing | Reading |
+//! |---|---|---|
+//! | Level strings and `.gdlvl` files | gzip, then URL-safe base64: [`encrypt_level_str`] | [`decompress`] |
+//! | Savefiles (`.dat`) | The above, then XOR with [`XOR_KEY_PLAYER_DATA`]: [`encrypt_savefile_str`] | [`decrypt`], or [`decrypt_file`] for a path |
+//!
+//! Plists are written in GD's shortened tag format by [`stringify_xml`]. To read them, convert the tags with [`proper_plist_tags`](crate::core::proper_plist_tags) first.
+//!
+//! # Common pitfalls
+//!
+//! - **[`decrypt_file`] removes all non-ASCII bytes.** It does this to cope with stray characters in CCGameManager.dat, but it also damages non-ASCII text such as level names.
+//! - **[`decompress`] assumes a gzip header.** It skips a fixed 10 bytes rather than reading the header.
+
 use std::{
     borrow::Cow,
     env,
@@ -22,7 +39,7 @@ fn zlib_compress(s: &str) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
-/// Xor encryption key for CCLocalLevels.dat and CCGameManager.day
+/// Xor encryption key for CCLocalLevels.dat and CCGameManager.dat
 pub const XOR_KEY_PLAYER_DATA: u8 = 0x0b;
 
 /// Returns the encrypted level string as `Vec<u8>` from a `GDLevel` object string

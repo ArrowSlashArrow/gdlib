@@ -17,7 +17,7 @@ use crate::{
         },
         gdobj::{
             GDObject,
-            constructors::text,
+            constructors::TextObject,
             gameplay::PortalCameraOptions,
             ids::{objects as o, properties as p},
             meta::{GDObjAttributes, GDObjConfig},
@@ -395,8 +395,11 @@ fn objects_are_concatenated() {
 
 #[test]
 fn text_object() {
-    let obj = text(&GDObjConfig::default(), "Hello, world!", 3);
-    let s = obj.serialise_to_string();
+    let obj = TextObject {
+        text: "Hello, world!".into(),
+        kerning: 3,
+    };
+    let s = GDObject::from_config(&GDObjConfig::default(), obj).serialise_to_string();
     assert!(s.starts_with(&format!("1,{},", o::TEXT)));
     let encoded = values_of(&s, "31");
     assert_eq!(encoded.len(), 1);
@@ -407,7 +410,13 @@ fn text_object() {
 
 #[test]
 fn text_object_unicode() {
-    let obj = text(&GDObjConfig::default(), "日本語 ✓", 0);
+    let obj = GDObject::from_config(
+        &GDObjConfig::default(),
+        TextObject {
+            text: "日本語 ✓".into(),
+            kerning: 0,
+        },
+    );
     let encoded = values_of(&obj.serialise_to_string(), "31");
     assert_eq!(
         String::from_utf8(b64_decode(&encoded[0]).unwrap()).unwrap(),

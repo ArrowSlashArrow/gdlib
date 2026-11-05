@@ -1,5 +1,51 @@
-//! This module contains the objects necessary for operations relating to the CCLocalLevels file,
-//! the Level struct, and its constituent structs.
+//! Levels, and the CCLocalLevels.dat savefile that contains them.
+//!
+//! [`GDLevel`] is one level, and [`CCLocalLevels`] is the whole savefile.
+//!
+//! # Loading and creating levels
+//!
+//! - From the savefile: [`CCLocalLevels::from_local`], then look through [`CCLocalLevels::levels`].
+//! - From a file: [`GDLevel::from_gmd`] or [`GDLevel::from_gdlvl`].
+//! - From scratch: [`GDLevel::new_latest_version`] or [`GDLevel::with_level_data`].
+//!
+//! # Editing objects
+//!
+//! Level data is left compressed when a level is loaded, because decompressing it is slow. Decompress it before working with objects:
+//!
+//! ```no_run
+//! use gdlib::cclocallevels::gdlevel::GDLevel;
+//!
+//! # fn main() -> Result<(), gdlib::core::GDError> {
+//! let mut level = GDLevel::from_gmd("level.gmd")?;
+//!
+//! // Decompresses and parses the level data on first use.
+//! if let Some(data) = level.get_decrypted_data_ref() {
+//!     for object in data.objects.iter_mut() {
+//!         object.config.add_group(42);
+//!     }
+//! }
+//!
+//! level.export_to_gmd("edited.gmd")?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # How fields are organised
+//!
+//! [`GDLevel`] splits a level's properties into groups: [`identity`](GDLevel::identity), [`content`](GDLevel::content), [`ratings`](GDLevel::ratings), [`coins`](GDLevel::coins), [`player_stats`](GDLevel::player_stats), [`flags`](GDLevel::flags), [`editor_state`](GDLevel::editor_state), [`meta`](GDLevel::meta), [`integrity`](GDLevel::integrity) and [`unknowns`](GDLevel::unknowns).
+//!
+//! Most field docs name the key they're stored under (such as `k2`). Keys that gdlib doesn't recognise are kept in [`GDLevelUnknowns::other`] and written back unchanged, so they survive a round trip.
+//!
+//! # Common pitfalls
+//!
+//! - **Use [`GDLevel::new_latest_version`] for new levels.** [`GDLevel::default`] leaves the binary version at the oldest known game version, and GD needs a valid value for that key to open the level.
+//! - **Object methods can do nothing on compressed data.** [`GDLevel::add_object`] and [`GDLevel::add_objects`] silently do nothing, and [`GDLevel::get_objects_ref`] returns `None`, until the data is decompressed. Call [`GDLevel::decrypt_level_data`] first.
+//! - **One bad level fails the whole savefile.** If any level can't be parsed, [`CCLocalLevels::from_decrypted`] returns an error.
+//! - **Writing to the real savefile overwrites it.** Prefer [`CCLocalLevels::export_to_savefile_with_backup`] over [`CCLocalLevels::export_to_savefile`], and close GD first, since it may overwrite your changes when it saves.
+//!
+//! # References
+//!
+//! - <https://boomlings.dev/resources/client/level>
 
 use std::{
     collections::HashMap,
@@ -245,7 +291,7 @@ impl CCLocalLevels {
     /// This function will return an error if it is unable to find the savefile at the standard location.
     ///
     /// Standard location on windows: %LOCALAPPDATA%\GeometryDash
-    /// Standard location on linux: [`crate::core::LINUX_GD_FILES`]
+    /// Standard location on linux: [`core::io::linux_gd_files_path`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
         let export_str = encrypt_savefile_str(&&self.serialise_to_string());
@@ -866,7 +912,7 @@ impl GDLevel {
     /// This method is intended to convert all valid keys (that is, keys that are known and whose value is of its corresponding type).
     /// Known keys are parsed, while unknown keys are stored as-is.
     ///
-    /// This function panics if any of the documented keys have a value which does not fit its expected type. For instance, if the attempt count, which is expected to be an integer is instead found to be a string/float/array/etc.
+    /// This function returns `None` if any of the documented keys have a value which does not fit its expected type. For instance, if the attempt count, which is expected to be an integer is instead found to be a string/float/array/etc.
     pub(crate) fn from_dict(d: &Dictionary) -> Option<Self> {
         let mut level = Self::default();
         for (k, v) in d {

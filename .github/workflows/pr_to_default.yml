@@ -23,3 +23,6 @@ jobs:
 
             - name: run tests and linter
               run: cargo test --verbose; cargo clippy
+
+            - name: cargo doc test
+              run: RUSTDOCFLAGS="-D warnings"; cargo doc --no-deps

@@ -1,4 +1,30 @@
-//! This module contains all object metadata descriptors.
+//! Properties shared by all objects: position, scale, groups, colours and more.
+//!
+//! - [`GDObjConfig`]: the shared properties themselves.
+//! - [`TriggerConfig`]: how a trigger is activated (touch, spawn, multi-trigger).
+//! - [`GDObjAttributes`]: on/off flags that apply to objects, stored as bit flags.
+//!
+//! # Building a config
+//!
+//! Most properties have a pair of methods: `with_*` consumes and returns the config for chaining, and `set_*` changes it in place.
+//!
+//! ```
+//! use gdlib::cclocallevels::gdobj::meta::GDObjConfig;
+//!
+//! // Chained, for new configs.
+//! let config = GDObjConfig::new().with_pos(150.0, 105.0).with_groups([1i16, 2]);
+//!
+//! // In place, for existing ones.
+//! let mut config = config;
+//! config.set_pos(300.0, 105.0);
+//! config.add_group(3);
+//! assert_eq!(config.groups, vec![1, 2, 3]);
+//! ```
+//!
+//! # Common pitfalls
+//!
+//! - **Group literals may need a type.** `with_groups([1, 2])` doesn't compile, because the literals default to `i32`. Write `[1i16, 2]`.
+//! - **Default values aren't written out.** Properties that match their defaults are left out of the raw object string.
 
 use std::fmt::{Debug, Display, Write};
 

@@ -1,8 +1,27 @@
-//! GDVersion.
+//! GD release versions, and the IDs that the savefile format uses for them.
+//!
+//! A version has up to three numeric IDs, available through [`GDVersion`]'s methods:
+//!
+//! | ID | Method | Stored in |
+//! |---|---|---|
+//! | Game version | [`GDVersion::to_game_version_id`] | `k17` on levels |
+//! | Binary version | [`GDVersion::to_binary_version_id`] | `k50` on levels, and `LLM_02` in CCLocalLevels.dat |
+//! | Manifest version | [`GDVersion::to_manifest_version`] | Unknown |
+//!
+//! Several releases can share an ID, so converting from an ID picks the first match and may not give you the exact release. IDs that don't match any known release are kept as [`GDVersion::Unknown`].
+//!
+//! ```
+//! use gdlib::cclocallevels::gdlevel::version::GDVersion;
+//!
+//! assert_eq!(GDVersion::from_binary_version(51), GDVersion::GD22091);
+//! assert_eq!(GDVersion::from_binary_version(9999), GDVersion::Unknown(9999));
+//! ```
+//!
+//! Use [`GDVersion::LATEST`] for new levels. [`GDVersion::default`] is the oldest version, not the newest.
 
 /// Defines [`GDVersion`] and its conversion functions from a single table.
 ///
-/// To add a new release, append one line at the **bottom** of the `gd_versions!` invocation below.
+/// To add a new release, append one line at the bottom of the `gd_versions!` invocation below.
 /// [`GDVersion::ALL`] and [`GDVersion::LATEST`] follow the order of the table, so nothing else needs updating.
 macro_rules! gd_versions {
     ($(

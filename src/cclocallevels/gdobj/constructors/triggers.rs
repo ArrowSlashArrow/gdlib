@@ -1,20 +1,56 @@
-//! This file contains constructors for trigger objects.
+//! Constructors for trigger objects, and for the objects that work directly with them.
 //!
-//! Since most triggers have parameters, structs are defined for most triggers which implement [`ObjectProperties`].
-//! This allows the programmer to construct a Trigger struct and easily create an object from it by using [`GDObject::from_config`].
+//! Since most triggers have parameters, this module defines a struct for each one that implements [`ObjectProperties`].
+//! Fill in the struct, then create the object with [`GDObject::from_config`]:
 //!
-//! The few triggers that do not have any parameters can be created by calling their respective function to get a GDObject directly.
-//! There are 7 of these:
-//! - [`show_player`]
-//! - [`hide_player`]
-//! - [`show_player_trail`]
-//! - [`hide_player_trail`]
-//! - [`bg_effect_on`]
-//! - [`bg_effect_off`]
+//! ```
+//! use gdlib::cclocallevels::gdobj::{
+//!     GDObject, MoveTrigger, ids::objects, meta::GDObjConfig,
+//!     structs::{DefaultMove, Easing, MoveMode},
+//! };
+//!
+//! let trigger = MoveTrigger {
+//!     move_config: MoveMode::Default(DefaultMove { dx: 30.0, dy: 0.0, x_lock: None, y_lock: None }),
+//!     time: 0.5,
+//!     target_group: 2,
+//!     silent: false,
+//!     dynamic: false,
+//!     easing: Easing::default(),
+//! };
+//!
+//! let config = GDObjConfig::new().with_pos(150.0, 105.0);
+//! let object = GDObject::from_config(&config, trigger);
+//! assert_eq!(object.id, objects::MOVE_TRIGGER);
+//! ```
+//!
+//! # Triggers without parameters
+//!
+//! These have no struct, because they have nothing to configure. Call the function to get a [`GDObject`] directly:
+//!
+//! - [`show_player`] and [`hide_player`]
+//! - [`show_player_trail`] and [`hide_player_trail`]
+//! - [`bg_effect_on`] and [`bg_effect_off`]
 //! - [`reverse_gameplay`]
 //!
-//! All other triggers have a configuration struct that should be used instead.
-
+//! # Finding a trigger
+//!
+//! | Area | Types |
+//! |---|---|
+//! | Movement and transforms | [`MoveTrigger`], [`RotateTrigger`], [`ScaleTrigger`], [`FollowTrigger`], [`FollowPlayerYTrigger`], [`TeleportTrigger`] |
+//! | Visuals | [`ColourTrigger`], [`PulseTrigger`], [`AlphaTrigger`], [`TransitionTrigger`], [`ShakeTrigger`], [`ParticleSpawnTrigger`], [`AnimateTrigger`], [`LinkVisibleTrigger`] |
+//! | Camera | [`CameraZoomTrigger`], [`CameraGuide`], [`RotateGameplayTrigger`] |
+//! | Control flow | [`SpawnTrigger`], [`ToggleTrigger`], [`StopTrigger`], [`GroupResetTrigger`], [`RandomTrigger`], [`AdvancedRandomTrigger`], [`OnDeathTrigger`], [`TouchTrigger`], [`EventTrigger`], [`EndTrigger`] |
+//! | Items and counters | [`PickupTrigger`], [`CountTrigger`], [`InstantCountTrigger`], [`ItemEditTrigger`], [`ItemCompareTrigger`], [`PersistentItemTrigger`], [`CounterLabel`] |
+//! | Collision | [`CollisionTrigger`], [`InstantCollTrigger`], [`CollisionBlock`], [`StateBlock`], [`ToggleBlock`], [`AreaStopTrigger`] |
+//! | Time | [`TimewarpTrigger`], [`TimeTrigger`], [`TimeControlTrigger`], [`TimeEventTrigger`] |
+//! | Player and level | [`GravityTrigger`], [`PlayerControlTrigger`], [`BGSpeedTrigger`], [`MGSpeedTrigger`], [`MiddleGroundTrigger`], [`MiddleGroundConfigTrigger`], [`UIConfigTrigger`], [`StartposConfig`], [`BPMGuide`] |
+//!
+//! **Note:** A lot of triggers still aren't implemented (roughly 60 of them). More are being added with each coming update, however some will take longer to add due to their complexity.
+//! This note will be removed once all triggers are fully supported.
+//!
+//! # Converting back to a struct
+//!
+//! Most structs support [`ObjectProperties::from_object`]. These don't yet, and return `None`: [`MoveTrigger`], [`ColourTrigger`], [`PulseTrigger`], [`ParticleSpawnTrigger`], [`RotateTrigger`] and [`TeleportTrigger`].
 use crate::{
     cclocallevels::gdobj::{
         Event, GDObjConfig, GDObject, GDValue, ObjectProperties,

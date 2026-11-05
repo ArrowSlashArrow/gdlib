@@ -1,6 +1,24 @@
 #![warn(clippy::all)]
 #![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 #![doc = include_str!("../README.md")]
+//! # Module map
+//!
+//! | If you want to... | Start at |
+//! |---|---|
+//! | Load, edit or save a single level | [`cclocallevels::gdlevel::GDLevel`] |
+//! | Load or save all of a player's levels | [`cclocallevels::gdlevel::CCLocalLevels`] |
+//! | Create or edit objects and triggers | [`cclocallevels::gdobj`] |
+//! | Work with level lists | [`cclocallevels::gdlist::GDList`] |
+//! | Read player stats, settings and account data | [`ccgamemanager::CCGameManager`] |
+//! | Predict random triggers | [`core::rand`] |
+//! | Handle errors | [`core::GDError`] |
+//!
+//! Commonly used items are re-exported from [`prelude`].
+//!
+//! # Feature flags
+//!
+//! - `parallel`: uses Rayon to parse and serialise objects, and to run the savefile XOR pass, in parallel.
 
 pub mod ccgamemanager;
 pub mod cclocallevels;
@@ -146,6 +164,14 @@ pub(crate) use repr_t;
 
 /// Common types and traits
 pub mod prelude {
+    //! Common types and traits, for glob importing.
+    //!
+    //! ```
+    //! use gdlib::prelude::*;
+    //!
+    //! let level = GDLevel::new_latest_version();
+    //! assert!(level.get_objects_ref().is_some());
+    //! ```
     pub use crate::cclocallevels::gdlevel::GDLevel;
     pub use crate::cclocallevels::gdobj::ObjectProperties;
     pub use crate::cclocallevels::gdobj::structs::GDValue;

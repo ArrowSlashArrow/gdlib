@@ -16,7 +16,6 @@
 use std::{collections::HashMap, path::PathBuf, time::Instant};
 
 use plist::Value;
-use smallvec::smallvec;
 
 use crate::cclocallevels::{
     gdlevel::{

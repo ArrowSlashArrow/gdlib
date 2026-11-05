@@ -1,4 +1,37 @@
-//! This module conatins methods and structs for operations with individual levels
+//! The level string: a level's start settings and objects, stored in key `k4` of a [`GDLevel`](super::GDLevel).
+//!
+//! # Format
+//!
+//! The string is gzip-compressed and base64-encoded. Decoded, it looks like this:
+//!
+//! ```text
+//! <headers>;<object>;<object>;...
+//! ```
+//!
+//! `headers` is a flat `key,value,key,value` list of start settings, such as colours, speed and gamemode. See [`GDLevelHeaderKey`], [`GDLevelHeaderValue`] and [`LEVEL_HEADER_PROPERTIES`](crate::cclocallevels::properties::LEVEL_HEADER_PROPERTIES). Each object is described in [`gdobj`](crate::cclocallevels::gdobj).
+//!
+//! # Main types
+//!
+//! - [`GDLevelState`]: the level string as either [`Encrypted`](GDLevelState::Encrypted) (still raw) or [`Decrypted`](GDLevelState::Decrypted) (parsed). Levels load in the raw state because parsing is slow.
+//! - [`GDLevelData`]: the parsed form, with `headers` and `objects`.
+//! - [`ColourString`] and [`GuidelineString`]: header values with their own formats.
+//!
+//! # Common tasks
+//!
+//! - Parse the encoded string: [`GDLevelData::parse`]. Most programs should use [`GDLevel::get_decrypted_data_ref`](super::GDLevel::get_decrypted_data_ref) instead.
+//! - Create level data for new objects: [`GDLevelData::with_default_headers`].
+//! - Find free group IDs: [`GDLevelData::get_used_groups`] and [`GDLevelData::get_unused_groups`].
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdlevel::{GDLevel, leveldata::GDLevelData, version::GDVersion};
+//! use gdlib::cclocallevels::gdobj::GDObject;
+//!
+//! let data = GDLevelData::with_default_headers([GDObject::default_from_id(1)]);
+//! let level = GDLevel::with_level_data(GDVersion::LATEST, data);
+//! assert_eq!(level.get_objects_ref().unwrap().len(), 1);
+//! ```
 
 use std::{
     collections::HashMap,
@@ -8,10 +41,7 @@ use std::{
 use crate::{
     cclocallevels::{
         consts::LEVEL_HEADER_PROP_ID_OFFSET,
-        gdlevel::{
-            default_level_data,
-            leveldata::GDLevelHeaderKey::{A, S},
-        },
+        gdlevel::leveldata::GDLevelHeaderKey::{A, S},
         gdobj::{
             GDObject,
             ids::metadata::GROUP_PROPERTY_IDS,

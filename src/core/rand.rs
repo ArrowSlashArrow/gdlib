@@ -1,4 +1,29 @@
-//! Implementations and uses of Pseudo-RNG in Geometry Dash.
+//! GD's pseudo-random number generator, for predicting random triggers.
+//!
+//! GD uses a linear congruential generator: `seed = seed * 214013 + 2531011`, with wrapping arithmetic.
+//!
+//! # Advancing the seed
+//!
+//! Unlike the game, the functions here **don't advance the seed for you**. Call [`next_seed`] or [`next_seed_mut`] yourself between checks:
+//!
+//! ```
+//! use gdlib::core::rand::{check_seed_random, next_seed};
+//!
+//! let seed = 1234;
+//! let _first_goes_to_group_1 = check_seed_random(seed, 0.5);
+//!
+//! let seed = next_seed(seed);
+//! assert_eq!(seed, 266_623_053);
+//! let _second_goes_to_group_1 = check_seed_random(seed, 0.5);
+//! ```
+//!
+//! # Which function to use
+//!
+//! - Random trigger: [`check_seed_random`].
+//! - Advanced random trigger: [`check_seed_advanced_random`]. Pass the probabilities in their original order, because sorting or pruning them changes the result.
+//! - Raw generator output: [`fast_rand_bits`] and [`fast_rand_bits_norm`].
+//!
+//! See `examples/seed_crack.rs` for a program that searches for a seed matching a set of expected results.
 
 const LCG_MULTIPLIER: u64 = 214_013;
 const LCG_CONSTANT: u64 = 2_531_011;
@@ -74,14 +99,14 @@ pub fn check_seed_advanced_random(seed: u64, probabilities: &[(i16, i32)]) -> Op
     }
 
     let accumulated_chance_threshold =
-        (fast_rand_bits_norm(seed) as f32 * (big_total_chance as i32) as f32) as i32;
+        (fast_rand_bits_norm(seed) as f32 * big_total_chance as f32) as i32;
 
     let mut buf_ptr = 0;
     let mut accumulated_chance = probabilities[buf_ptr].1; // chance
 
-    while !(accumulated_chance_threshold <= accumulated_chance) {
+    while accumulated_chance < accumulated_chance_threshold {
         buf_ptr += 1;
-        accumulated_chance = accumulated_chance + probabilities[buf_ptr].1;
+        accumulated_chance += probabilities[buf_ptr].1;
     }
     Some(probabilities[buf_ptr].0)
 }

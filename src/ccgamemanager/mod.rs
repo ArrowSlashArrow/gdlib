@@ -1,5 +1,38 @@
-//! This module covers everything in the CCGameManager.dat file.
-
+//! Read access to CCGameManager.dat, the savefile that holds a player's profile, stats and settings.
+//!
+//! [`CCGameManager`] is the top-level struct. Its fields split the file up by area:
+//!
+//! | Field | Contains |
+//! |---|---|
+//! | [`player_info`](CCGameManager::player_info) | Username, user ID, selected icons |
+//! | [`stats`](CCGameManager::stats) | Statistics and achievement progress |
+//! | [`config`](CCGameManager::config) | Game settings |
+//! | [`account`](CCGameManager::account) | Account details, including credentials |
+//! | [`keybinds`](CCGameManager::keybinds) | Keybinding data, left as raw dictionaries |
+//! | [`temp_state`](CCGameManager::temp_state) | Temporary values the game overwrites |
+//! | [`song_config`](CCGameManager::song_config) | Song settings |
+//! | [`other_properties`](CCGameManager::other_properties) | Keys gdlib doesn't parse yet |
+//!
+//! **Note:** This struct is unfinished and may include more subdivisions in the future.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use gdlib::ccgamemanager::{CCGameManager, achievements::GDAchievement};
+//!
+//! # fn main() -> Result<(), gdlib::core::GDError> {
+//! let save = CCGameManager::from_local()?;
+//! println!("{}", save.player_info.username);
+//! println!("{}", save.stats.get_vanilla_achievement(GDAchievement::Attempt01));
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Common pitfalls
+//!
+//! - **This module can only read.** There's currently no way to write a [`CCGameManager`] back to a file.
+//! - **Malformed files can panic.** [`CCGameManager::from_raw_string`] returns errors for some problems, but it panics on others, such as mistyped values.
+//! - **This data is sensitive.** [`account`](CCGameManager::account) can hold the player's password in plaintext and in hashed form in savefiles from GD older than 2.0, and [`CCGameManager`]'s `Debug` output prints both. Don't log it or share it.
 use std::{array, collections::HashMap, hash::BuildHasherDefault, io::Cursor};
 
 use nohash_hasher::NoHashHasher;

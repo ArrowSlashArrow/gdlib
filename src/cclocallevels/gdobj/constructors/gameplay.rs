@@ -1,4 +1,25 @@
-//! Constructors for all parameterized gameplay objects: pads, orbs, portals, and force blocks.
+//! Constructors for parameterized gameplay objects: pads, orbs, portals and force blocks.
+//!
+//! | Object | Config struct | Selects the object with | Extra options |
+//! |---|---|---|---|
+//! | Pads | [`GDPad`] | [`GDPadType`] | None |
+//! | Orbs | [`GDOrb`] | [`GDOrbType`] | [`OrbOptions`], including [`DashOrbSettings`] |
+//! | Force blocks | [`ForceObjectConfig`] | [`Force`] | None |
+//! | Portals | [`GameplayPortalConfig`] | [`GameplayPortal`] | [`PortalOptions`], including [`PortalCameraOptions`] |
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdobj::{GDObject, GDPad, GDPadType, ids::objects, meta::GDObjConfig};
+//!
+//! let config = GDObjConfig::new().with_pos(150.0, 105.0);
+//! let pad = GDObject::from_config(&config, GDPad::new(GDPadType::Yellow));
+//! assert_eq!(pad.id, objects::YELLOW_JUMP_PAD);
+//! ```
+//!
+//! # Gotchas
+//!
+//! - **Converting back is limited.** Only [`GDPad`] currently implements [`ObjectProperties::from_object`]. The others return `None`.
 
 use crate::cclocallevels::{
     consts::*,
@@ -121,11 +142,11 @@ impl GDOrbType {
 #[derive(Debug, Clone, PartialEq)]
 /// Configuration struct for orbs.
 pub struct GDOrb {
-    /// What type of pad this object is.
+    /// What type of orb this object is.
     pub otype: GDOrbType,
-    /// Allows the pad to activate multiple times in normal mode
+    /// Allows the orb to activate multiple times in normal mode
     pub multi_activate: bool,
-    /// Restricts the pad from activating multiple times in platformer mode
+    /// Restricts the orb from activating multiple times in platformer mode
     pub no_plat_multi_activate: bool,
     /// Extra configuration for orbs that have it.
     pub extra_orb_config: OrbOptions,

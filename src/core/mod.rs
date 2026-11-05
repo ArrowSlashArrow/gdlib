@@ -1,4 +1,17 @@
-//! This module contains various utilities for debugging and processing structs
+//! Shared foundations: the error type, savefile lookup and encoding helpers.
+//!
+//! - [`GDError`]: the error type used across the crate.
+//! - [`get_cclocallevels_path`] and [`get_ccgamemanager_path`]: find GD's savefiles on Windows and Linux.
+//! - [`proper_plist_tags`]: converts GD's shortened plist tags into standard ones.
+//! - [`b64_encode`] and [`b64_decode`]: URL-safe base64, as GD uses.
+//!
+//! # Modules
+//!
+//! - [`io`]: savefile and level string encoding.
+//! - [`rand`]: GD's random number generator.
+//! - [`crypto`]: password hashing.
+//! - [`structs`]: types shared by more than one savefil
+
 use aho_corasick::AhoCorasick;
 use base64::{DecodeError, Engine};
 use std::{
@@ -45,6 +58,10 @@ build_plist_tags! {
     "<r>" => "<real>",
     "</r>" => "</real>",
 }
+
+static PLIST_TAGS_AC: LazyLock<AhoCorasick> = LazyLock::new(|| {
+    AhoCorasick::new(PLIST_TAGS_FIND).expect("PLIST_TAGS_FIND contains valid patterns")
+});
 
 /// `GDLib`'s primary error type.
 #[derive(Debug)]
@@ -150,10 +167,6 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
 
     None
 }
-
-static PLIST_TAGS_AC: LazyLock<AhoCorasick> = LazyLock::new(|| {
-    AhoCorasick::new(PLIST_TAGS_FIND).expect("PLIST_TAGS_FIND contains valid patterns")
-});
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
 pub fn proper_plist_tags(s: String) -> Result<String, GDError> {

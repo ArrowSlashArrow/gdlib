@@ -1,37 +1,81 @@
-//! This module contains constructors for parameterized objects that have intrinsic properties other than those in GDObjConfig or GDObjAttributes.
+//! Typed constructors for objects that have their own properties.
+//!
+//! Most constructors are structs that implement [`ObjectProperties`]. Fill in the struct, then pass it to [`GDObject::from_config`] along with a [`GDObjConfig`] for the shared properties.
+//!
+//! - [`triggers`]: triggers and the objects that work with them.
+//! - [`gameplay`]: pads, orbs, portals and force blocks.
+//! - [`SpinningObjectConfig`]: objects that spin by themselves - mostly sawblades.
+//!
+//! All of these are also re-exported from [`gdobj`](crate::cclocallevels::gdobj).
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdobj::{constructors::text, ids::objects, meta::GDObjConfig};
+//!
+//! let label = text(&GDObjConfig::new().with_pos(90.0, 90.0), "hello", 0);
+//! assert_eq!(label.id, objects::TEXT);
+//! ```
+//!
+//! # Adding a constructor
+//!
+//! Objects that map directly from fields to properties can use the internal `object_descriptor!` macro, which also generates `from_object`. Objects that need custom logic should implement [`ObjectProperties`] by hand.
+
 pub mod gameplay;
 pub mod triggers;
 
 use crate::{
     cclocallevels::gdobj::{
-        GDObjConfig, GDObject, GDValue, ObjectProperties,
+        GDObject, GDValue, ObjectProperties, get_property,
         ids::{
             objects::*,
             properties::{BASE64ENCODED_TEXT, CUSTOM_ROTATION_AMOUNT, KERNING, ROTATION_DISABLED},
         },
     },
-    core::b64_encode,
+    core::{b64_decode, b64_encode, io::vec_as_str_lossy},
     repr_t,
 };
 
-/// Returns a text object
-/// # Arguments
-/// `config`: Object config
-/// `text`: Text in the objecty
-/// `kerning`: Spacing between letters (tracking). Default is 0
-#[inline]
-pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
-    GDObject::new(
-        TEXT,
-        config,
+#[derive(Debug, Clone, PartialEq)]
+/// Text label
+pub struct TextObject {
+    /// Raw text payload that is disaplyed on this label. Can be multiple lines. This payload is encoded in base-64 when the object is serialized.
+    pub text: String,
+    /// Spacing between letters. Leave as 0 for no spacing difference. Negative values shrink spacing, positive values increase spacing.
+    pub kerning: i32,
+}
+
+impl ObjectProperties for TextObject {
+    fn object_id(&self) -> i32 {
+        TEXT
+    }
+
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
             (
                 BASE64ENCODED_TEXT,
-                GDValue::String(b64_encode(text.as_ref())),
+                GDValue::String(b64_encode(self.text.clone())),
             ),
-            (KERNING, GDValue::Int(kerning)),
-        ],
-    )
+            (KERNING, GDValue::Int(self.kerning)),
+        ]
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TEXT {
+            return None;
+        }
+
+        Some(Self {
+            text: vec_as_str_lossy(
+                &b64_decode(get_property!(obj, BASE64ENCODED_TEXT => String => String))
+                    .unwrap_or_default(),
+            ),
+            kerning: get_property!(obj, KERNING => Int => i32),
+        })
+    }
 }
 
 repr_t!(
@@ -178,9 +222,3 @@ pub enum RotationConfig {
 // default - 1,395,2,2505,3,315;        (no change)
 // custom - 1,395,2,2505,3,315,97,125;  (+ 97, deg)
 // disabled - 1,395,2,2505,3,315,98,1;  (+ 98, tru)
-
-macro_rules! set_prop {
-    ($prop_id:expr, $var:expr) => {
-        ($prop_id, GDValue::/* get type from prop_id somehow */($var))
-    };
-}

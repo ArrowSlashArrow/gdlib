@@ -1,4 +1,23 @@
-//! GD lists
+//! Level lists: named, ordered collections of levels.
+//!
+//! [`GDList`] is one list. Lists in a savefile are in [`CCLocalLevels::lists`](crate::cclocallevels::gdlevel::CCLocalLevels::lists), and single lists are stored in `.gmdl` files, which you can read with [`GDList::from_gmdl`] and write with [`GDList::export_to_gmdl`].
+//!
+//! # Example
+//!
+//! ```no_run
+//! use gdlib::cclocallevels::gdlist::GDList;
+//!
+//! # fn main() -> Result<(), gdlib::core::GDError> {
+//! let list = GDList::from_gmdl("list.gmdl")?;
+//! println!("{}: {} levels", list.name, list.level_ids.len());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Common pitfalls
+//!
+//! - **[`GDList::levels`] holds summaries, not full levels.** They're missing many properties, so don't treat them as complete [`GDLevel`]s. This is not a fault of GDLib - lists in GD are stored this way.
+//! - **[`GDList::level_ids`] and [`GDList::levels`] are stored separately.** Keep them in sync if you change either one.
 
 use std::{
     collections::HashMap,

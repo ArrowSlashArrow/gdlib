@@ -1,4 +1,17 @@
-//! Properties lookup table
+//! Lookup tables for object names and property types.
+//!
+//! - [`PROPERTY_TABLE`]: object property ID to name and type. Use [`get_obj_property_type`] to get just the type.
+//! - [`LEVEL_HEADER_PROPERTIES`]: the same for level headers. Use [`get_level_header_property_type`] to get just the type.
+//! - [`OBJECT_NAMES`]: object ID to name.
+//!
+//! The build script also generates the constants in [`ids`](crate::cclocallevels::gdobj::ids) from this module, so a new entry here becomes a new constant.
+//!
+//! ```
+//! use gdlib::cclocallevels::properties::OBJECT_NAMES;
+//!
+//! assert!(OBJECT_NAMES.get(&1).is_some());
+//! ```
+
 use phf::{Map, phf_map};
 
 use crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderValType;
@@ -332,8 +345,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
-/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`GDLevelHeaderKey::to_id`].
-/// Use [`GDLevelHeaderKey::from_id`] to convert an integer ID into a usable key.
+/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderKey::to_id`].
+/// Use [`crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderKey::from_id`] to convert an integer ID into a usable key.
 ///
 /// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level-components/level-start>
 pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType)> = phf_map! {

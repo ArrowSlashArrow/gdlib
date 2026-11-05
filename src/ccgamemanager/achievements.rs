@@ -1,4 +1,15 @@
-//! All achievements in GD
+//! All vanilla GD achievements.
+//!
+//! [`GDAchievement`] has one variant per achievement. Convert to and from the game's string identifiers with [`GDAchievement::to_ident`] and [`GDAchievement::parse_str`]. Identifiers that aren't vanilla achievements return `None`.
+//!
+//! ```
+//! use gdlib::ccgamemanager::achievements::GDAchievement;
+//!
+//! let ident = GDAchievement::Attempt01.to_ident();
+//! assert_eq!(GDAchievement::parse_str(ident), Some(GDAchievement::Attempt01));
+//! ```
+//!
+//! Progress values are read and set through [`GDStatistics`](super::structs::GDStatistics).
 
 /// Defines [`GDAchievement`], its conversion functions, and [`MAX_ACHIEVEMENT_INDEX`] from a single table.
 ///
