@@ -50,7 +50,7 @@
 //!
 //! # Converting back to a struct
 //!
-//! Most structs support [`ObjectProperties::from_object`]. These don't yet, and return `None`: [`MoveTrigger`], [`ColourTrigger`], [`PulseTrigger`], [`ParticleSpawnTrigger`], [`RotateTrigger`] and [`TeleportTrigger`].
+//! Every struct in this module supports [`ObjectProperties::from_object`].
 use crate::{
     cclocallevels::gdobj::{
         Event, GDObjConfig, GDObject, GDValue, ObjectProperties,
@@ -100,6 +100,66 @@ macro_rules! get_property {
     };
 }
 
+// reads a property that may be stored as any integer-like `GDValue`.
+// some properties have a different variant depending on whether the object was parsed
+// (variant comes from the property type table) or built with `serialise` (variant chosen there),
+// e.g. `ROTATION_TARGET_ID` is `Int` when parsed but `Group` when serialised.
+fn get_int_like(obj: &GDObject, prop: u16) -> Option<i32> {
+    match obj.get_property(prop)? {
+        GDValue::Int(v) => Some(v),
+        GDValue::Short(v) | GDValue::Group(v) | GDValue::Item(v) => Some(v as i32),
+        GDValue::ColourChannel(c) => Some(i16::from(c) as i32),
+        _ => None,
+    }
+}
+
+// shorthand for reading a bool property that defaults to false.
+fn get_flag(obj: &GDObject, prop: u16) -> bool {
+    matches!(obj.get_property(prop), Some(GDValue::Bool(true)))
+}
+
+// reads a colour channel property. `ColourTrigger::serialise` writes `COLOUR_CHANNEL` as `Short`,
+// but the property type table parses it as `ColourChannel`, so both are accepted.
+fn get_colour_channel(obj: &GDObject, prop: u16) -> Option<ColourChannel> {
+    match obj.get_property(prop)? {
+        GDValue::ColourChannel(c) => Some(c),
+        other => {
+            let v = match other {
+                GDValue::Int(v) => v as i16,
+                GDValue::Short(v) | GDValue::Group(v) | GDValue::Item(v) => v,
+                _ => return None,
+            };
+            Some(ColourChannel::from(v))
+        }
+    }
+}
+
+// parses the HSV string stored in `COPY_COLOUR_SPECS`. falls back to an unmodified HSV if missing or malformed.
+fn get_hsv(obj: &GDObject) -> HSVColour {
+    match obj.get_property(COPY_COLOUR_SPECS) {
+        Some(GDValue::String(s)) => HSVColour::parse(&s),
+        _ => None,
+    }
+    .unwrap_or(HSVColour {
+        hue_shift: 0,
+        saturation_mult: 1.0,
+        brightness_mult: 1.0,
+        static_sat_scalar: false,
+        static_bright_scalar: false,
+    })
+}
+
+// reads the player-or-group target used by the targeting/directional move modes.
+fn get_move_target(obj: &GDObject) -> MoveTarget {
+    if get_flag(obj, CONTROLLING_PLAYER_1) {
+        MoveTarget::Player1
+    } else if get_flag(obj, CONTROLLING_PLAYER_2) {
+        MoveTarget::Player2
+    } else {
+        MoveTarget::Group(get_property!(obj, TARGET_ITEM_2 => Group => i16))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// Moves objects
 pub struct MoveTrigger {
@@ -119,7 +179,6 @@ pub struct MoveTrigger {
     pub easing: Easing,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for MoveTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -196,6 +255,76 @@ impl ObjectProperties for MoveTrigger {
 
     fn object_id(&self) -> i32 {
         MOVE_TRIGGER
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != MOVE_TRIGGER {
+            return None;
+        }
+
+        // center group is only written when it is `Some`; GD may also store an unset center as 0.
+        let center_group_id = match obj.get_property(CENTER_GROUP_ID) {
+            Some(GDValue::Group(id)) if id != 0 => Some(id),
+            _ => None,
+        };
+
+        let move_config = if get_flag(obj, TARGET_MOVE_MODE) {
+            MoveMode::Targeting(TargetMove {
+                target_group_id: get_move_target(obj),
+                center_group_id,
+                axis_only: get_property!(obj, TARGET_MOVE_MODE_AXIS_LOCK => AxisOnlyMove => opt AxisOnlyMove),
+            })
+        } else if get_flag(obj, DIRECTIONAL_MOVE_MODE) {
+            MoveMode::Directional(DirectionalMove {
+                target_group_id: get_move_target(obj),
+                center_group_id,
+                distance: get_property!(obj, DIRECTIONAL_MODE_DISTANCE => Int => i32),
+            })
+        } else {
+            // when an axis is locked, its delta is stored as a float multiplier instead of integer units.
+            let x_lock = if get_flag(obj, FOLLOW_PLAYERS_X_MOVEMENT) {
+                Some(MoveLock::Player)
+            } else if get_flag(obj, FOLLOW_CAMERAS_X_MOVEMENT) {
+                Some(MoveLock::Camera)
+            } else {
+                None
+            };
+            let y_lock = if get_flag(obj, FOLLOW_PLAYERS_Y_MOVEMENT) {
+                Some(MoveLock::Player)
+            } else if get_flag(obj, FOLLOW_CAMERAS_Y_MOVEMENT) {
+                Some(MoveLock::Camera)
+            } else {
+                None
+            };
+
+            let dx = match x_lock {
+                Some(_) => get_property!(obj, X_MOVEMENT_MULTIPLIER => Float => f32),
+                None => get_property!(obj, MOVE_UNITS_X => Int => i32) as f32,
+            };
+            let dy = match y_lock {
+                Some(_) => get_property!(obj, Y_MOVEMENT_MULTIPLIER => Float => f32),
+                None => get_property!(obj, MOVE_UNITS_Y => Int => i32) as f32,
+            };
+
+            MoveMode::Default(DefaultMove {
+                dx,
+                dy,
+                x_lock,
+                y_lock,
+            })
+        };
+
+        Some(Self {
+            move_config,
+            time: get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f32),
+            target_group: get_property!(obj, TARGET_ITEM => Group => i16),
+            silent: get_flag(obj, SILENT_MOVE),
+            dynamic: get_flag(obj, DYNAMIC_MOVE),
+            easing: Easing::from_object(obj),
+        })
     }
 }
 
@@ -343,6 +472,9 @@ impl ObjectProperties for ColourTrigger {
             (COLOUR_CHANNEL, GDValue::Short(self.channel.into())),
             (OPACITY, GDValue::Float(self.opacity)),
             (BLENDING_ENABLED, GDValue::Bool(self.blending)),
+            (RED, GDValue::Int(self.colour.red as i32)),
+            (GREEN, GDValue::Int(self.colour.green as i32)),
+            (BLUE, GDValue::Int(self.colour.blue as i32)),
         ];
 
         if let Some(ref config) = self.copy_colour {
@@ -361,7 +493,46 @@ impl ObjectProperties for ColourTrigger {
         properties
     }
 
-    /* TODO: implement `from_object` */
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != COLOR_TRIGGER {
+            return None;
+        }
+
+        // copy colour is only serialised when it is `Some`, and always includes the source channel.
+        let copy_colour =
+            get_colour_channel(obj, COPY_COLOUR_FROM_CHANNEL).map(|original_ch| CopyColourConfig {
+                original_ch,
+                hsv_config: get_hsv(obj),
+                use_legacy_hsv: !get_flag(obj, NO_LEGACY_HSV),
+                copy_opacity: get_flag(obj, COPY_OPACITY),
+            });
+
+        let colour = Colour {
+            red: get_property!(obj, RED => Int => u8),
+            green: get_property!(obj, GREEN => Int => u8),
+            blue: get_property!(obj, BLUE => Int => u8),
+        };
+
+        // GD's default opacity is 1.0, so don't fall back to 0.0 (fully transparent).
+        let opacity = match obj.get_property(OPACITY) {
+            Some(GDValue::Float(o)) => o,
+            _ => 1.0,
+        };
+
+        Some(Self {
+            colour,
+            channel: get_colour_channel(obj, COLOUR_CHANNEL).unwrap_or_default(),
+            opacity,
+            blending: get_flag(obj, BLENDING_ENABLED),
+            use_player_col_1: get_flag(obj, USING_PLAYER_COLOUR_1),
+            use_player_col_2: get_flag(obj, USING_PLAYER_COLOUR_2),
+            fade_time: get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f32),
+            copy_colour,
+        })
+    }
 }
 
 /// Temporarily changes the colour of a colour channel/group by fading the colour in/out.
@@ -426,7 +597,60 @@ impl ObjectProperties for PulseTrigger {
         PULSE_TRIGGER
     }
 
-    /* TODO: implement `from_object` */
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != PULSE_TRIGGER {
+            return None;
+        }
+
+        let target_id = get_property!(obj, TARGET_ITEM => Group => i16);
+
+        // GD marks group pulses with `PULSE_GROUP`. `serialise` doesn't write that flag, but it always
+        // writes the main/detail-only flags for group targets, so their presence also means "group".
+        let is_group = get_flag(obj, PULSE_GROUP)
+            || obj.has_property(PULSE_MAIN_COLOUR_ONLY)
+            || obj.has_property(PULSE_DETAIL_COLOUR_ONLY);
+
+        let pulse_target = if is_group {
+            PulseTarget::Group(PulseGroup {
+                group_id: target_id,
+                main_colour_only: get_flag(obj, PULSE_MAIN_COLOUR_ONLY),
+                detail_colour_only: get_flag(obj, PULSE_DETAIL_COLOUR_ONLY),
+            })
+        } else {
+            PulseTarget::Channel(PulseChannel {
+                channel_id: target_id,
+            })
+        };
+
+        // same idea as above: GD sets `HSV_IS_ENABLED`, `serialise` only writes the HSV string.
+        let is_hsv = get_flag(obj, HSV_IS_ENABLED) || obj.has_property(COPY_COLOUR_SPECS);
+
+        let pulse_mode = if is_hsv {
+            PulseMode::HSV(PulseHSV {
+                hsv_config: get_hsv(obj),
+                use_static_hsv: get_flag(obj, NO_LEGACY_HSV),
+                colour_id: get_colour_channel(obj, COPY_COLOUR_FROM_CHANNEL).unwrap_or_default(),
+            })
+        } else {
+            PulseMode::Colour(Colour {
+                red: get_property!(obj, RED => Int => u8),
+                green: get_property!(obj, GREEN => Int => u8),
+                blue: get_property!(obj, BLUE => Int => u8),
+            })
+        };
+
+        Some(Self {
+            pulse_fade_in_time: get_property!(obj, PULSE_FADE_IN_TIME => Float => f32),
+            pulse_hold_time: get_property!(obj, PULSE_HOLD_TIME => Float => f32),
+            pulse_fade_out_time: get_property!(obj, PULSE_FADE_OUT_TIME => Float => f32),
+            exclusive_pulse: get_flag(obj, EXCLUSIVE_PULSE_MODE),
+            pulse_target,
+            pulse_mode,
+        })
+    }
 }
 
 object_descriptor!(
@@ -770,7 +994,6 @@ impl ObjectProperties for CounterLabel {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-// TODO: verify this from the source code. I got this from looking at the tooltip in the ItemEdit trigger's window.
 /// Performs an atomic operation to mutates an item's value.
 ///
 /// The value that is set to the target item is evaluated like so:
@@ -954,7 +1177,6 @@ impl ObjectProperties for ItemEditTrigger {
 }
 
 impl ItemEditTrigger {
-    // TODO: write tests for this function
     /// Evaluates the result between two given items according to the configuration of this object. The first two parameters correspond to the values of `self.operand1` and `self.operand2` respectively.
     /// The returned result is what would be written to the target item had this been in a real item edit trigger.
     ///
@@ -1216,7 +1438,6 @@ pub struct ParticleSpawnTrigger {
     pub position_group: i16,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for ParticleSpawnTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1251,6 +1472,53 @@ impl ObjectProperties for ParticleSpawnTrigger {
     }
     fn object_id(&self) -> i32 {
         SPAWN_PARTICLE_TRIGGER
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != SPAWN_PARTICLE_TRIGGER {
+            return None;
+        }
+
+        // each optional pair is `Some` if either half of it is present.
+        let int_pair = |a: u16, b: u16| -> Option<(i32, i32)> {
+            (obj.has_property(a) || obj.has_property(b)).then(|| {
+                (
+                    get_property!(obj, a => Int => i32),
+                    get_property!(obj, b => Int => i32),
+                )
+            })
+        };
+
+        let scale_config = (obj.has_property(SCALE_OF_SPAWNED_PARTICLES)
+            || obj.has_property(SCALE_VARIATION_OF_SPAWNED_PARTICLES))
+        .then(|| {
+            (
+                get_property!(obj, SCALE_OF_SPAWNED_PARTICLES => Float => f32),
+                get_property!(obj, SCALE_VARIATION_OF_SPAWNED_PARTICLES => Float => f32),
+            )
+        });
+
+        Some(Self {
+            position_offsets: int_pair(
+                X_OFFSET_OF_SPAWNED_PARTICLES,
+                Y_OFFSET_OF_SPAWNED_PARTICLES,
+            ),
+            position_variation: int_pair(
+                X_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+                Y_OFFSET_VARIATION_OF_SPAWNED_PARTICLES,
+            ),
+            rotation_config: int_pair(
+                ROTATION_OF_SPAWNED_PARTICLES,
+                ROTATION_VARIATION_OF_SPAWNED_PARTICLES,
+            ),
+            scale_config,
+            match_rotation: get_flag(obj, MATCH_ROTATION_OF_SPAWNED_PARTICLES),
+            particle_group: get_property!(obj, TARGET_ITEM => Group => i16),
+            position_group: get_property!(obj, TARGET_ITEM_2 => Group => i16),
+        })
     }
 }
 
@@ -1384,9 +1652,10 @@ object_descriptor!(
         /// Starts this timer paused, which allows a time control trigger to un-pause it
         start_paused: bool => Bool START_PAUSED_TIMER,
         /// Only starts the timer if any of these are met:
-        ///     1. Target timer is at 0.00
-        ///     2. The `start_paused` option is on
-        ///     3. The timer is not currently counting
+        ///
+        /// 1. Target timer is at 0.00
+        /// 2. The `start_paused` option is on
+        /// 3. The timer is not currently counting
         dont_override: bool => Bool DONT_OVERRIDE
     }
 );
@@ -1466,7 +1735,7 @@ impl ObjectProperties for CameraZoomTrigger {
 }
 
 object_descriptor!(
-    /// Visual guide for the camera in the edito
+    /// Visual guide for the camera in the editor
     CameraGuide: CAMERA_GUIDE => {
         /// Zoom of camera guide
         zoom: f32 => Float CAMERA_ZOOM,
@@ -1582,7 +1851,6 @@ pub struct RotateTrigger {
     pub bounding_box: Option<(i16, i16, i16, i16)>,
 }
 
-// TODO: implement `from_object`
 impl ObjectProperties for RotateTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -1660,6 +1928,63 @@ impl ObjectProperties for RotateTrigger {
     fn object_id(&self) -> i32 {
         ROTATE_TRIGGER
     }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != ROTATE_TRIGGER {
+            return None;
+        }
+
+        let read_aim = || RotationAim {
+            // `ROTATION_TARGET_ID` is `Int` in the property table but `serialise` writes it as `Group`.
+            aim_target: get_int_like(obj, ROTATION_TARGET_ID).unwrap_or(0) as i16,
+            rot_offset: get_property!(obj, ROTATION_OFFSET => Float => f32),
+            player_target: if get_flag(obj, CONTROLLING_PLAYER_1) {
+                Some(RotationPlayerTarget::Player1)
+            } else if get_flag(obj, CONTROLLING_PLAYER_2) {
+                Some(RotationPlayerTarget::Player2)
+            } else {
+                None
+            },
+        };
+
+        let rotation_mode = if get_flag(obj, TARGET_MOVE_MODE) {
+            RotationMode::Aim(read_aim())
+        } else if get_flag(obj, DIRECTIONAL_MOVE_MODE) {
+            RotationMode::Follow(read_aim())
+        } else {
+            RotationMode::Default(RotationNormal {
+                degrees: get_property!(obj, ROTATE_DEGREES => Float => f32),
+                x360: get_property!(obj, ROTATE_X360 => Int => i32),
+            })
+        };
+
+        // the bounding box is `Some` if any of its four groups are present.
+        let bounding_box = [MINX_ID, MINY_ID, MAXX_ID, MAXY_ID]
+            .iter()
+            .any(|p| obj.has_property(*p))
+            .then(|| {
+                (
+                    get_property!(obj, MINX_ID => Group => i16),
+                    get_property!(obj, MINY_ID => Group => i16),
+                    get_property!(obj, MAXX_ID => Group => i16),
+                    get_property!(obj, MAXY_ID => Group => i16),
+                )
+            });
+
+        Some(Self {
+            move_time: get_property!(obj, DURATION_GROUP_TRIGGER_CHANCE => Float => f32),
+            rotation_mode,
+            dynamic_mode: get_flag(obj, DYNAMIC_MOVE),
+            lock_object_rotation: get_flag(obj, LOCK_OBJECT_ROTATION),
+            easing: Easing::from_object(obj),
+            target_group: get_property!(obj, TARGET_ITEM => Group => i16),
+            center_group_id: get_property!(obj, TARGET_ITEM_2 => Group => i16),
+            bounding_box,
+        })
+    }
 }
 
 // util fn to add easing to properties if it is specified
@@ -1675,7 +2000,7 @@ fn add_easing(properties: &mut Vec<(u16, GDValue)>, easing: Easing) {
 pub struct ScaleTrigger {
     /// Parameters for scaling itself. See [`ScaleConfig`]
     pub scale_config: ScaleConfig,
-    /// Easing for scaling motion. See [`MoveEasing`]
+    /// Easing for scaling motion. See [`Easing`]
     pub easing: Easing,
     /// Center of group that is being scaled. Leave as 0 for the target group's center
     pub center_group_id: i16,
@@ -1944,6 +2269,49 @@ impl ObjectProperties for TeleportTrigger {
     }
     fn serialise(&self) -> Vec<(u16, GDValue)> {
         self.teleport_config.to_properties()
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TELEPORT_TRIGGER {
+            return None;
+        }
+
+        let force = if get_flag(obj, TELEPORT_USE_STATIC_FORCE) {
+            TeleportForce::Static {
+                force: get_property!(obj, TELEPORT_STATIC_FORCE_VALUE => Float => f32),
+                is_additive: get_flag(obj, TELEPORT_STATIC_FORCE_IS_ADDITIVE),
+            }
+        } else if get_flag(obj, TELEPORT_USE_REDIRECT_FORCE) {
+            TeleportForce::Redirect {
+                min: get_property!(obj, TELEPORT_REDIRECT_FORCE_MINIMUM => Float => f32),
+                max: get_property!(obj, TELEPORT_REDIRECT_FORCE_MAXIMUM => Float => f32),
+                // documented default is 1.0, so don't fall back to 0.0
+                modifier: match obj.get_property(TELEPORT_REDIRECT_FORCE_MOD) {
+                    Some(GDValue::Float(m)) => m,
+                    _ => 1.0,
+                },
+            }
+        } else {
+            TeleportForce::None
+        };
+
+        Some(Self {
+            teleport_config: TeleportConfig {
+                target_group_id: get_property!(obj, TARGET_ITEM => Group => i16),
+                gravity: get_property!(obj, TELEPORT_EXIT_GRAVITY => TeleportGravity => TeleportGravity),
+                force,
+                smooth_ease: get_flag(obj, TELEPORT_SMOOTH_EASE),
+                save_offset: get_flag(obj, TELEPORT_SAVE_OFFSET),
+                ignore_x: get_flag(obj, TELEPORT_IGNORE_X),
+                ignore_y: get_flag(obj, TELEPORT_IGNORE_Y),
+                instant_camera: get_flag(obj, TELEPORT_INSTANT_CAMERA),
+                snap_ground: get_flag(obj, TELEPORT_SNAP_GROUND),
+                redirect_dash: get_flag(obj, TELEPORT_REDIRECT_DASH),
+            },
+        })
     }
 }
 
