@@ -30,16 +30,18 @@
 //!
 //! GD's plists use shortened tags, such as `<k>` for `<key>` and `<s>` for `<string>`. See [`crate::core::proper_plist_tags`].
 //!
-//! # Serializer and deserializer functions
+//! To write to the player's own savefile instead of a path you choose, use [`CCLocalLevels::export_to_savefile`], or [`CCLocalLevels::export_to_savefile_with_backup`] to keep a copy of the old savefile as `CCLocalLevels.dat.bak`.
 //!
-//! * [`CCLocalLevels::from_local`]: gdlevel::CCLocalLevels::from_local (from CCLocalLevels.dat)
-//! * [`CCLocalLevels::export_to_file`]: gdlevel::CCLocalLevels::export_to_file - this one has a variant called [`CCLocalLevels::export_to_file_with_backup`] which creates a backup for the savefile in case of corruption.
-//! * [`GDLevel::from_gmd`]: gdlevel::GDLevel::from_gmd
-//! * [`GDLevel::export_to_gmd`]: gdlevel::GDLevel::export_to_gmd
-//! * [`GDLevel::from_gdlvl`]: gdlevel::GDLevel::from_gdlvl
-//! * [`GDLevel::export_to_gdlvl`]: gdlevel::GDLevel::export_to_gdlvl
-//! * [`GDList::from_gmdl`]: gdlist::GDList::from_gmdl
-//! * [`GDList::export_to_gmdl`]: gdlist::GDList::export_to_gmdl
+//! [`CCLocalLevels::from_local`]: gdlevel::CCLocalLevels::from_local
+//! [`CCLocalLevels::export_to_file`]: gdlevel::CCLocalLevels::export_to_file
+//! [`CCLocalLevels::export_to_savefile`]: gdlevel::CCLocalLevels::export_to_savefile
+//! [`CCLocalLevels::export_to_savefile_with_backup`]: gdlevel::CCLocalLevels::export_to_savefile_with_backup
+//! [`GDLevel::from_gmd`]: gdlevel::GDLevel::from_gmd
+//! [`GDLevel::export_to_gmd`]: gdlevel::GDLevel::export_to_gmd
+//! [`GDLevel::from_gdlvl`]: gdlevel::GDLevel::from_gdlvl
+//! [`GDLevel::export_to_gdlvl`]: gdlevel::GDLevel::export_to_gdlvl
+//! [`GDList::from_gmdl`]: gdlist::GDList::from_gmdl
+//! [`GDList::export_to_gmdl`]: gdlist::GDList::export_to_gmdl
 
 pub mod gdlevel;
 pub mod gdlist;

@@ -25,53 +25,9 @@ These keys aren't lost today. `from_dict` puts them in `unknowns.other`, and `to
 - **Bools:** stored as `<t />`, with absent meaning false. Parse with `v.as_boolean()?` and store with `serialise_bool_fields`.
 - **Stripped on export:** `GDLVL_NOT_EXPORTED_KEYS` covers all of these keys except k102, k103, k125, k147–k150, k153, k155 and k156. That constant isn't used anywhere yet, and I haven't verified its contents.
 
-### Upload dates
-
-| Key | Pasted name | Suggested type | Confidence |
-|---|---|---|---|
-| k98 | `upload_date` | `Option<i32>` | **Unsure** |
-| k99 | `update_date` | `Option<i32>` | **Unsure** |
-
-- **Why unsure:** boomlings.dev doesn't document either key for levels, and no sample level has them. gmdkit types them as ints.
-- **Supporting evidence:** `GDList` reads the same keys as ints, and `Summer Vacation.gmdl` holds Unix timestamps there (`1779094660`). That only shows how lists store them.
-- **Possible conflict:** from memory, the Geode bindings declare the level fields as strings (`gd::string m_uploadDate`), and the server sends text like "3 years". I haven't verified this. Accept both forms, or leave non-integers in `other`, until a real level confirms the type.
-
-### Preview lock
-
-| Key | Pasted name | Suggested type | Confidence |
-|---|---|---|---|
-| k102 | `preview_lock_x` | `i32` | **Confirmed** by docs (integer); no sample |
-| k103 | `preview_lock_y` | `i32` | **Confirmed** by docs (integer); no sample |
-
-### Platformer bests and Click Between Steps
-
-| Key | Pasted name | Suggested type | On disk | Confidence |
-|---|---|---|---|---|
-| k115 | `ticks_best_time` | `Option<i32>` | int, ticks at 240 TPS | **Confirmed** (docs and sample) |
-| k116 | `ticks_best_points` | `Option<i32>` | int, ticks at 240 TPS | **Confirmed** (docs) |
-| k117 | `clicks_best_time` | `Option<i32>` | int | **Confirmed** (docs and sample) |
-| k118 | `clicks_best_points` | `Option<i32>` | int | **Confirmed** (docs) |
-| k119 | `replay_best_time` | `Option<Vec<u8>>`, same as k34 | string, see [replay strings](#replay-strings) | **Confirmed** as a string; contents are gmdkit only |
-| k120 | `replay_best_points` | `Option<Vec<u8>>`, same as k34 | string, see [replay strings](#replay-strings) | **Confirmed** as a string; docs say it "seems to be unused" |
-| k121 | `coins_best_time` | `Option<i32>` | int | **Confirmed** (docs and sample) |
-| k122 | `coins_best_points` | `Option<i32>` | int | **Confirmed** (docs) |
-| k123 | `saved_best_time` | `bool` | bool | **Confirmed** (docs and sample) |
-| k124 | `saved_best_points` | `bool` | bool | **Confirmed** (docs) |
-| k125 | `toggle_cbs` | new `repr_t!` enum: `Default = 0, On = 1, Off = 2` | int | **Confirmed** (docs and gmdkit agree on the values) |
-
-Use a non-panicking conversion for k125 so an unknown value can't fail the load. Omit it when it's `Default`.
+Note: See [replay strings](#replay-strings) for k34, k119, k120, k134
 
 ### Autobackup and platformer save
-
-| Key | Pasted name | Suggested type | On disk | Confidence |
-|---|---|---|---|---|
-| k126 | `autobackup_id` | `Option<String>` | string; gmdkit generates a 16-character ID | gmdkit only. Character set is unknown, and I don't know whether new levels must have one |
-| k127 | `last_autobackup_time` | `i64` | int | gmdkit only. **Unsure** of the unit (probably a Unix timestamp) |
-| k128 | `platformer_save` | `Option<String>`, kept raw | gzip + URL-safe base64, see below | gmdkit only |
-| k129 | `enable_platformer_save` | `bool` | bool | gmdkit only |
-| k130 | `platformer_save_level_version` | `i32` | int | gmdkit only |
-| k131 | `platformer_save_replay` | `Option<Vec<u8>>`, same as k34 | string, see [replay strings](#replay-strings) | gmdkit only |
-| k132 | `platformer_save_format_version` | `i32` | int | gmdkit only |
 
 **k128 format:** after decompressing, it's a `~`-separated checkpoint of about 25 named fields (`player1`, `player2`, `game_state`, and so on), many of them nested `,`-separated structs. Trailing tokens are kept as `extra_tokens`. See `models/prop/platformer_save.py` in gmdkit. I'd keep it raw rather than write a parser: it's large, tied to the format version in k132, and rewriting it could corrupt a save.
 
@@ -210,7 +166,6 @@ The container format is gmdkit only, and I haven't decoded a real replay to chec
 |---|---|---|---|
 | **k94** | `content.is_platformer` (`mod.rs:1038`) | `friends_only` | **Probably a bug in `GDLevel`.** boomlings.dev also says "Unlisted (Friends Only)". Platformer levels are already marked by `k23 = 5` (`Length::Platformer`). Suggested fix: rename to `flags.friends_only`, and derive `is_platformer` from `content.length`. `src/tests/mod.rs:179` sets this field and would need updating |
 | **k9 / k10** | k9 is `DifficultyRating`, k10 is `i32` (`mod.rs:934-937`) | k9 is `int`, k10 is the `LevelRating` enum | **Probably a bug in `GDLevel`.** The one real sample with these keys has `k9 = 10, k10 = 50`, so it reads as Easy with a sum of 50. If k9 is the denominator and k10 the numerator, as the list suggests, that level is Insane. Based on a single sample, so check another rated level first |
-| **k91** | `unknowns.k91: Option<String>` | `locked_layers: IntList` | Stored raw. Docs: comma-separated list of locked layers. Suggested fix: `editor_state.locked_layers: Vec<i32>`, with an empty string giving an empty list |
 | **k101** | `unknowns.k101: Option<String>` | `saved_camera_positions: PositionList` | Stored raw. Docs: 10 saved points as `x,y,x,y,...`, which matches the 20 zeros in every sample. So the comment at `mod.rs:697` linking it to k47 looks wrong. Suggested fix: `Vec<(f32, f32)>`, with float parsing from gmdkit. Docs give only the format, and every sample is zero, so float output formatting is **Unsure** |
 
 ### Naming or type differences only
@@ -220,10 +175,7 @@ The container format is gmdkit only, and I haven't decoded a real replay to chec
 | k35 | `is_playable` | `not_downloaded` | Docs call it `isHidden` ("deleted (hidden) from Saved"). These three names don't agree, and `is_playable` reads as the opposite of the other two. No sample contains it. **Unsure** which is right |
 | k41 | `Option<i32>` | `str` | Docs say integer, and the real sample is `<i>1</i>`. `GDLevel` looks correct |
 | k12 | `player_stats.completions` | Not listed; k145 is `completions` | Docs describe k12 as level completions. Both may exist, so k145 needs a distinct field name |
-| k7 | `i32` | `LevelDifficulty` enum | Works as is, but has no typed values |
-| k61–k63 | `coinN_acquired` | `coin_N_verified` | Docs: "acquired during verification". Both names fit |
 | k69, k93 | `high_object_count`, `unlimited_objects` | `bypass_high_objs`, `bypass_unlimited_objs` | Same keys, different names. Docs match `GDLevel` |
-| kI7 | `f32` | `int` | Docs say float, but the real sample is `<i>-1</i>`. `to_float` reads both. Note that `GDLevel` defaults to 0 and always writes a real number if it's non-zero |
 
 `start` and `objects` in the list are aliases into the level string, and are covered by `GDLevelData.headers` and `.objects`.
 
@@ -231,8 +183,6 @@ The container format is gmdkit only, and I haven't decoded a real replay to chec
 
 ## 3. Things to watch when adding these
 
-- **A strict parse can lose the whole savefile.** Each `?` in `from_dict` returns `None` on a wrong type, and `CCLocalLevels::from_decrypted` then fails entirely (`mod.rs:131`). For any key that isn't **Confirmed**, leave the raw value in `unknowns.other` on a mismatch.
-- **`parse_csv` needs fixing first.** It panics on non-strings, and `""` returns `None`, which fails the level (`mod.rs:1540`). Most of the new list keys can reasonably be empty.
 - **Keep raw strings where you can.** k128, k146, k147, k149 and k152 are the riskiest to re-encode. `GDLevelState` already has this split with `Encrypted` and `Decrypted`, and the same pattern would round-trip them exactly unless they're edited.
 - **`as i32` truncates silently.** That's why I suggest `i64` for the timestamps with an unknown unit. A millisecond timestamp wouldn't fit in `i32`.
 - **Stale comments to update:**

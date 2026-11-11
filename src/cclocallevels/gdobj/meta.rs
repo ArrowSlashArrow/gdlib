@@ -207,7 +207,7 @@ impl GDObjConfig {
                 properties.push_str(itoa::Buffer::new().format(prop));
                 properties.push_str(",");
                 let mut i_buf = itoa::Buffer::new();
-                for (idx, group) in self.groups.iter().enumerate() {
+                for (idx, group) in groups.iter().enumerate() {
                     if idx != 0 {
                         properties.push('.');
                     }
@@ -227,7 +227,12 @@ impl GDObjConfig {
         self.groups.dedup_by(|a, b| a == b);
     }
 
-    /// Sets groups of this object.
+    fn dedup_pink_groups(&mut self) {
+        self.pink_groups.sort();
+        self.pink_groups.dedup_by(|a, b| a == b);
+    }
+
+    /// Sets groups of this object. The groups are sorted and deduplicated.
     ///
     /// This function allows for object builder syntax
     #[inline]
@@ -237,19 +242,19 @@ impl GDObjConfig {
         self
     }
 
-    /// Sets groups of this object.
+    /// Sets groups of this object. The groups are sorted and deduplicated.
     #[inline]
     pub fn set_groups<T: IntoIterator<Item = I>, I: Into<i16>>(&mut self, groups: T) {
         self.groups = groups.into_iter().map(std::convert::Into::into).collect();
         self.dedup_groups();
     }
-    /// Adds groups to this object's groups. Groups are not automatically re-sorted.
+    /// Adds groups to this object's groups. All groups are then sorted and deduplicated.
     #[inline]
     pub fn add_groups<T: AsRef<[i16]>>(&mut self, groups: T) {
         self.groups.extend_from_slice(groups.as_ref());
         self.dedup_groups();
     }
-    /// Adds a group to this object's groups. Groups are not automatically re-sorted.
+    /// Adds a group to this object's groups. All groups are then sorted and deduplicated.
     #[inline]
     pub fn add_group(&mut self, group: i16) {
         self.groups.push(group);
@@ -268,40 +273,46 @@ impl GDObjConfig {
     /// This function allows for object builder syntax
     #[inline]
     pub fn with_pink_groups<T: IntoIterator<Item = I>, I: Into<i16>>(mut self, groups: T) -> Self {
-        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
-        self.dedup_groups();
+        self.pink_groups = groups.into_iter().map(std::convert::Into::into).collect();
+        self.dedup_pink_groups();
         self
     }
 
     /// Sets pink groups of this object.
     #[inline]
     pub fn set_pink_groups<T: IntoIterator<Item = I>, I: Into<i16>>(&mut self, groups: T) {
-        self.groups = groups.into_iter().map(std::convert::Into::into).collect();
-        self.dedup_groups();
+        self.pink_groups = groups.into_iter().map(std::convert::Into::into).collect();
+        self.dedup_pink_groups();
     }
     /// Adds pink groups to this object's groups. Groups are not automatically re-sorted.
     #[inline]
     pub fn add_pink_groups<T: AsRef<[i16]>>(&mut self, groups: T) {
-        self.groups.extend_from_slice(groups.as_ref());
-        self.dedup_groups();
+        self.pink_groups.extend_from_slice(groups.as_ref());
+        self.dedup_pink_groups();
     }
     /// Adds a pink group to this object's groups. Groups are not automatically re-sorted.
     #[inline]
     pub fn add_pink_group(&mut self, group: i16) {
-        self.groups.push(group);
-        self.dedup_groups();
+        self.pink_groups.push(group);
+        self.dedup_pink_groups();
     }
     /// Removes this pink group from this object's groups
     #[inline]
     pub fn remove_pink_group(&mut self, group: i16) {
-        if let Some(idx) = self.groups.iter().position(|&g| g == group) {
-            self.groups.swap_remove(idx);
+        if let Some(idx) = self.pink_groups.iter().position(|&g| g == group) {
+            self.pink_groups.swap_remove(idx);
         }
     }
-    /// Clears all groups from this object
+    /// Clears all groups from this object except for pink groups
     #[inline]
     pub fn clear_groups(&mut self) {
         self.groups.clear();
+    }
+
+    /// Clears all pink groups from this object
+    #[inline]
+    pub fn clear_pink_groups(&mut self) {
+        self.pink_groups.clear();
     }
 
     config_fn!(

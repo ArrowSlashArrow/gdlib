@@ -126,7 +126,7 @@ pub struct GDStatistics {
     ///
     /// Internal keys: `GLM_10`
     pub completed_dailies: IntMap<GDLevel>,
-    /// All vanilla achievements. Each element is the achievement's progress is an integer from 0 - 100 inclusive.
+    /// Progress of all vanilla achievements, indexed by the achievement's repr value minus 1. See [`AchievementProgress`] for the value format.
     /// Use [`GDStatistics::get_vanilla_achievement`] to get an achievement's progress when using the [`GDAchievement`] enum.
     ///
     /// The split between vanilla achievements and custom achievements is to optimize indexing of achievements.
@@ -200,11 +200,11 @@ pub struct GDConfig {
     pub dpads: [GDPlatformerUI; 5],
     /// Internal key: `dpad_layout`
     pub dpad_layout: Option<GDPlatformerUI>,
-    /// List of folder names for saved online levels. Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    /// List of folder names for saved online levels, as (folder number, name) pairs sorted by folder number.
     ///
     /// Internal key: `GLM_18`
     pub saved_levels_foldernames: Vec<(i32, String)>,
-    /// List of folder names for locally created levels (found in the editor tab). Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    /// List of folder names for locally created levels (found in the editor tab), as (folder number, name) pairs sorted by folder number.
     ///
     /// Internal key: `GLM_19`
     pub local_levels_foldernames: Vec<(i32, String)>,
@@ -247,7 +247,7 @@ pub struct GDAccount {
     ///
     /// Internal key: `GJA_004`
     pub session_id: Option<String>,
-    /// Password encrypted with GJP2 encryption. This can be generated with [`crate::core::crypto::generate_gjp2_hexdigest`]
+    /// Password hashed with GJP2. This can be generated with [`crate::core::crypto::generate_gjp2_hexdigest`]
     ///
     /// Internal key: `GJA_005`
     pub hashed_password: Option<String>,
@@ -685,8 +685,8 @@ impl GDStatistics {
     }
 
     /// Set an achievement's progress value. The given identifier is first parsed
-    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::get_vanilla_achievement`]
-    /// is used to set its value. Otherwise, it is looked up in `self.custom_achievements`.
+    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::set_vanilla_achievement`]
+    /// is used to set its value. Otherwise, it is inserted into `self.custom_achievements`.
     /// See [`AchievementProgress`].
     #[inline]
     pub fn set_achievement_by_ident(&mut self, ident: &str, value: AchievementProgress) {

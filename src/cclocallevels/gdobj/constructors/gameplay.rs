@@ -4,7 +4,7 @@
 //! |---|---|---|---|
 //! | Pads | [`GDPad`] | [`GDPadType`] | None |
 //! | Orbs | [`GDOrb`] | [`GDOrbType`] | [`OrbOptions`], including [`DashOrbSettings`] |
-//! | Force blocks | [`ForceObjectConfig`] | [`Force`] | None |
+//! | Force blocks | [`ForceObjectConfig`] | [`ForceObject`] | [`Force`] |
 //! | Portals | [`GameplayPortalConfig`] | [`GameplayPortal`] | [`PortalOptions`], including [`PortalCameraOptions`] |
 //!
 //! # Example
@@ -294,7 +294,7 @@ pub enum Force {
 repr_t!(
     /// Type of speed portal in GD. The variant corresponds to each speed portal by its color.
     ///
-    /// **Note:** to create a speed portal with `multi activate` enabled, you must set this in the object's `GDObjConfig.trigger_cfg.multiactivate`.
+    /// **Note:** to create a speed portal with `multi activate` enabled, you must set this in the object's `GDObjConfig.trigger_cfg.multitriggerable` (see [`GDObjConfig::set_multitrigger`](crate::cclocallevels::gdobj::meta::GDObjConfig::set_multitrigger)).
     ///
     /// Casting a variant of this enum to an integer yields its object ID.
     strict SpeedPortal: i32 {

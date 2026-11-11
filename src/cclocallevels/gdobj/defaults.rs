@@ -10,8 +10,6 @@
 //!
 //! [`default_object_string`] does the same lookup, but returns the raw string.
 
-use crate::cclocallevels::gdobj::meta::GDObjConfig;
-
 use super::GDObject;
 
 /* Common suffixes followed by IDs
@@ -132,7 +130,8 @@ pub static OBJECT_DEFAULTS_UNIQUE: phf::Map<i32, &'static str> = phf::phf_map! {
 };
 
 /// Returns the default [`GDObject`] for the given object ID.
-/// If the ID has a known entry in [`OBJECT_DEFAULTS_UNIQUE`], it is parsed from that string
+/// If the ID has a known entry in [`OBJECT_DEFAULTS_UNIQUE`], it is parsed from that string.
+/// Otherwise the ID is combined with its suffix from [`check_common_suffix`], or, for an unknown ID, an object with only the ID set is returned.
 pub fn default_object(id: i32) -> GDObject {
     GDObject::parse_str(default_object_string(id))
 }

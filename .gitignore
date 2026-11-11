@@ -2,3 +2,5 @@
 GMDS/
 .vscode
 test_gmds/generated_*
+# gddbg: level disassembler (kept local)
+gddbg/

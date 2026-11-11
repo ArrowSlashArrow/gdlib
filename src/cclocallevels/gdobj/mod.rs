@@ -12,7 +12,7 @@
 //! |---|---|
 //! | A trigger | A struct from [`constructors::triggers`] with [`GDObject::from_config`] |
 //! | A pad, orb, portal or force block | A struct from [`constructors::gameplay`] with [`GDObject::from_config`] |
-//! | Text | [`constructors::text`] |
+//! | Text | [`constructors::TextObject`] with [`GDObject::from_config`] |
 //! | Any other object, with its in-game defaults | [`GDObject::default_from_id`] |
 //! | Full manual control | [`GDObject::new`] |
 //! | An object from a raw string | [`GDObject::parse_str`] |
@@ -71,12 +71,12 @@ pub mod defaults;
 pub mod ids {
     //! Generated constants for object IDs and property IDs.
     //!
-    //! - [`objects`]: object IDs, for [`GDObject::id`](crate::cclocallevels::gdobj::GDObject::id).
-    //! - [`properties`]: object property IDs, for [`GDObject::get_property`](crate::cclocallevels::gdobj::GDObject::get_property) and [`GDObject::set_property`](crate::cclocallevels::gdobj::GDObject::set_property).
-    //! - [`level_header`]: level header property IDs.
-    //! - [`metadata`]: lists of properties that share a trait, such as holding groups.
+    //! - [`objects`](crate::cclocallevels::gdobj::ids::objects): object IDs, for [`GDObject::id`](crate::cclocallevels::gdobj::GDObject::id).
+    //! - [`properties`](crate::cclocallevels::gdobj::ids::properties): object property IDs, for [`GDObject::get_property`](crate::cclocallevels::gdobj::GDObject::get_property) and [`GDObject::set_property`](crate::cclocallevels::gdobj::GDObject::set_property).
+    //! - [`level_header`](crate::cclocallevels::gdobj::ids::level_header): level header property IDs.
+    //! - [`metadata`](crate::cclocallevels::gdobj::ids::metadata): lists of properties that share a trait, such as holding groups.
     //!
-    //! The build script generates this module from the tables in [`properties`](crate::cclocallevels::properties), so change those tables rather than this module.
+    //! The build script generates this module from the tables in [`cclocallevels::properties`](crate::cclocallevels::properties), so change those tables rather than this module.
     #![allow(missing_docs)]
     include!(concat!(env!("OUT_DIR"), "/ids.rs"));
 }
@@ -100,7 +100,7 @@ macro_rules! parse {
 #[derive(Clone, PartialEq)]
 #[must_use]
 pub struct GDObject {
-    /// The object's ID. here: [Map of object IDs to names here](crate::cclocallevels::properties::OBJECT_NAMES), [Object ID consts here](ids::objects).
+    /// The object's ID. Names are in [`OBJECT_NAMES`], and constants are in [`ids::objects`].
     pub id: i32,
     /// General properties, such as position and scale.
     pub config: GDObjConfig,
@@ -173,6 +173,8 @@ const KA_PROPERTY_OFFSET: u16 = 10_000;
 
 impl GDObject {
     /// Parses raw object string to `GDObject`
+    ///
+    /// Parsing never fails: values that can't be parsed fall back to defaults, and a string without an object ID gives an object with ID 1.
     pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
         let s = s.as_ref();
         let mut obj = GDObject {
@@ -422,7 +424,9 @@ impl GDObject {
         GDValue::Bool(self.config.get_attributes(attr))
     }
 
-    /// Fetches a property from this object's configuration
+    /// Returns the value of property `p`, whether it is stored in [`config`](Self::config) or among the object-specific properties.
+    ///
+    /// Config properties always return `Some`. Object-specific properties return `None` if they are not set.
     pub fn get_property(&self, p: u16) -> Option<GDValue> {
         match p {
             // one of the most fascinating matches of all time
@@ -519,7 +523,7 @@ impl GDObject {
     }
 
     #[inline]
-    /// Returns this object's properties as a list of (property id, value) pairs.
+    /// Returns this object's object-specific properties as a list of (property id, value) pairs, sorted by ID. Properties stored in [`config`](Self::config) are not included.
     pub fn get_properties(&self) -> &[(u16, GDValue)] {
         &self.properties
     }

@@ -20,7 +20,10 @@ use plist::Value;
 use crate::cclocallevels::{
     gdlevel::{
         GDLevel, default_level_data,
-        enums::{DemonType, DifficultyRating, EpicRating, GDLevelType, Length, OfficialSong},
+        enums::{
+            DemonType, DifficultyRating, EpicRating, GDLevelDifficulty, GDLevelType, Length,
+            OfficialSong,
+        },
         leveldata::GDLevelData,
         version::GDVersion,
     },
@@ -186,7 +189,7 @@ fn sample_level() -> GDLevel {
     level.ratings.requested_stars = Some(9);
     level.ratings.feature_score = Some(11);
     level.ratings.epic_rating = EpicRating::Legendary;
-    level.ratings.difficulty = 4;
+    level.ratings.difficulty = GDLevelDifficulty::Harder;
     level.ratings.is_demon = true;
     level.ratings.demon_type = Some(DemonType::InsaneDemon);
     level.ratings.is_auto = true;
@@ -239,7 +242,10 @@ fn sample_level() -> GDLevel {
         .enumerate()
         .map(|(k, v)| (k as i32, *v))
         .collect();
-    level.editor_state.editor_layer = 4.0;
+    level.editor_state.editor_layer = 4;
+    level.editor_state.preview_lock_x = 6892;
+    level.editor_state.preview_lock_y = 213;
+    level.editor_state.locked_layers = vec![67, 67, 67, 0x12345];
 
     level.meta.level_order = 1;
     level.meta.level_folder = 2;
@@ -258,11 +264,7 @@ fn sample_level() -> GDLevel {
     level.integrity.platformer_seed = Some(77);
     level.integrity.replay_data = Some(b"replaydata".to_vec());
 
-    level.unknowns.k91 = Some("k91 value".into());
-    level.unknowns.k92 = Some(92);
-    level.unknowns.k101 = Some("0,0,0,0".into());
-    level.unknowns.k106 = Some(106);
-    level.unknowns.other = HashMap::from([
+    level.unknowns = HashMap::from([
         ("k200".to_string(), Value::Integer(200.into())),
         ("kQ".to_string(), Value::String("unknown string".into())),
         ("someOtherKey".to_string(), Value::Real(1.5)),
@@ -302,7 +304,7 @@ fn sample_list() -> GDList {
         order: 3,
         level_ids: vec![1001, 1002],
         levels: vec![level_a, level_b],
-        upload_time: 1_700_000_000,
+        upload_time: Some(1_700_000_000),
         update_time: Some(1_700_000_500),
         diamond_reward: 50,
         required_levels: 2,
@@ -349,26 +351,9 @@ fn assert_levels_eq(actual: &GDLevel, expected: &GDLevel) {
         expected.get_decrypted_data(),
         "GDLevel.content.data differs"
     );
-
     assert_eq!(
-        actual.unknowns.k91, expected.unknowns.k91,
-        "GDLevel.unknowns.k91 differs"
-    );
-    assert_eq!(
-        actual.unknowns.k92, expected.unknowns.k92,
-        "GDLevel.unknowns.k92 differs"
-    );
-    assert_eq!(
-        actual.unknowns.k101, expected.unknowns.k101,
-        "GDLevel.unknowns.k101 differs"
-    );
-    assert_eq!(
-        actual.unknowns.k106, expected.unknowns.k106,
-        "GDLevel.unknowns.k106 differs"
-    );
-    assert_eq!(
-        actual.unknowns.other, expected.unknowns.other,
-        "GDLevel.unknowns.other differs"
+        actual.unknowns, expected.unknowns,
+        "GDLevel.unknowns differs"
     );
 }
 

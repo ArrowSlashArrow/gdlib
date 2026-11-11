@@ -42,7 +42,9 @@ fn zlib_compress(s: &str) -> Vec<u8> {
 /// Xor encryption key for CCLocalLevels.dat and CCGameManager.dat
 pub const XOR_KEY_PLAYER_DATA: u8 = 0x0b;
 
-/// Returns the encrypted level string as `Vec<u8>` from a `GDLevel` object string
+/// Gzip-compresses `s` and encodes it as URL-safe base64, which is the format of a level's `k4` string and of `.gdlvl` files.
+///
+/// Despite the name, no encryption is involved. Reverse it with [`decompress`].
 #[must_use]
 pub fn encrypt_level_str(s: &str) -> Vec<u8> {
     let compress = zlib_compress(s);
@@ -78,11 +80,14 @@ pub fn encrypt_savefile_str(s: &str) -> Vec<u8> {
     encrypted
 }
 
-/// Parses an XML dictionary to a string that matches GD savefile format.
+/// Serialises a plist dictionary to a string in GD's shortened plist format (`<k>`, `<s>`, `<d>`, ...).
 ///
 /// # Arguments
-/// * `dict`: `plist::Dictionary` to parse.
-/// * `root`: Is the input the root dict?
+/// * `dict`: `plist::Dictionary` to serialise.
+/// * `root`: Is the input the root dict? The root dict is wrapped in `<dict>`, and nested dicts in `<d>`.
+///
+/// Keys and strings have `&`, `<` and `>` escaped. Only strings, integers, reals, booleans and dictionaries are written;
+/// for a value of any other type (arrays, data, dates, UIDs), the key is still written but the value is silently left out.
 ///
 /// Returns the stringified dictionary
 #[must_use]
@@ -98,18 +103,20 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
     });
 
     for (key, value) in dict {
-        let _ = write!(dict_str, "<k>{}</k>", escape_xml(key));
+        let escaped_key = escape_xml(&key);
         match value {
             Value::String(s) => {
-                let _ = write!(dict_str, "<s>{}</s>", escape_xml(s));
+                let _ = write!(dict_str, "<k>{escaped_key}</k><s>{}</s>", escape_xml(s));
             }
             Value::Integer(int) => {
-                let _ = write!(dict_str, "<i>{int}</i>");
+                let _ = write!(dict_str, "<k>{escaped_key}</k><i>{int}</i>");
             }
             Value::Dictionary(dict) => {
+                let _ = write!(dict_str, "<k>{escaped_key}</k>");
                 dict_str.push_str(&stringify_xml(dict, false));
             }
             Value::Boolean(b) => {
+                let _ = write!(dict_str, "<k>{escaped_key}</k>");
                 if *b {
                     dict_str.push_str("<t />");
                 } else {
@@ -117,7 +124,7 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
                 }
             }
             Value::Real(float) => {
-                let _ = write!(dict_str, "<r>{float}</r>");
+                let _ = write!(dict_str, "<k>{escaped_key}</k><r>{float}</r>");
             }
             _ => {}
         }
@@ -132,12 +139,13 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
 
 // ------------ deserialiser ------------
 
-/// Decompresses a `Vec<u8>` of a base64ed gzip-compressed payload.
+/// Decodes a URL-safe base64, gzip-compressed payload, such as a level's `k4` string or a `.gdlvl` file. This reverses [`encrypt_level_str`].
 ///
 /// # Arguments
-/// * `data`: compressed input data
+/// * `data`: compressed input data. Null bytes are removed before decoding.
 ///
-/// Returns decompressed base64ed gzip as a `Vec<u8>` if it sucessfully decoded, otherwise returns `GDError`
+/// Returns the decompressed bytes. Returns [`GDError::DecodeError`] if the base64 is invalid,
+/// [`GDError::CorruptedSavefile`] if the decoded payload is 10 bytes or shorter, and [`GDError::Io`] if inflating fails.
 pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
     data.retain(|c| *c != 0);
 
@@ -175,7 +183,9 @@ pub fn decrypt(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
     decompress(data)
 }
 
-/// Returns CCLocalLevels.dat decrypted if it exists
+/// Reads the savefile at `file` (CCLocalLevels.dat or CCGameManager.dat) and returns its decrypted contents, using [`decrypt`].
+///
+/// **Every non-ASCII byte is removed** before the bytes are converted to a string, so non-ASCII text such as level names is lost or altered.
 pub fn decrypt_file(file: PathBuf) -> Result<String, GDError> {
     let savefile = match fs::read(file) {
         Ok(v) => v,
@@ -202,7 +212,7 @@ pub(crate) fn vec_as_str_lossy(data: &[u8]) -> String {
 pub(crate) fn atomic_export<P: Into<PathBuf>>(path: P, data: &[u8]) -> Result<(), std::io::Error> {
     let path = path.into();
     let path_parent = path.parent().unwrap_or_else(|| Path::new("."));
-    let mut tempfile = NamedTempFile::new_in(path_parent).unwrap();
+    let mut tempfile = NamedTempFile::new_in(path_parent)?;
     tempfile.write_all(data)?;
     tempfile.flush()?;
 
@@ -213,6 +223,8 @@ pub(crate) fn atomic_export<P: Into<PathBuf>>(path: P, data: &[u8]) -> Result<()
 }
 
 /// Returns the standard file path of GD savefiles on linux.
+///
+/// This is the default Steam Proton prefix under `$HOME`. The path is not checked for existence, and `None` is returned only if `HOME` is unset.
 pub fn linux_gd_files_path() -> Option<PathBuf> {
     Some(PathBuf::from(env::var("HOME").ok()?).join(".local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash"))
 }

@@ -41,7 +41,7 @@ pub fn next_seed_mut(seed: &mut u64) {
     *seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(LCG_CONSTANT);
 }
 
-/// Function used by GD to generate a new seed. Internally known as `fast_rand`.
+/// Returns the random value GD generates from `seed`: bits 16 to 30 of [`next_seed`]`(seed)`, in the range 0 to 32767. Internally known as `fast_rand`.
 /// Unlike the actual PRNG used in GD, this function *DOES NOT* automatically update the seed.
 #[inline(always)]
 #[must_use]

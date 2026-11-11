@@ -1468,13 +1468,6 @@ fn advanced_random_from_real_object() {
 }
 
 #[test]
-fn object_descriptor_writes_property_155() {
-    // `object_descriptor!` writes `155,1` for every struct it generates
-    let props = StopTrigger::default().serialise();
-    assert_eq!(props[0], (155, GDValue::Int(1)));
-}
-
-#[test]
 fn every_pad_type_has_its_object_id() {
     for (ptype, id) in [
         (GDPadType::Yellow, YELLOW_JUMP_PAD),

@@ -469,7 +469,7 @@ impl ObjectProperties for ColourTrigger {
             ),
             (USING_PLAYER_COLOUR_1, GDValue::Bool(self.use_player_col_1)),
             (USING_PLAYER_COLOUR_2, GDValue::Bool(self.use_player_col_2)),
-            (COLOUR_CHANNEL, GDValue::Short(self.channel.into())),
+            (COLOUR_CHANNEL, GDValue::ColourChannel(self.channel)),
             (OPACITY, GDValue::Float(self.opacity)),
             (BLENDING_ENABLED, GDValue::Bool(self.blending)),
             (RED, GDValue::Int(self.colour.red as i32)),
@@ -2189,6 +2189,7 @@ object_descriptor!(
 );
 
 object_descriptor!(
+    /// Visual guide for keeping objects synced with the beat of the song.
     BPMGuide: BPM_TRIGGER => {
         /// Beats per minute
         bpm: i32 => Int BEATS_PER_MINUTE,

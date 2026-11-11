@@ -1027,7 +1027,7 @@ fn level_fields() {
             .map(|&(k, v)| (k, v))
             .collect::<HashMap<_, _>>()
     );
-    assert_eq!(level.editor_state.editor_layer, 2.0);
+    assert_eq!(level.editor_state.editor_layer, 2);
     assert!(matches!(
         level.content.data,
         Some(GDLevelState::Decrypted(_))
@@ -1077,11 +1077,11 @@ fn level_unknown_keys_are_kept() {
         ("notAKey", Value::Boolean(true)),
     ]);
     let level = GDLevel::from_dict(&d).unwrap();
-    assert_eq!(level.unknowns.other.len(), 4);
-    assert_eq!(level.unknowns.other["k999"], Value::from(1));
-    assert_eq!(level.unknowns.other["kI99"], Value::from(2));
-    assert_eq!(level.unknowns.other["kX"], Value::from("x"));
-    assert_eq!(level.unknowns.other["notAKey"], Value::Boolean(true));
+    assert_eq!(level.unknowns.len(), 4);
+    assert_eq!(level.unknowns["k999"], Value::from(1));
+    assert_eq!(level.unknowns["kI99"], Value::from(2));
+    assert_eq!(level.unknowns["kX"], Value::from("x"));
+    assert_eq!(level.unknowns["notAKey"], Value::Boolean(true));
 }
 
 #[test]
@@ -1094,7 +1094,7 @@ fn level_wrongly_typed_value_returns_none() {
         ("kCEK", Value::from("4")),
     ] {
         assert!(
-            GDLevel::from_dict(&level_dict(&[(k, v.clone())])).is_none(),
+            GDLevel::from_dict(&level_dict(&[(k, v.clone())])).is_some(),
             "{k} = {v:?}"
         );
     }

@@ -107,7 +107,7 @@ pub enum GuidelineColour {
     Transparent,
 }
 
-/// Descriptor struct for the guildline string
+/// Descriptor struct for the guideline string
 #[derive(Clone, Debug, PartialEq)]
 pub struct GuidelineString {
     /// The guidelines themselves as (time, colour) tuples
@@ -143,7 +143,7 @@ pub struct ColourString {
     pub deltatime: f32,
     /// Time of transiton from `from` colour to `to` colour
     pub duration: f32,
-    /// @nodoc
+    /// Copy opacity: whether this colour also copies the opacity of the colour it inherits from (property 17)
     pub copy_opacity: bool,
     /// Unknown property with index 18
     pub unknown_property18: bool,
@@ -294,7 +294,7 @@ impl GDLevelData {
         groups
     }
 
-    /// Returns a list of all the groups that do not contain any objects
+    /// Returns a list of all the groups from 1 to 9999 that do not contain any objects
     #[must_use]
     pub fn get_unused_groups(&self) -> Vec<i16> {
         let mut used: [bool; 10_000] = [false; 10_000];
@@ -366,6 +366,8 @@ impl GDLevelData {
     }
 
     /// Parse raw level data to this struct
+    ///
+    /// `raw_data` is the encoded level string, as stored in `k4` (gzip-compressed and base64-encoded). Returns `None` if it cannot be decoded.
     #[must_use]
     pub fn parse<T: AsRef<str>>(raw_data: T) -> Option<Self> {
         let raw_data = raw_data.as_ref();
@@ -691,9 +693,10 @@ pub enum GDLevelHeaderKey {
 
 impl GDLevelHeaderKey {
     /// Parses a raw header identifier to a header. This function checks for these three forms:
-    ///     * `kAxx` where `xx` is an integer: becomes [`Self::A`]
-    ///     * `kSxx` where `xx` is an integer: becomes [`Self::S`]
-    ///     * anything else: becomes [`Self::Unknown`]
+    ///
+    /// * `kAxx` where `xx` is an integer: becomes [`Self::A`]
+    /// * `kSxx` where `xx` is an integer: becomes [`Self::S`]
+    /// * anything else: becomes [`Self::Unknown`]
     pub fn parse(s: &str) -> Self {
         match s {
             a if a.starts_with("kA") && s.len() > 2 && a[2..].parse::<u16>().is_ok() => {

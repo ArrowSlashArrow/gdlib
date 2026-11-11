@@ -10,7 +10,7 @@
 //! - [`io`]: savefile and level string encoding.
 //! - [`rand`]: GD's random number generator.
 //! - [`crypto`]: password hashing.
-//! - [`structs`]: types shared by more than one savefil
+//! - [`structs`]: types shared by more than one savefile.
 
 use aho_corasick::AhoCorasick;
 use base64::{DecodeError, Engine};
@@ -69,7 +69,7 @@ static PLIST_TAGS_AC: LazyLock<AhoCorasick> = LazyLock::new(|| {
 pub enum GDError {
     /// Standard `std::io::Error`
     Io(std::io::Error),
-    /// Data could not be parsed from its raw form
+    /// Base64 decoding failed, e.g. for a level string or savefile that isn't valid URL-safe base64
     DecodeError(DecodeError),
     /// Unsuccessful plist parse
     BadPlist(plist::Error),
@@ -77,7 +77,9 @@ pub enum GDError {
     CorruptedSavefile(String),
     /// Unable to find the savefile
     MissingSavefile,
-    /// `AhoCorasick` error (UTF-8 parsing issues)
+    /// Building the Aho-Corasick automaton used by [`proper_plist_tags`] failed.
+    ///
+    /// The automaton's patterns are fixed and it is built once, so the crate no longer returns this variant.
     AhoCorasick(aho_corasick::BuildError),
     /// `FromUtf8Error` when converting decrypted bytes to string
     FromUtf8Error(std::string::FromUtf8Error),
@@ -134,6 +136,8 @@ impl Display for GDError {
 }
 
 /// Returns path of CCLocalLevels.dat if it exists
+///
+/// Checks `%LOCALAPPDATA%\GeometryDash` first, then the Steam Proton path from [`linux_gd_files_path`].
 #[must_use]
 pub fn get_cclocallevels_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
@@ -152,6 +156,8 @@ pub fn get_cclocallevels_path() -> Option<PathBuf> {
 }
 
 /// Returns path to CCGameManager.dat if it exists
+///
+/// Checks `%LOCALAPPDATA%\GeometryDash` first, then the Steam Proton path from [`linux_gd_files_path`].
 pub fn get_ccgamemanager_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
         let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCGameManager.dat"));
@@ -169,18 +175,20 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
+///
+/// This function currently always returns `Ok`.
 pub fn proper_plist_tags(s: String) -> Result<String, GDError> {
     // replace gd plist with proper plist; use aho-corasick for single-pass instead of many .replace()s
     Ok(PLIST_TAGS_AC.replace_all(&s, &PLIST_TAGS_REPLACE))
 }
 
-/// Quick function for decoding base64 bytes
+/// Decodes base64 bytes using the URL-safe alphabet (`-` and `_`), which is what GD uses.
 #[inline]
 pub fn b64_decode<T: AsRef<[u8]>>(encoded: T) -> Result<Vec<u8>, GDError> {
     Ok(base64::engine::general_purpose::URL_SAFE.decode(encoded)?)
 }
 
-/// Quick function for encoding base64 bytes
+/// Encodes bytes as padded base64 using the URL-safe alphabet (`-` and `_`), which is what GD uses.
 #[inline]
 #[must_use]
 pub fn b64_encode<T: AsRef<[u8]>>(encoded: T) -> String {

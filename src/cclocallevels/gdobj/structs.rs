@@ -447,7 +447,7 @@ repr_t!(
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-/// How an easing
+/// Easing settings for a trigger's motion: the easing type and its rate.
 pub struct Easing {
     /// Type of easing to apply. Different easings produce different curves of motion.
     pub easing: MoveEasing,
@@ -545,7 +545,7 @@ pub enum GDValue {
     ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
     /// A list of spawn remap pairs: (old id, new id). Used in the spawn trigger.
     SpawnRemapsList(smallvec::SmallVec<[(i32, i32); LIST_ALLOCSIZE]>),
-    /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for a more
+    /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for the type and rate together.
     Easing(MoveEasing),
     /// A [`ColourChannel`]. It may be any of the built in ones, or one with an ID in the range of \[1, 999]
     ColourChannel(ColourChannel),
@@ -1040,12 +1040,12 @@ repr_t!(
     } default Equals
 );
 
-/// Compare operand configuration specifier for the item control trigger
+/// Compare operand configuration specifier for the item compare trigger ([`ItemCompareTrigger`](crate::cclocallevels::gdobj::ItemCompareTrigger))
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CompareOperand {
     /// Base item whose value is being used for the comparsion
     pub operand_item: Item,
-    /// Multiplier
+    /// Value that is combined with the item's value using `mod_op`. With the default `Op::Mul`, this is a multiplier.
     pub modifier: f32,
     /// Operator between the item's value and modifier. Can be any operator except for `Op::Set`. Default is `Op::Mul` in item compare triggers.
     pub mod_op: Op,
@@ -1084,6 +1084,8 @@ impl CompareOperand {
 }
 
 /// Used internally by GD to round some things like items. This function truncates everything past the last three decimal places of the given number towards zero. `NaN` returns 0.
+///
+/// Values beyond about Â±2,147,483.647 are clamped, since the intermediate value is an `i32`.
 pub fn round_3dp(num: f64) -> f64 {
     // in gd, the i32 is cast to an f32 instead of f64.
     ((num * 1000.0) as i32) as f64 / 1000.0
@@ -1206,7 +1208,7 @@ pub struct DefaultMove {
 /// Config struct for moving to a specific target.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TargetMove {
-    /// Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+    /// Group that will be moved to. Use [`MoveTarget::Player1`] or [`MoveTarget::Player2`] to move to one of the players instead.
     pub target_group_id: MoveTarget,
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
@@ -1225,10 +1227,10 @@ repr_t!(
     } default Unset
 );
 
-/// Config struct for moving to a specific target.
+/// Config struct for moving in the direction of a specific target.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirectionalMove {
-    /// Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+    /// Group that will be moved to. Use [`MoveTarget::Player1`] or [`MoveTarget::Player2`] to move to one of the players instead.
     pub target_group_id: MoveTarget,
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,

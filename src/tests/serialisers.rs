@@ -745,8 +745,8 @@ fn level_default_dict() {
 #[test]
 fn level_gdlvl_dict_strips_not_exported_keys() {
     let mut level = sample_level();
-    level.unknowns.other.insert("k98".into(), Value::from(1));
-    level.unknowns.other.insert("k102".into(), Value::from(2));
+    level.unknowns.insert("k98".into(), Value::from(1));
+    level.unknowns.insert("k102".into(), Value::from(2));
 
     let full = level.to_dict();
     let d = level.to_dict_gdlvl_keys();

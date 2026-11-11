@@ -29,12 +29,3 @@
 
 ## api-client (feature: `api`)
 - uses api-payloads feature but also includes functions to help with sending and receiving requests
-
-## tests todo
-- structs in `crate::cclocallevels::gdobj::constructors::triggers`
-    - `from_object` against raw object strings
-- big massive test overhaul
-    - tests for parsing all gdvalues
-    - tests for creating all gd structs
-    - tests for this, that, and the other thing
-    - everything in core thoroughly

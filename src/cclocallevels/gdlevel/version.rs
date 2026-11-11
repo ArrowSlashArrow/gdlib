@@ -205,7 +205,7 @@ gd_versions! {
 impl GDVersion {
     /// Converts a raw binary version to a `GDVersion`. Since multiple game versions share the same binary version, only the earliest game version with a specific ID will be returned.
     ///
-    /// This function ensured preservation of the argument value when `to_game_version_id` is called on the returned object.
+    /// The argument value is preserved: calling `to_binary_version_id` on the returned object returns `Some(bv)`.
     pub fn from_binary_version(bv: i32) -> Self {
         Self::ALL
             .iter()

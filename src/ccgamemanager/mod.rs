@@ -291,8 +291,9 @@ impl CCGameManager {
                     .map(|(k, _)| {
                         let mut split = k.split("_").into_iter();
                         let _ = split.next(); // skip `likes`
-                        let keys =
-                            array::from_fn(|_| split.next().unwrap().parse::<i32>().unwrap());
+                        let keys = array::from_fn(|_| {
+                            split.next().unwrap().parse::<i32>().unwrap_or_default()
+                        });
                         keys
                     })
                     .collect::<Vec<_>>();
@@ -304,11 +305,11 @@ impl CCGameManager {
             self.stats.completed_dailies = v
                 .as_dictionary()?
                 .iter()
-                .map(|(k, v)| {
-                    (
+                .filter_map(|(k, v)| {
+                    Some((
                         k.parse::<i32>().unwrap_or_default(),
-                        GDLevel::from_dict(v.as_dictionary().unwrap()).unwrap(),
-                    )
+                        GDLevel::from_dict(v.as_dictionary()?)?,
+                    ))
                 })
                 .collect();
 
@@ -327,7 +328,7 @@ impl CCGameManager {
                 .map(|(k, v)| {
                     (
                         k.parse::<i32>().unwrap_or_default(),
-                        parse_objects(v.as_string().unwrap()),
+                        parse_objects(v.as_string().unwrap_or_default()),
                     )
                 })
                 .collect();
@@ -339,7 +340,11 @@ impl CCGameManager {
             v.as_dictionary()?.iter().for_each(|(ident, progress)| {
                 self.stats.set_achievement_by_ident(
                     ident,
-                    progress.as_string().unwrap().parse::<u16>().unwrap() as u16,
+                    progress
+                        .as_string()
+                        .unwrap_or_default()
+                        .parse::<u16>()
+                        .unwrap_or_default(),
                 );
             });
             Some(())
@@ -398,7 +403,7 @@ fn parse_val<F: FnMut(Value) -> Option<()>>(
 fn parse_level_dict(v: &Value) -> Option<Vec<GDLevel>> {
     v.as_dictionary()?
         .iter()
-        .map(|(_id, level_dict)| GDLevel::from_dict(level_dict.as_dictionary().unwrap()))
+        .filter_map(|(_id, level_dict)| Some(GDLevel::from_dict(level_dict.as_dictionary()?)))
         .collect::<Option<Vec<GDLevel>>>()
 }
 
@@ -412,8 +417,8 @@ fn parse_foldernames(v: Value) -> Option<Vec<(i32, String)>> {
         .iter()
         .map(|(idx, name)| {
             (
-                idx.parse::<i32>().unwrap(),
-                name.as_string().unwrap().to_string(),
+                idx.parse::<i32>().unwrap_or_default(),
+                name.as_string().unwrap_or_default().to_string(),
             )
         })
         .collect::<Vec<_>>();

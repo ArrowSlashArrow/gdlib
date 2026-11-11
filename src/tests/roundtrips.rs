@@ -956,7 +956,7 @@ fn level_with_unknown_values_of_every_plist_type() {
     let mut level = GDLevel::default();
     let mut nested = Dictionary::new();
     nested.insert("a".into(), Value::from(1));
-    level.unknowns.other = HashMap::from([
+    level.unknowns = HashMap::from([
         ("u_int".to_string(), Value::from(5)),
         ("u_str".to_string(), Value::from("s")),
         ("u_real".to_string(), Value::Real(0.5)),
