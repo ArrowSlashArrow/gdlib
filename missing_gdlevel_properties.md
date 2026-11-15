@@ -164,7 +164,6 @@ The container format is gmdkit only, and I haven't decoded a real replay to chec
 
 | Key | In `GDLevel` | In the list | Finding |
 |---|---|---|---|
-| **k94** | `content.is_platformer` (`mod.rs:1038`) | `friends_only` | **Probably a bug in `GDLevel`.** boomlings.dev also says "Unlisted (Friends Only)". Platformer levels are already marked by `k23 = 5` (`Length::Platformer`). Suggested fix: rename to `flags.friends_only`, and derive `is_platformer` from `content.length`. `src/tests/mod.rs:179` sets this field and would need updating |
 | **k9 / k10** | k9 is `DifficultyRating`, k10 is `i32` (`mod.rs:934-937`) | k9 is `int`, k10 is the `LevelRating` enum | **Probably a bug in `GDLevel`.** The one real sample with these keys has `k9 = 10, k10 = 50`, so it reads as Easy with a sum of 50. If k9 is the denominator and k10 the numerator, as the list suggests, that level is Insane. Based on a single sample, so check another rated level first |
 | **k101** | `unknowns.k101: Option<String>` | `saved_camera_positions: PositionList` | Stored raw. Docs: 10 saved points as `x,y,x,y,...`, which matches the 20 zeros in every sample. So the comment at `mod.rs:697` linking it to k47 looks wrong. Suggested fix: `Vec<(f32, f32)>`, with float parsing from gmdkit. Docs give only the format, and every sample is zero, so float output formatting is **Unsure** |
 

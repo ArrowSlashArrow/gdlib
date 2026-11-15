@@ -4,7 +4,10 @@ use std::fs;
 use plist::Value::{self, Array, Dictionary};
 
 use super::{assert_levels_eq, assert_lists_eq};
-use crate::{ccgamemanager::CCGameManager, cclocallevels::gdlevel::CCLocalLevels};
+use crate::{
+    ccgamemanager::CCGameManager,
+    cclocallevels::gdlevel::{CCLocalLevels, GDLevel},
+};
 
 #[test]
 fn read_cclocallevels() {
@@ -63,5 +66,15 @@ fn cc_game_manager_parse() {
                 v => v,
             }
         );
+    }
+}
+
+#[test]
+#[ignore]
+fn read_gdlvl() {
+    let mut lvl = GDLevel::from_gdlvl("test_gmds/asdasd.gdlvl").unwrap();
+    lvl.decrypt_level_data().unwrap();
+    for object in lvl.get_decrypted_data().unwrap().objects {
+        println!("{object:#?}");
     }
 }

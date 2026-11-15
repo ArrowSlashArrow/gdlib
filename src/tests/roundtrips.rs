@@ -1,6 +1,7 @@
 //! Round-trip tests: serialising and then deserialising a value (or the other way around) must give back the original.
 use std::collections::HashMap;
 
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 use smallvec::{SmallVec, smallvec};
 
@@ -86,6 +87,7 @@ fn sample_value(t: GDObjPropType) -> GDValue {
         T::Int => GDValue::Int(-12345),
         T::Float => GDValue::Float(12.75),
         T::Double => GDValue::Double(0.125),
+        T::Short => GDValue::Short(12345),
         T::Text | T::Unknown => GDValue::String("SGVsbG8=".into()),
         T::Bool => GDValue::Bool(true),
         T::Group => GDValue::Group(9999),
@@ -97,6 +99,7 @@ fn sample_value(t: GDObjPropType) -> GDValue {
         T::ProbabilitiesList => GDValue::ProbabilitiesList(smallvec![(1, 25), (2, 75)]),
         T::SpawnRemapsList => GDValue::SpawnRemapsList(smallvec![(5, 6), (7, 8)]),
         T::Toggle => GDValue::Toggle(Toggle::Off),
+        T::ZLayer => GDValue::ZLayer(ZLayer::B5),
         T::Speed => GDValue::Speed(Speed::X3),
         T::Gamemode => GDValue::Gamemode(Gamemode::Robot),
         T::ItemEditOperator => GDValue::ItemEditOperator(Op::Mul),
@@ -915,7 +918,7 @@ fn level_with_unknown_binary_version() {
 fn level_with_short_build_tab_pages() {
     let mut level = GDLevel::default();
     level.editor_state.build_tab_pages = {
-        let mut m = HashMap::new();
+        let mut m = IntMap::default();
         m.insert(0, 5);
         m
     };

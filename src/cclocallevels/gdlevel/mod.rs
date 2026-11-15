@@ -55,6 +55,7 @@ use std::{
     path::PathBuf,
 };
 
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -461,8 +462,10 @@ pub struct GDLevelContents {
     pub length: Length,
     /// Internal key: `k43`
     pub two_player_mode: bool,
+    /// This level is only searchable by friends of the uploader.
+    ///
     /// Internal key: `k94`
-    pub is_platformer: bool,
+    pub friends_only: bool,
     /// Interal key: `k126`
     pub autobackup_id: Option<String>,
     /// Interal key: `k127`
@@ -507,7 +510,7 @@ impl Default for GDLevelContents {
             custom_song_id: None,
             length: Length::default(),
             two_player_mode: false,
-            is_platformer: false,
+            friends_only: false,
             autobackup_id: None,
             last_autobackup_time: 0,
             platformer_save: None,
@@ -777,7 +780,7 @@ pub struct GDLevelEditorState {
     /// For example, `build_tab_pages.get(&0)` is the page of the first tab that the user was last in.
     ///
     /// Internal key: `kI6`
-    pub build_tab_pages: HashMap<i32, i32>,
+    pub build_tab_pages: IntMap<i32, i32>,
     /// Internal key: `kI7`
     pub editor_layer: i32,
     /// Internal key: `k102`
@@ -975,7 +978,7 @@ impl GDLevel {
     pub(crate) fn from_dict(d: &Dictionary) -> Option<Self> {
         let mut level = Self::default();
         for (k, v) in d {
-            level.add_raw_key(k, v);
+            level.set_raw_key(k, v);
         }
 
         Some(level)
@@ -987,7 +990,7 @@ impl GDLevel {
     /// The function will return `None` when the property's type mismatches or the value fails parsing.
     ///
     /// References: <https://boomlings.dev/resources/client/level>, <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/casting/level_loader.py>
-    pub fn add_raw_key(&mut self, k: &String, v: &Value) -> Option<()> {
+    pub fn set_raw_key(&mut self, k: &String, v: &Value) -> Option<()> {
         // keys come in a few shapes:
         // 1. kCEK: special kCEK key
         // 2. kXX: general keys
@@ -1031,7 +1034,7 @@ impl GDLevel {
                                     .unwrap_or_default(),
                             )
                         })
-                        .collect::<HashMap<_, _>>()
+                        .collect::<IntMap<_, _>>()
                 }
                 7 => {
                     self.editor_state.editor_layer =
@@ -1052,7 +1055,7 @@ impl GDLevel {
                 3 => {
                     // special case: b64-encoded data
                     self.identity.description =
-                        Some(vec_as_str_lossy(&b64_decode(&v.as_string()?[..]).ok()?[..]))
+                        Some(vec_as_str_lossy(&b64_decode(v.as_string()?).ok()?))
                 }
                 4 => {
                     // special case: self data
@@ -1166,7 +1169,7 @@ impl GDLevel {
                 91 => self.editor_state.locked_layers = parse_csv(v),
                 /* k101 - confirmed to exist but unknown */
                 93 => self.flags.unlimited_objects = v.as_boolean()?,
-                94 => self.content.is_platformer = v.as_boolean()?,
+                94 => self.content.friends_only = v.as_boolean()?,
                 95 => self.player_stats.verification_time = Some(v.as_signed_integer()? as i32),
                 /* 96, 97 are unused */
                 98 => self.identity.upload_date = Some(v.as_signed_integer()? as i32),
@@ -1319,6 +1322,7 @@ impl GDLevel {
                 ("k46", self.identity.level_revision),
                 ("k66", self.ratings.requested_stars),
                 ("k87", self.integrity.level_seed),
+                ("k95", self.player_stats.verification_time),
                 ("k98", self.identity.upload_date),
                 ("k99", self.identity.update_date),
                 ("k107", self.player_stats.best_time_ms),
@@ -1388,7 +1392,7 @@ impl GDLevel {
                 ("k82", self.flags.is_favourited),
                 ("k89", self.integrity.vfd_chk),
                 ("k93", self.flags.unlimited_objects),
-                ("k94", self.content.is_platformer),
+                ("k94", self.content.friends_only),
                 ("k112", self.flags.no_shake),
                 ("k123", self.player_stats.saved_best_time),
                 ("k124", self.player_stats.saved_best_points),

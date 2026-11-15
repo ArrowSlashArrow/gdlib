@@ -65,7 +65,9 @@ pub mod consts {
     pub const SPEED_3X: f32 = 1.3 * 6.000002 * 60.0;
     /// Units per second of movement at 4x speed
     pub const SPEED_4X: f32 = 1.6 * 6.000002 * 60.0;
-    /// How many units per second a spawn trigger moves
+    /// The rate of activation of a spawn trigger with "Spawn ordered" enabled.
+    ///
+    /// See [`crate::cclocallevels::gdobj::SpawnTrigger`].
     pub const SPAWN_ORDER: f32 = 311.5801086425781;
 
     pub(crate) const LEVEL_HEADER_PROP_ID_OFFSET: u16 = 1000;

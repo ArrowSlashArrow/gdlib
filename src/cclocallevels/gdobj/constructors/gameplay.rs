@@ -19,11 +19,13 @@
 //!
 //! # Gotchas
 //!
-//! - **Converting back is limited.** Only [`GDPad`] currently implements [`ObjectProperties::from_object`]. The others return `None`.
+//! - **A toggle orb has one multi-activate setting.** [`GDOrb::multi_activate`] and the [`ToggleBlock::multi_activate`] inside [`OrbOptions::ToggleOrb`] are the same property. The orb's own field is the one that's written, and [`ObjectProperties::from_object`] copies it into both.
+//! - **Portal options are inferred when converting back.** [`ObjectProperties::from_object`] picks [`PortalOptions`] from the portal type, and only returns [`PortalOptions::Camera`] if the object has camera properties.
 
 use crate::cclocallevels::{
     consts::*,
     gdobj::{
+        GDObject,
         GDOrbType::{GreenDash, PinkDash},
         ObjectProperties, ToggleBlock,
         ids::{objects::*, properties::*},
@@ -31,6 +33,28 @@ use crate::cclocallevels::{
     },
 };
 use crate::repr_t;
+
+/// Reads a boolean property, treating anything other than `Bool(true)` as `false`.
+fn flag(obj: &GDObject, p: u16) -> bool {
+    matches!(obj.get_property(p), Some(GDValue::Bool(true)))
+}
+
+/// Reads a float property, or returns `default` if it is missing or has another type.
+fn float(obj: &GDObject, p: u16, default: f32) -> f32 {
+    match obj.get_property(p) {
+        Some(GDValue::Float(f)) => f,
+        _ => default,
+    }
+}
+
+/// Reads an integer-like property, or returns 0 if it is missing or has another type.
+fn int(obj: &GDObject, p: u16) -> i32 {
+    match obj.get_property(p) {
+        Some(GDValue::Int(i)) => i,
+        Some(GDValue::Short(i) | GDValue::Group(i) | GDValue::Item(i)) => i as i32,
+        _ => 0,
+    }
+}
 
 repr_t!(
     /// All types of pads in the game. Casting this type to an integer yields the corresponding variant's object ID.
@@ -189,13 +213,50 @@ impl ObjectProperties for GDOrb {
                 (DASH_ORB_MAXIMAL_DURATION, GDValue::Float(d.max_duration)),
             ]),
             OrbOptions::Teleporb(tp) => properties.extend_from_slice(&tp.to_properties()),
-            OrbOptions::ToggleOrb(ref t) => properties.extend_from_slice(&t.serialise()),
+            // the toggle block's multi-activate is the same property as the orb's own, which was written above.
+            OrbOptions::ToggleOrb(ref t) => properties.extend(
+                t.serialise()
+                    .into_iter()
+                    .filter(|(id, _)| *id != MULTI_ACTIVATE),
+            ),
         };
 
         properties
     }
 
-    /* TODO: implement from_object */
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        let otype = GDOrbType::try_from(obj.id).ok()?;
+        let multi_activate = flag(obj, MULTI_ACTIVATE);
+
+        let extra_orb_config = match otype {
+            GreenDash | PinkDash => {
+                let defaults = DashOrbSettings::default();
+                OrbOptions::DashOrb(DashOrbSettings {
+                    speed: float(obj, DASH_ORB_SPEED, defaults.speed),
+                    end_boost: float(obj, DASH_ORB_END_BOOST, defaults.end_boost),
+                    max_duration: float(obj, DASH_ORB_MAXIMAL_DURATION, defaults.max_duration),
+                    allow_collide: flag(obj, DASH_ORB_ALLOW_COLLIDE),
+                    stop_slide: flag(obj, DASH_ORB_STOP_SLIDE),
+                })
+            }
+            GDOrbType::Teleport => OrbOptions::Teleporb(TeleportConfig::from_object(obj)),
+            GDOrbType::Toggle => OrbOptions::ToggleOrb(ToggleBlock {
+                target_group: int(obj, TARGET_ITEM) as i16,
+                activate_group: flag(obj, ACTIVATE_GROUP),
+                claim_touch: flag(obj, CLAIM_TOUCH),
+                multi_activate,
+                spawn_only: flag(obj, SPAWN_ONLY),
+            }),
+            _ => OrbOptions::None,
+        };
+
+        Some(Self {
+            otype,
+            multi_activate,
+            no_plat_multi_activate: flag(obj, NO_MULTIACTIVATE_PLATFORMER),
+            extra_orb_config,
+        })
+    }
 }
 
 /// Settings for dash orbs.
@@ -269,6 +330,27 @@ impl ObjectProperties for ForceObjectConfig {
         }
 
         properties
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        let force_object = ForceObject::try_from(obj.id).ok()?;
+        // a force object uses a range if either bound is set; otherwise it uses a fixed magnitude.
+        let force =
+            if obj.has_property(FORCE_RANGE_MINIMUM) || obj.has_property(FORCE_RANGE_MAXIMUM) {
+                Force::Range {
+                    minimum: float(obj, FORCE_RANGE_MINIMUM, 0.0),
+                    maximum: float(obj, FORCE_RANGE_MAXIMUM, 0.0),
+                }
+            } else {
+                Force::Scalar(float(obj, FORCE_MAGNITUDE, 0.0))
+            };
+
+        Some(Self {
+            force_object,
+            force,
+            is_relative: flag(obj, RELATIVE_FORCE),
+            force_id: int(obj, FORCE_ID),
+        })
     }
 }
 
@@ -407,6 +489,31 @@ pub struct PortalCameraOptions {
 }
 
 impl PortalCameraOptions {
+    /// Reads the camera options of a portal. Returns `None` if the object has none of the camera properties.
+    pub fn from_object(obj: &GDObject) -> Option<Self> {
+        if ![
+            DISABLE_GRIDSNAP,
+            PORTAL_FREE_MODE,
+            PORTAL_EDIT_CAMERA_SETTINGS,
+        ]
+        .iter()
+        .any(|p| obj.has_property(*p))
+        {
+            return None;
+        }
+
+        Some(Self {
+            disable_gridsnap: flag(obj, DISABLE_GRIDSNAP),
+            free_mode: flag(obj, PORTAL_FREE_MODE),
+            edit_camera_settings: flag(obj, PORTAL_EDIT_CAMERA_SETTINGS).then(|| {
+                (
+                    int(obj, PORTAL_CAMERA_EASING),
+                    float(obj, PORTAL_CAMERA_PADDING, 0.0),
+                )
+            }),
+        })
+    }
+
     /// Serializes this object to a list of GDValues
     pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -449,5 +556,30 @@ impl ObjectProperties for GameplayPortalConfig {
 
         properties
     }
-    /* TODO: implement from_object */
+
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        use GameplayPortal::*;
+        let portal = GameplayPortal::try_from(obj.id).ok()?;
+
+        let extra_config = match portal {
+            UnlinkedBlueTeleportal => PortalOptions::Teleportal(TeleportConfig::from_object(obj)),
+            LinkedTeleportals => PortalOptions::LinkedTeleportal((
+                TeleportConfig::from_object(obj),
+                float(obj, LINKED_ORANGE_TELEPORTAL_YOFFSET, 100.0),
+            )),
+            CubeGamemode | ShipGamemode | BallGamemode | UFOGamemode | WaveGamemode
+            | RobotGamemode | SpiderGamemode | SwingGamemode | EnterDual | ExitDual => {
+                PortalCameraOptions::from_object(obj)
+                    .map_or(PortalOptions::None, PortalOptions::Camera)
+            }
+            _ => PortalOptions::None,
+        };
+
+        Some(Self {
+            portal,
+            multi_activate: flag(obj, MULTI_ACTIVATE),
+            no_plat_multi_activate: flag(obj, NO_MULTIACTIVATE_PLATFORMER),
+            extra_config,
+        })
+    }
 }

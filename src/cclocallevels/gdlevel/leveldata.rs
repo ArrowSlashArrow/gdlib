@@ -449,17 +449,14 @@ impl GDLevelHeaderValue {
                 Some(Self::Speed(Speed::try_from(val.parse::<i32>().ok()?).ok()?))
             }
             GDLevelHeaderValType::ColourString => Some(Self::ColourString({
-                // there's usually 14 segments
                 let split = val.split("|").collect::<Vec<_>>();
                 split
                     .iter()
-                    .enumerate()
-                    .filter_map(|(idx, segment)| {
-                        // this avoids parsing the last element of the split which is an empty string
-                        if idx != split.len() - 1 {
-                            ColourString::parse(segment)
-                        } else {
+                    .filter_map(|segment| {
+                        if segment.is_empty() {
                             None
+                        } else {
+                            ColourString::parse(segment)
                         }
                     })
                     .collect::<Vec<_>>()
@@ -544,7 +541,7 @@ macro_rules! parse {
 }
 
 impl ColourString {
-    /// Parses a colour string segment into this object
+    /// Parses a colour string segment into this object. Colour channel values outside the range \[0, 255] are clamped to that range.
     pub fn parse(s: &str) -> Option<Self> {
         let mut kv_iter = s.split("_");
         let mut new = Self::default();
@@ -556,9 +553,9 @@ impl ColourString {
             };
 
             match idx {
-                1 => new.from.red = parse!(v => i32) as u8,
-                2 => new.from.green = parse!(v => i32) as u8,
-                3 => new.from.blue = parse!(v => i32) as u8,
+                1 => new.from.red = parse!(v => i32).clamp(0, 255) as u8,
+                2 => new.from.green = parse!(v => i32).clamp(0, 255) as u8,
+                3 => new.from.blue = parse!(v => i32).clamp(0, 255) as u8,
                 4 => {
                     new.player_colour = match v.parse::<i32>() {
                         Ok(v) => match v {

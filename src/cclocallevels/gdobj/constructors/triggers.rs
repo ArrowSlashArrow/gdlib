@@ -101,9 +101,8 @@ macro_rules! get_property {
 }
 
 // reads a property that may be stored as any integer-like `GDValue`.
-// some properties have a different variant depending on whether the object was parsed
-// (variant comes from the property type table) or built with `serialise` (variant chosen there),
-// e.g. `ROTATION_TARGET_ID` is `Int` when parsed but `Group` when serialised.
+// some objects store an integer-like property under a different variant than the property table
+// (e.g. objects built by hand with `GDObject::new`), so accept any of them.
 fn get_int_like(obj: &GDObject, prop: u16) -> Option<i32> {
     match obj.get_property(prop)? {
         GDValue::Int(v) => Some(v),
@@ -1092,17 +1091,24 @@ impl ObjectProperties for ItemEditTrigger {
             return None;
         }
 
-        // an operand is only present if its ID != 0.
+        // A counter or timer operand is only present if its ID != 0.
+        // Points, attempts and main time have no ID (it's always 0), so their type alone marks them as present.
         let read_item = |id_prop, type_prop| -> Option<Item> {
-            let id = match obj.get_property(id_prop) {
-                Some(GDValue::Item(id)) if id != 0 => id,
-                _ => return None,
-            };
             let item_type = match obj.get_property(type_prop) {
                 Some(GDValue::ItemType(t)) => t,
                 _ => ItemType::default(),
             };
-            Some(Item::from_id_type(id as i16, item_type))
+            let id = match obj.get_property(id_prop) {
+                Some(GDValue::Item(id)) => id,
+                _ => 0,
+            };
+            match item_type {
+                ItemType::Points | ItemType::Attempts | ItemType::MainTime => {
+                    Some(Item::from_id_type(0, item_type))
+                }
+                _ if id != 0 => Some(Item::from_id_type(id, item_type)),
+                _ => None,
+            }
         };
 
         let operand1 = read_item(INPUT_ITEM_1, FIRST_ITEM_TYPE);
@@ -1389,7 +1395,11 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// Spawns a group
+    /// Spawns a group with some options.
+    ///
+    /// Spawnable triggers are spawned in order on the same frame based on X position. If "spawn ordered" is used, triggers are activated at different moments in time based on their x-position. See [`crate::cclocallevels::consts::SPAWN_ORDER`].
+    /// * If X position is the same, it uses the order of triggers placed, where older triggers are activated first.
+    /// * The X position difference must be >= 1 units.
     SpawnTrigger: SPAWN_TRIGGER => {
         /// Spawns this group
         spawn_id: i16 => Group TARGET_ITEM,
@@ -1401,7 +1411,7 @@ object_descriptor!(
         reset_remap: bool => Bool RESET_REMAP,
         /// Spawns constituents of group in the order of x-position
         spawn_ordered: bool => Bool SPAWN_ORDERED,
-        /// prevents the trigger's resulting spawns from being rendered in editor preview
+        /// Prevents the trigger's resulting spawns from being rendered in editor preview
         preview_disable: bool => Bool DISABLE_PREVIEW,
         /// List of ID remaps: (old, new). When a group is triggered with remaps, it will use new IDs
         spawn_remaps: Vec<(i32, i32)> => Remaps SPAWN_ID_REMAPS
@@ -1938,7 +1948,6 @@ impl ObjectProperties for RotateTrigger {
         }
 
         let read_aim = || RotationAim {
-            // `ROTATION_TARGET_ID` is `Int` in the property table but `serialise` writes it as `Group`.
             aim_target: get_int_like(obj, ROTATION_TARGET_ID).unwrap_or(0) as i16,
             rot_offset: get_property!(obj, ROTATION_OFFSET => Float => f32),
             player_target: if get_flag(obj, CONTROLLING_PLAYER_1) {
@@ -2280,38 +2289,8 @@ impl ObjectProperties for TeleportTrigger {
             return None;
         }
 
-        let force = if get_flag(obj, TELEPORT_USE_STATIC_FORCE) {
-            TeleportForce::Static {
-                force: get_property!(obj, TELEPORT_STATIC_FORCE_VALUE => Float => f32),
-                is_additive: get_flag(obj, TELEPORT_STATIC_FORCE_IS_ADDITIVE),
-            }
-        } else if get_flag(obj, TELEPORT_USE_REDIRECT_FORCE) {
-            TeleportForce::Redirect {
-                min: get_property!(obj, TELEPORT_REDIRECT_FORCE_MINIMUM => Float => f32),
-                max: get_property!(obj, TELEPORT_REDIRECT_FORCE_MAXIMUM => Float => f32),
-                // documented default is 1.0, so don't fall back to 0.0
-                modifier: match obj.get_property(TELEPORT_REDIRECT_FORCE_MOD) {
-                    Some(GDValue::Float(m)) => m,
-                    _ => 1.0,
-                },
-            }
-        } else {
-            TeleportForce::None
-        };
-
         Some(Self {
-            teleport_config: TeleportConfig {
-                target_group_id: get_property!(obj, TARGET_ITEM => Group => i16),
-                gravity: get_property!(obj, TELEPORT_EXIT_GRAVITY => TeleportGravity => TeleportGravity),
-                force,
-                smooth_ease: get_flag(obj, TELEPORT_SMOOTH_EASE),
-                save_offset: get_flag(obj, TELEPORT_SAVE_OFFSET),
-                ignore_x: get_flag(obj, TELEPORT_IGNORE_X),
-                ignore_y: get_flag(obj, TELEPORT_IGNORE_Y),
-                instant_camera: get_flag(obj, TELEPORT_INSTANT_CAMERA),
-                snap_ground: get_flag(obj, TELEPORT_SNAP_GROUND),
-                redirect_dash: get_flag(obj, TELEPORT_REDIRECT_DASH),
-            },
+            teleport_config: TeleportConfig::from_object(obj),
         })
     }
 }

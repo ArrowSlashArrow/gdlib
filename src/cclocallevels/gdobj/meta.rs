@@ -63,7 +63,7 @@ pub struct GDObjConfig {
     /// Material ID
     pub material_id: i16,
     /// Control ID
-    pub control_id: i16,
+    pub control_id: i32,
     /// Common attributes
     pub attributes: GDObjAttributes,
 }
@@ -194,12 +194,15 @@ impl GDObjConfig {
                 ),
                 ("343", self.enter_effect_channel, 0),
                 ("446", self.material_id, 0),
-                ("534", self.control_id, 0),
             ],
             &mut properties,
         );
 
-        serialise_fields(&[("25", self.z_order, 0)], &mut properties);
+        // i32
+        serialise_fields(
+            &[("25", self.z_order, 0), ("534", self.control_id, 0)],
+            &mut properties,
+        );
 
         let serialize_groups = |prop: u16, groups: &Vec<i16>, properties: &mut String| {
             if !groups.is_empty() {
@@ -383,7 +386,7 @@ impl GDObjConfig {
         /// Sets this object's Z-order
         z_order(i32) => z_order
     );
-    config_fn!(control_id(i16) => control_id);
+    config_fn!(control_id(i32) => control_id);
     config_fn!(enter_channel(i16) => enter_effect_channel);
     config_fn!(material_id(i16) => material_id);
     config_fn!(editor_layer_1(i16) => editor_layers.0);

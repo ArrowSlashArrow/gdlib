@@ -144,7 +144,8 @@ pub fn default_object_string(id: i32) -> String {
         None => match check_common_suffix(id) {
             Some(suf) => format!("1,{id}{suf};"),
             // unknown id defaults to minimal needed properties
-            None => format!("1,{id};"),
+            // technically, all that is needed is the object ID, as the rest can be filled in by GD
+            None => format!("1,{id},2,0,3,0;"),
         },
     }
 }
