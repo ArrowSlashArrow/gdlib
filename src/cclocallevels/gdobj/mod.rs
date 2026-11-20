@@ -560,11 +560,16 @@ impl GDObject {
         let mut p = properties;
         p.sort_by(|a, b| a.0.cmp(&b.0));
         p.dedup_by_key(|p| p.0);
-        Self {
+        let mut this = Self {
             id,
             config: config.clone(),
-            properties: p,
+            properties: vec![],
+        };
+        // ensure that any config properties are written to config and do not stay in self.properties
+        for (k, v) in p {
+            this.set_property(k, v);
         }
+        this
     }
 
     #[inline]

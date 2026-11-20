@@ -332,7 +332,7 @@ impl CCLocalLevels {
  * 5. Struct fields that are unknown, unused, or unclear as annotated as such with comments.
  */
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// The descriptor struct for GD levels which contains all known properties.
 ///
 /// Reference: <https://boomlings.dev/resources/client/level>
@@ -426,7 +426,7 @@ pub struct GDLevelIdentity {
     pub update_date: Option<i32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// Values to do with the level data / gameplay. Notably, the level data itself, object count, length, etc.
 ///
 /// This struct also contains data for the platformer saves and level backups.
@@ -496,30 +496,6 @@ impl Default for GDLevelData {
 /// Returns a default decrypted `GDLevelState` ready for being written to. The value returned is of the same type as the `data` field in [`GDLevelContents`].
 pub fn default_level_data() -> Option<GDLevelState> {
     Some(GDLevelState::Decrypted(GDLevelData::default()))
-}
-
-impl Default for GDLevelContents {
-    fn default() -> Self {
-        Self {
-            data: default_level_data(),
-            object_count: 0,
-            high_object_count: false,
-            song_list: vec![],
-            sfx_list: None,
-            official_song_id: None,
-            custom_song_id: None,
-            length: Length::default(),
-            two_player_mode: false,
-            friends_only: false,
-            autobackup_id: None,
-            last_autobackup_time: 0,
-            platformer_save: None,
-            enable_platformer_save: false,
-            platformer_save_level_version: 0,
-            platformer_save_replay: None,
-            platformer_save_format_version: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -830,10 +806,20 @@ impl GDLevel {
     ///
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
     pub fn with_level_data(game_version: GDVersion, leveldata: GDLevelData) -> Self {
-        let mut this = GDLevel::default();
-        this.identity.binary_version = game_version;
+        let mut this = Self::new(game_version);
         this.content.data = Some(GDLevelState::Decrypted(leveldata));
         this
+    }
+
+    /// Sets options for this level that are set for new levels created in GD.
+    ///
+    /// The values set are: the camera position and zoom, the level data, and the `is_editable` flag
+    pub fn set_editor_config(&mut self) {
+        self.editor_state.camera_x = 100.0;
+        self.editor_state.camera_y = 100.0;
+        self.editor_state.camera_zoom = 1.0;
+        self.flags.is_editable = true;
+        self.content.data = default_level_data();
     }
 
     /// Parses a .gmd file to a GDLevel. This function will fail if:
@@ -943,6 +929,7 @@ impl GDLevel {
         )
     }
 
+    /* TODO: 1. fix it to prevent integer overflow  2. verify what these are  3. find what they are used for
     /// Generates the leaderboard seed for a classic level (property `k87` found at `GDLevel.integrity.level_seed`).
     ///
     /// Parameter info:
@@ -970,6 +957,7 @@ impl GDLevel {
             % 94433;
         return ((number ^ number >> 16) * 829) % 77849;
     }
+    */
 
     /// Parses a `plist::Dictionary` into a GDLevel object.
     ///
@@ -1250,8 +1238,8 @@ impl GDLevel {
          * dict of 14 ints: kI6
          *
          * kIX keys:
-         * floats: 1, 2, 3, 7
-         * ints: 4, 5
+         * floats: 1, 2, 3
+         * ints: 4, 5, 7
          */
 
         let mut d = Dictionary::new();
@@ -1672,31 +1660,6 @@ impl Display for GDLevel {
     }
 }
 
-impl Default for GDLevel {
-    fn default() -> Self {
-        Self {
-            identity: GDLevelIdentity::default(),
-            content: GDLevelContents::default(),
-            ratings: GDLevelRatings::default(),
-            coins: GDLevelCoins::default(),
-            player_stats: GDLevelPlayerStats::default(),
-            flags: GDLevelFlags {
-                is_editable: true,
-                ..Default::default()
-            },
-            editor_state: GDLevelEditorState {
-                camera_x: 100.0,
-                camera_y: 100.0,
-                camera_zoom: 1.0,
-                ..Default::default()
-            },
-            meta: GDLevelMeta::default(),
-            integrity: GDLevelIntegrity::default(),
-            unknowns: HashMap::default(),
-        }
-    }
-}
-
 /// `fields`: &[id, field]
 ///
 /// Fields equal to `T::default()` are not written.
@@ -1762,9 +1725,13 @@ fn to_float(v: &Value) -> Option<f32> {
 
 /// replaces unparsable values with 0
 pub(crate) fn parse_csv(v: &Value) -> Vec<i32> {
-    v.as_string()
-        .unwrap_or_default()
-        .split(",")
+    let Value::String(s) = v else {
+        return vec![];
+    };
+    if s.is_empty() {
+        return vec![];
+    }
+    s.split(",")
         .map(|d| d.parse::<i32>().unwrap_or_default())
         .collect::<Vec<i32>>()
 }

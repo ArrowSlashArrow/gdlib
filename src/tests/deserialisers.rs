@@ -996,7 +996,7 @@ fn level_fields() {
                 ("3", Value::from("4")),
             ])),
         ),
-        ("kI7", Value::Real(2.0)),
+        ("kI7", Value::from(2)),
     ]);
     let level = GDLevel::from_dict(&d).unwrap();
 

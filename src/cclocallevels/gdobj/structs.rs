@@ -1388,16 +1388,40 @@ impl Colour {
     /// Returns `None` if the given string could not be parsed as a hex code.
     pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Option<Self> {
         let str = hex_str.as_ref();
-        if str.len() != 7 || !str.starts_with('#') || !str[1..].chars().all(|d| d.is_ascii_digit())
+        if str.len() != 7
+            || !str.starts_with('#')
+            || !str[1..].chars().all(|d| {
+                matches!(
+                    d,
+                    '0' | '1'
+                        | '2'
+                        | '3'
+                        | '4'
+                        | '5'
+                        | '6'
+                        | '7'
+                        | '8'
+                        | '9'
+                        | 'a'
+                        | 'b'
+                        | 'c'
+                        | 'd'
+                        | 'e'
+                        | 'f'
+                        | 'A'
+                        | 'B'
+                        | 'C'
+                        | 'D'
+                        | 'E'
+                        | 'F'
+                )
+            })
         {
             // "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
             return None;
         }
 
-        let mut owned = str.to_string();
-        owned.remove(0);
-
-        let hex = i32::from_str_radix(&owned, 16).ok()?;
+        let hex = i32::from_str_radix(&str[1..], 16).ok()?;
         Some(Self {
             red: (hex >> 16 & 0xFF) as u8,
             green: (hex >> 8 & 0xFF) as u8,
