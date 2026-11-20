@@ -1240,7 +1240,7 @@ pub struct DirectionalMove {
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
     /// Distance in units to move in the direction of the target objects.
-    pub distance: i32,
+    pub distance: f32,
 }
 
 repr_t!(

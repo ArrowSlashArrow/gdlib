@@ -294,7 +294,7 @@ object_properties_suite!(move_trigger: MoveTrigger {
                 MoveMode::Directional(DirectionalMove {
                     target_group_id: MoveTarget::Player2,
                     center_group_id: Some(4),
-                    distance: 120,
+                    distance: 120.0,
                 }),
                 false,
             ),
@@ -302,7 +302,7 @@ object_properties_suite!(move_trigger: MoveTrigger {
                 MoveMode::Directional(DirectionalMove {
                     target_group_id: MoveTarget::Group(9),
                     center_group_id: None,
-                    distance: -60,
+                    distance: -60.0,
                 }),
                 true,
             ),
@@ -915,7 +915,7 @@ object_properties_suite!(camera_zoom_trigger: CameraZoomTrigger {
 
 object_properties_suite!(camera_guide: CameraGuide {
     ids: [CAMERA_GUIDE],
-    samples: vec![CameraGuide { zoom: 1.5, offset_x: 30, offset_y: -60, opacity: 0.5 }],
+    samples: vec![CameraGuide { zoom: 1.5, offset_x: 30.0, offset_y: -60.0, opacity: 0.5 }],
     compare: direct,
 });
 
@@ -1068,8 +1068,8 @@ fn compare_mg_config(actual: &MiddleGroundConfigTrigger, expected: &MiddleGround
 object_properties_suite!(middle_ground_config_trigger: MiddleGroundConfigTrigger {
     ids: [EDIT_MIDDLEGROUND_TRIGGER],
     samples: vec![
-        MiddleGroundConfigTrigger { offset_y: 30, easing: Easing::from(MoveEasing::SineIn, 1.5) },
-        MiddleGroundConfigTrigger { offset_y: -15, easing: Easing::none() },
+        MiddleGroundConfigTrigger { offset_y: 30.0, easing: Easing::from(MoveEasing::SineIn, 1.5) },
+        MiddleGroundConfigTrigger { offset_y: -15.0, easing: Easing::none() },
     ],
     compare: compare_mg_config,
 });
@@ -1594,8 +1594,8 @@ fn move_trigger_mode_properties() {
         x_lock: None,
         y_lock: None,
     }));
-    assert!(default.contains(&(p::MOVE_UNITS_X, GDValue::Int(1))));
-    assert!(default.contains(&(p::MOVE_UNITS_Y, GDValue::Int(2))));
+    assert!(default.contains(&(p::MOVE_UNITS_X, GDValue::Float(1.0))));
+    assert!(default.contains(&(p::MOVE_UNITS_Y, GDValue::Float(2.0))));
     assert!(!has(&default, p::TARGET_MOVE_MODE));
     assert!(!has(&default, p::DIRECTIONAL_MOVE_MODE));
 
@@ -1611,11 +1611,11 @@ fn move_trigger_mode_properties() {
     let directional = props(MoveMode::Directional(DirectionalMove {
         target_group_id: MoveTarget::Player1,
         center_group_id: None,
-        distance: 30,
+        distance: 30.0,
     }));
     assert!(has(&directional, p::DIRECTIONAL_MOVE_MODE));
     assert!(has(&directional, p::CONTROLLING_PLAYER_1));
-    assert!(directional.contains(&(p::DIRECTIONAL_MODE_DISTANCE, GDValue::Int(30))));
+    assert!(directional.contains(&(p::DIRECTIONAL_MODE_DISTANCE, GDValue::Float(30.0))));
 }
 
 #[test]

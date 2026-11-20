@@ -201,7 +201,7 @@ impl ObjectProperties for MoveTrigger {
                         (X_MOVEMENT_MULTIPLIER, GDValue::Float(config.dx)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_X, GDValue::Int(config.dx as i32)));
+                    properties.push((MOVE_UNITS_X, GDValue::Float(config.dx)));
                 }
 
                 if let Some(lock) = config.y_lock {
@@ -213,7 +213,7 @@ impl ObjectProperties for MoveTrigger {
                         (Y_MOVEMENT_MULTIPLIER, GDValue::Float(config.dy)),
                     ]);
                 } else {
-                    properties.push((MOVE_UNITS_Y, GDValue::Int(config.dy as i32)));
+                    properties.push((MOVE_UNITS_Y, GDValue::Float(config.dy)));
                 }
             }
             MoveMode::Targeting(config) => {
@@ -244,7 +244,7 @@ impl ObjectProperties for MoveTrigger {
                         MoveTarget::Group(id) => (TARGET_ITEM_2, GDValue::Group(id)),
                     },
                     (DIRECTIONAL_MOVE_MODE, GDValue::Bool(true)),
-                    (DIRECTIONAL_MODE_DISTANCE, GDValue::Int(config.distance)),
+                    (DIRECTIONAL_MODE_DISTANCE, GDValue::Float(config.distance)),
                 ]);
             }
         }
@@ -280,7 +280,7 @@ impl ObjectProperties for MoveTrigger {
             MoveMode::Directional(DirectionalMove {
                 target_group_id: get_move_target(obj),
                 center_group_id,
-                distance: get_property!(obj, DIRECTIONAL_MODE_DISTANCE => Int => i32),
+                distance: get_property!(obj, DIRECTIONAL_MODE_DISTANCE => Float => f32),
             })
         } else {
             // when an axis is locked, its delta is stored as a float multiplier instead of integer units.
@@ -301,11 +301,11 @@ impl ObjectProperties for MoveTrigger {
 
             let dx = match x_lock {
                 Some(_) => get_property!(obj, X_MOVEMENT_MULTIPLIER => Float => f32),
-                None => get_property!(obj, MOVE_UNITS_X => Int => i32) as f32,
+                None => get_property!(obj, MOVE_UNITS_X => Float => f32),
             };
             let dy = match y_lock {
                 Some(_) => get_property!(obj, Y_MOVEMENT_MULTIPLIER => Float => f32),
-                None => get_property!(obj, MOVE_UNITS_Y => Int => i32) as f32,
+                None => get_property!(obj, MOVE_UNITS_Y => Float => f32),
             };
 
             MoveMode::Default(DefaultMove {
@@ -1750,9 +1750,9 @@ object_descriptor!(
         /// Zoom of camera guide
         zoom: f32 => Float CAMERA_ZOOM,
         /// Center offset from this object in x axis
-        offset_x: i32 => Int MOVE_UNITS_X,
+        offset_x: f32 => Float MOVE_UNITS_X,
         /// Center offset from this object in y axis
-        offset_y: i32 => Int MOVE_UNITS_Y,
+        offset_y: f32 => Float MOVE_UNITS_Y,
         /// Opacity of guidelines
         opacity: f32 => Float CAMERA_GUIDE_PREVIEW_OPACITY
     }
@@ -2122,14 +2122,14 @@ object_descriptor!(
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct MiddleGroundConfigTrigger {
     /// Where to move it relative to its normal position
-    pub offset_y: i32,
+    pub offset_y: f32,
     /// Easing for moving the middleground
     pub easing: Easing,
 }
 
 impl ObjectProperties for MiddleGroundConfigTrigger {
     fn serialise(&self) -> Vec<(u16, GDValue)> {
-        let mut properties = vec![(MOVE_UNITS_Y, GDValue::Int(self.offset_y))];
+        let mut properties = vec![(MOVE_UNITS_Y, GDValue::Float(self.offset_y))];
         add_easing(&mut properties, self.easing);
         properties
     }
@@ -2145,7 +2145,7 @@ impl ObjectProperties for MiddleGroundConfigTrigger {
         }
 
         Some(Self {
-            offset_y: get_property!(obj, MOVE_UNITS_Y => Int => i32),
+            offset_y: get_property!(obj, MOVE_UNITS_Y => Float => f32),
             easing: Easing::from_object(obj),
         })
     }
