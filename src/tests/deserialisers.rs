@@ -1429,6 +1429,22 @@ fn gamemanager_glm12() {
 }
 
 #[test]
+fn gamemanager_glm12_skips_short_keys() {
+    // keys with fewer than four numbers are dropped, not padded with zeros,
+    // and a bad key does not stop the keys after it from being read
+    let gm = CCGameManager::from_raw_string(gamemanager_string(
+        "<k>GLM_12</k><d>\
+         <k>likes_1</k><s>1</s>\
+         <k>likes_5_6_7_8</k><s>1</s>\
+         <k>likes_1_2_3</k><s>1</s>\
+         <k>likes_9_10_11_12</k><s>1</s>\
+         </d>",
+    ))
+    .unwrap();
+    assert_eq!(gm.config.glm12_unknown, vec![[5, 6, 7, 8], [9, 10, 11, 12]]);
+}
+
+#[test]
 fn gamemanager_custom_objects() {
     let gm = CCGameManager::from_raw_string(gamemanager_string(
         "<k>customObjectDict</k><d><k>-1</k><s>1,1,2,0,3,0;1,8,2,30,3,0;</s></d>",

@@ -208,6 +208,11 @@ impl GDVersion {
     ///
     /// The argument value is preserved: calling `to_binary_version_id` on the returned object returns `Some(bv)`.
     pub fn from_binary_version(bv: i32) -> Self {
+        // TODO: remove when versions are confirmed for 2.207x
+        // 45 is used as a placeholder for 2.207x, which don't have a known binaryVersion
+        if bv == 45 {
+            return Self::GD22074;
+        }
         Self::ALL
             .iter()
             .copied()

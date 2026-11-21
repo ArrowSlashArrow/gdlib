@@ -382,6 +382,30 @@ fn object_property_that_belongs_to_config_is_not_duplicated() {
 }
 
 #[test]
+fn object_new_moves_config_properties_into_config() {
+    // config properties in the property list replace the matching values in `config` and are not
+    // kept in the list, so the object reads back unchanged.
+    let obj = GDObject::new(
+        1,
+        &GDObjConfig::new()
+            .with_multitrigger(true)
+            .with_groups([1i16])
+            .with_pos(15.0, 15.0),
+        vec![
+            (p::MULTITRIGGERABLE, GDValue::Bool(false)),
+            (p::GROUPS, GDValue::GroupList(smallvec![3, 2])),
+            (p::X_POS, GDValue::Float(45.0)),
+            (51, GDValue::Group(5)),
+        ],
+    );
+    assert!(!obj.config.trigger_cfg.multitriggerable);
+    assert_eq!(obj.config.groups.to_vec(), vec![2, 3]);
+    assert_eq!(obj.config.pos, (45.0, 15.0));
+    assert_eq!(obj.get_properties(), &[(51, GDValue::Group(5))]);
+    assert_eq!(GDObject::parse_str(obj.serialise_to_string()), obj);
+}
+
+#[test]
 fn objects_are_concatenated() {
     let a = default_block();
     let b = GDObject::new(2, &GDObjConfig::new().with_pos(30.0, 0.0), vec![]);

@@ -709,6 +709,24 @@ fn level_data_without_headers() {
 }
 
 #[test]
+fn level_data_with_only_ks38_header() {
+    // when kS38 is the only header, the header string must still end with `;`.
+    // Otherwise the first object is read as part of the header.
+    let data = GDLevelData {
+        headers: [(
+            GDLevelHeaderKey::S(38),
+            GDLevelHeaderValue::ColourString(vec![full_colour_string()]),
+        )]
+        .into(),
+        objects: vec![
+            default_block(),
+            GDObject::parse_str("1,914,2,195,3,195,31,SGVsbG8=;"),
+        ],
+    };
+    assert_eq!(GDLevelData::parse(data.serialise_to_string()), Some(data));
+}
+
+#[test]
 fn level_data_many_objects() {
     let mut data = GDLevel::default()
         .with_editor_config()

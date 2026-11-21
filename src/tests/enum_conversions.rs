@@ -356,6 +356,13 @@ fn gd_version_from_binary_version_keeps_game_version() {
 }
 
 #[test]
+fn gd_version_from_binary_version_prefers_confirmed_version() {
+    // 2.207 to 2.2073 borrow 2.2074's binary version (45) as a placeholder. Reading 45 back must
+    // give 2.2074, the version that actually uses it, not the first placeholder.
+    assert_eq!(GDVersion::from_binary_version(45), GDVersion::GD22074);
+}
+
+#[test]
 fn gd_version_unknown() {
     for bv in [-1, 3, 8, 50, 52, 1000, i32::MAX] {
         assert_eq!(GDVersion::from_binary_version(bv), GDVersion::Unknown(bv));

@@ -26,7 +26,7 @@ use crate::{
             },
         },
     },
-    core::io::{decompress, decrypt_file},
+    core::io::{XOR_KEY_PLAYER_DATA, decompress, decrypt, decrypt_file},
 };
 
 const TEST_LEVELS: &[&str] = &[
@@ -353,6 +353,43 @@ fn cclocallevels_file_keeps_non_ascii_text() {
     cc.export_to_file(out.clone()).unwrap();
     let parsed = CCLocalLevels::from_decrypted(decrypt_file(out).unwrap()).unwrap();
     assert_eq!(parsed.levels[0].identity.name, "Niveau élevé 日本");
+}
+
+#[test]
+fn savefile_with_invalid_utf8_is_still_read() {
+    // an invalid UTF-8 byte is replaced with U+FFFD instead of failing the whole file,
+    // and valid non-ASCII text around it is kept
+    use base64::{Engine, engine::general_purpose::URL_SAFE};
+    use flate2::{Compression, write::GzEncoder};
+    use std::io::Write;
+
+    let mut level = GDLevel::default();
+    level.identity.name = "日本 #".into();
+    let mut cc = CCLocalLevels {
+        levels: vec![level],
+        binary_version: GDVersion::GD22082,
+        lists: vec![],
+        other: HashMap::new(),
+    };
+    let out = generated_path("CCLocalLevels_invalid_utf8.dat");
+    cc.export_to_file(out.clone()).unwrap();
+
+    // swap the `#` for a lone 0xFF byte, then encrypt the file again
+    let mut raw = decrypt(fs::read(&out).unwrap()).unwrap();
+    let marker = "日本 #".as_bytes();
+    let pos = raw.windows(marker.len()).position(|w| w == marker).unwrap();
+    raw[pos + marker.len() - 1] = 0xff;
+
+    let mut gz = GzEncoder::new(Vec::new(), Compression::default());
+    gz.write_all(&raw).unwrap();
+    let mut encrypted = URL_SAFE.encode(gz.finish().unwrap()).into_bytes();
+    for b in &mut encrypted {
+        *b ^= XOR_KEY_PLAYER_DATA;
+    }
+    fs::write(&out, encrypted).unwrap();
+
+    let parsed = CCLocalLevels::from_decrypted(decrypt_file(out).unwrap()).unwrap();
+    assert_eq!(parsed.levels[0].identity.name, "日本 \u{FFFD}");
 }
 
 #[test]

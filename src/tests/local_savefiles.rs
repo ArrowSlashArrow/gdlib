@@ -4,10 +4,7 @@ use std::fs;
 use plist::Value::{self, Array, Dictionary};
 
 use super::{assert_levels_eq, assert_lists_eq};
-use crate::{
-    ccgamemanager::CCGameManager,
-    cclocallevels::gdlevel::{CCLocalLevels, GDLevel},
-};
+use crate::{ccgamemanager::CCGameManager, cclocallevels::gdlevel::CCLocalLevels};
 
 #[test]
 fn read_cclocallevels() {

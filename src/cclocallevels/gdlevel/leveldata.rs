@@ -249,7 +249,7 @@ impl GDLevelData {
             if self.headers.len() > 1 {
                 format!("kS38,{ks38},")
             } else {
-                return format!("kS38,{ks38}");
+                return format!("kS38,{ks38};");
             }
         } else {
             String::new()
