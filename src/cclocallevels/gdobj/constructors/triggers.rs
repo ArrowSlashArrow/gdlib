@@ -563,7 +563,7 @@ impl ObjectProperties for PulseTrigger {
             (EXCLUSIVE_PULSE_MODE, GDValue::Bool(self.exclusive_pulse)),
         ];
         match self.pulse_target {
-            PulseTarget::Channel(c) => properties.push((TARGET_ITEM, GDValue::Group(c.channel_id))),
+            PulseTarget::Channel(c) => properties.push((TARGET_ITEM, GDValue::Group(c.id()))),
             PulseTarget::Group(g) => {
                 properties.extend_from_slice(&[
                     (
@@ -619,9 +619,7 @@ impl ObjectProperties for PulseTrigger {
                 detail_colour_only: get_flag(obj, PULSE_DETAIL_COLOUR_ONLY),
             })
         } else {
-            PulseTarget::Channel(PulseChannel {
-                channel_id: target_id,
-            })
+            PulseTarget::Channel(ColourChannel::from(target_id))
         };
 
         // same idea as above: GD sets `HSV_IS_ENABLED`, `serialise` only writes the HSV string.

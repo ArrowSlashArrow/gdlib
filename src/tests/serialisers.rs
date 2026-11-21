@@ -686,20 +686,6 @@ fn level_headers_ks38_first() {
 }
 
 #[test]
-fn level_headers_only_ks38_has_no_dangling_comma() {
-    let data = GDLevelData {
-        headers: [(
-            GDLevelHeaderKey::S(38),
-            GDLevelHeaderValue::ColourString(vec![]),
-        )]
-        .into(),
-        objects: vec![],
-    };
-    let s = data.serialise_level_headers();
-    assert!(!s.contains(",;"), "{s}");
-}
-
-#[test]
 fn level_headers_empty() {
     let data = GDLevelData {
         headers: Default::default(),

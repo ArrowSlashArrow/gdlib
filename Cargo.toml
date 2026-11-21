@@ -1,10 +1,10 @@
 [package]
 name = "gdlib"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 build = "build.rs"
 
-description = "Rust library for editing Geometry Dash savefiles"
+description = "Crate for editing Geometry Dash savefiles"
 license = "MIT"
 repository = "https://github.com/ArrowSlashArrow/gdlib"
 keywords = ["api", "gd"]

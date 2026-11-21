@@ -369,23 +369,7 @@ impl From<i16> for ColourChannel {
 
 impl From<ColourChannel> for i16 {
     fn from(value: ColourChannel) -> Self {
-        match value {
-            ColourChannel::Channel(n) => n,
-            ColourChannel::Background => 1000,
-            ColourChannel::Ground1 => 1001,
-            ColourChannel::Line => 1002,
-            ColourChannel::ThreeDLine => 1003,
-            ColourChannel::Object => 1004,
-            ColourChannel::P1 => 1005,
-            ColourChannel::P2 => 1006,
-            ColourChannel::LBG => 1007,
-            ColourChannel::Ground2 => 1009,
-            ColourChannel::Black => 1010,
-            ColourChannel::White => 1011,
-            ColourChannel::Lighter => 1012,
-            ColourChannel::MiddleGround => 1013,
-            ColourChannel::MiddleGround2 => 1014,
-        }
+        value.id()
     }
 }
 
@@ -413,6 +397,26 @@ impl ColourChannel {
             Self::Lighter => (255, 255, 255),
             Self::MiddleGround => (40, 125, 255),
             Self::MiddleGround2 => (40, 125, 255),
+        }
+    }
+    /// Returns the ID of this colour channel
+    pub fn id(&self) -> i16 {
+        match self {
+            ColourChannel::Channel(n) => *n,
+            ColourChannel::Background => 1000,
+            ColourChannel::Ground1 => 1001,
+            ColourChannel::Line => 1002,
+            ColourChannel::ThreeDLine => 1003,
+            ColourChannel::Object => 1004,
+            ColourChannel::P1 => 1005,
+            ColourChannel::P2 => 1006,
+            ColourChannel::LBG => 1007,
+            ColourChannel::Ground2 => 1009,
+            ColourChannel::Black => 1010,
+            ColourChannel::White => 1011,
+            ColourChannel::Lighter => 1012,
+            ColourChannel::MiddleGround => 1013,
+            ColourChannel::MiddleGround2 => 1014,
         }
     }
 }
@@ -1327,16 +1331,8 @@ pub enum PulseTarget {
     /// Pulse for a group
     Group(PulseGroup),
     /// Pulse for a channel
-    Channel(PulseChannel),
+    Channel(ColourChannel),
 }
-
-/// Config struct for channel pulses
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PulseChannel {
-    /// Channel which is pulsed
-    pub channel_id: i16,
-}
-
 /// Config struct for group pulses
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PulseGroup {

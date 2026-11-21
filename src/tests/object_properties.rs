@@ -417,7 +417,7 @@ object_properties_suite!(pulse_trigger: PulseTrigger {
             pulse_hold_time: 0.5,
             pulse_fade_out_time: 1.0,
             exclusive_pulse: true,
-            pulse_target: PulseTarget::Channel(PulseChannel { channel_id: 5 }),
+            pulse_target: PulseTarget::Channel(ColourChannel::from(5)),
             pulse_mode: PulseMode::Colour(Colour::from_rgb((10, 20, 30))),
         },
         PulseTrigger {
