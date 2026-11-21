@@ -156,12 +156,6 @@ impl Item {
             Self::Timer(_) => ItemType::Timer,
         }
     }
-    #[inline]
-    #[must_use]
-    /// Returns this item's type as an i32
-    pub fn get_type_as_i32(&self) -> i32 {
-        self.get_type().to_num()
-    }
     /// Returns this item's special mode if it has one
     #[inline]
     #[must_use]
@@ -213,14 +207,13 @@ impl Item {
             ItemType::Attempts => Self::Attempts,
             ItemType::Points => Self::Points,
             ItemType::MainTime => Self::MainTime,
-            ItemType::Unrecognized(_) => Self::Counter(0),
         }
     }
 }
 
 repr_t!(
     /// Enum for counter types
-    ItemType: i32 {
+    strict ItemType: i32 {
         /// This is the default item type designated by every trigger that deals with items.
         /// However, due to this variant having a value of 1 instead of 0, any properties of this type will not be automatically designated as `Self::Counter`.
         /// Using [`GDValue::from`] circumvents this by interpreting unset values as their default values, which in this case is the `Counter` variant.
@@ -250,6 +243,8 @@ repr_t!(
 #[non_exhaustive]
 pub enum GDObjPropType {
     Int,
+    /// A signed 16-bit integer
+    Short,
     Float,
     Double,
     Text,
@@ -267,6 +262,7 @@ pub enum GDObjPropType {
     SpawnRemapsList,
     /// Like a boolean, except it can also be `Unset`. Used in the option trigger.
     Toggle,
+    ZLayer,
     Speed,
     Gamemode,
     ItemEditOperator,
@@ -618,6 +614,7 @@ impl GDValue {
             GDObjPropType::Double => Self::Double(parse!(s => f64)),
             GDObjPropType::Float => Self::Float(parse!(s => f32)),
             GDObjPropType::Int => Self::Int(parse!(s => i32)),
+            GDObjPropType::Short => Self::Short(parse!(s => i16)),
             GDObjPropType::EventsList => Self::Events(if s.trim().is_empty() {
                 vec![]
             } else {
@@ -639,6 +636,7 @@ impl GDValue {
             } else {
                 s.split('.').map(|i| parse!(i => i16)).collect()
             }),
+            GDObjPropType::ZLayer => Self::ZLayer(parse!(s => i32 => ZLayer)),
             GDObjPropType::Item => Self::Item(parse!(s => i16)),
             GDObjPropType::BPMSpeed => Self::BPMSpeed(parse!(s => i32 => BPMSpeed)),
             GDObjPropType::Gamemode => Self::Gamemode(parse!(s => i32 => Gamemode)),
@@ -812,7 +810,7 @@ impl Display for GDValue {
             GDValue::TransitionMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::UIReferencePos(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::CounterMode(v) => write!(f, "{}", i_buf.format(v.to_num())),
-            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(v.to_num())),
+            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ExtraID2(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ItemAlign(v) => write!(f, "{}", i_buf.format(*v as i32)),
@@ -1235,7 +1233,7 @@ pub struct DirectionalMove {
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
     /// Distance in units to move in the direction of the target objects.
-    pub distance: i32,
+    pub distance: f32,
 }
 
 repr_t!(
@@ -1383,15 +1381,40 @@ impl Colour {
     /// Returns `None` if the given string could not be parsed as a hex code.
     pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Option<Self> {
         let str = hex_str.as_ref();
-        if str.len() != 7 || !str.starts_with('#') {
+        if str.len() != 7
+            || !str.starts_with('#')
+            || !str[1..].chars().all(|d| {
+                matches!(
+                    d,
+                    '0' | '1'
+                        | '2'
+                        | '3'
+                        | '4'
+                        | '5'
+                        | '6'
+                        | '7'
+                        | '8'
+                        | '9'
+                        | 'a'
+                        | 'b'
+                        | 'c'
+                        | 'd'
+                        | 'e'
+                        | 'f'
+                        | 'A'
+                        | 'B'
+                        | 'C'
+                        | 'D'
+                        | 'E'
+                        | 'F'
+                )
+            })
+        {
             // "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
             return None;
         }
 
-        let mut owned = str.to_string();
-        owned.remove(0);
-
-        let hex = i32::from_str_radix(&owned, 16).ok()?;
+        let hex = i32::from_str_radix(&str[1..], 16).ok()?;
         Some(Self {
             red: (hex >> 16 & 0xFF) as u8,
             green: (hex >> 8 & 0xFF) as u8,
@@ -1669,6 +1692,52 @@ pub struct TeleportConfig {
 }
 
 impl TeleportConfig {
+    /// Rebuilds a teleport config from the properties of any object that teleports the player:
+    /// the teleport trigger, the teleport orb and the teleportals. The object ID is not checked.
+    ///
+    /// Missing properties fall back to their defaults. The redirect force modifier defaults to `1.0`.
+    pub fn from_object(obj: &GDObject) -> Self {
+        let flag = |p| matches!(obj.get_property(p), Some(GDValue::Bool(true)));
+        let float = |p, default| match obj.get_property(p) {
+            Some(GDValue::Float(f)) => f,
+            _ => default,
+        };
+
+        let force = if flag(TELEPORT_USE_STATIC_FORCE) {
+            TeleportForce::Static {
+                force: float(TELEPORT_STATIC_FORCE_VALUE, 0.0),
+                is_additive: flag(TELEPORT_STATIC_FORCE_IS_ADDITIVE),
+            }
+        } else if flag(TELEPORT_USE_REDIRECT_FORCE) {
+            TeleportForce::Redirect {
+                min: float(TELEPORT_REDIRECT_FORCE_MINIMUM, 0.0),
+                max: float(TELEPORT_REDIRECT_FORCE_MAXIMUM, 0.0),
+                modifier: float(TELEPORT_REDIRECT_FORCE_MOD, 1.0),
+            }
+        } else {
+            TeleportForce::None
+        };
+
+        Self {
+            target_group_id: match obj.get_property(TARGET_ITEM) {
+                Some(GDValue::Group(g)) => g,
+                _ => 0,
+            },
+            gravity: match obj.get_property(TELEPORT_EXIT_GRAVITY) {
+                Some(GDValue::TeleportGravity(g)) => g,
+                _ => TeleportGravity::default(),
+            },
+            force,
+            smooth_ease: flag(TELEPORT_SMOOTH_EASE),
+            save_offset: flag(TELEPORT_SAVE_OFFSET),
+            ignore_x: flag(TELEPORT_IGNORE_X),
+            ignore_y: flag(TELEPORT_IGNORE_Y),
+            instant_camera: flag(TELEPORT_INSTANT_CAMERA),
+            snap_ground: flag(TELEPORT_SNAP_GROUND),
+            redirect_dash: flag(TELEPORT_REDIRECT_DASH),
+        }
+    }
+
     /// Convert this struct to a list of GDValues
     pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![

@@ -70,6 +70,7 @@ fn strict_object_value_enums() {
     check_strict!(Gamemode, -5..=10, expected_variants: 8);
     check_strict!(StopMode, -5..=10, expected_variants: 3);
     check_strict!(ItemAlign, -5..=10, expected_variants: 3);
+    check_strict!(ItemType, -5..=10, expected_variants: 5);
     check_strict!(TransitionMode, -5..=10, expected_variants: 3);
     check_strict!(TransitionType, -5..=2000, expected_variants: 13);
     check_strict!(Op, -5..=10, expected_variants: 5);
@@ -107,7 +108,6 @@ fn object_type_enums() {
 
 #[test]
 fn lenient_enums() {
-    check_lenient!(ItemType, -10..=20, expected_variants: 5);
     check_lenient!(CounterMode, -10..=20, expected_variants: 4);
     check_lenient!(Event, -10..=100, expected_variants: 78);
     check_lenient!(MiddleGround, -10..=20, expected_variants: 4);
@@ -356,6 +356,13 @@ fn gd_version_from_binary_version_keeps_game_version() {
 }
 
 #[test]
+fn gd_version_from_binary_version_prefers_confirmed_version() {
+    // 2.207 to 2.2073 borrow 2.2074's binary version (45) as a placeholder. Reading 45 back must
+    // give 2.2074, the version that actually uses it, not the first placeholder.
+    assert_eq!(GDVersion::from_binary_version(45), GDVersion::GD22074);
+}
+
+#[test]
 fn gd_version_unknown() {
     for bv in [-1, 3, 8, 50, 52, 1000, i32::MAX] {
         assert_eq!(GDVersion::from_binary_version(bv), GDVersion::Unknown(bv));
@@ -368,7 +375,7 @@ fn gd_version_examples() {
     assert_eq!(GDVersion::GD22082.to_binary_version_id(), Some(48));
     assert_eq!(GDVersion::GD22082.to_game_version_id(), Some(22));
     assert_eq!(GDVersion::from_binary_version(47), GDVersion::GD22081);
-    assert_eq!(GDVersion::GD2207.to_binary_version_id(), None);
+    assert_eq!(GDVersion::GD2207.to_binary_version_id(), Some(45));
     assert_eq!(GDVersion::GD2113.to_manifest_version(), None);
     assert_eq!(GDVersion::GD2111.to_manifest_version(), Some(33));
 }
@@ -389,7 +396,6 @@ fn items() {
             item,
             "{item:?}"
         );
-        assert_eq!(item.get_type_as_i32(), item.get_type().to_num());
         if let Some(mode) = item.as_special_mode() {
             assert_eq!(Item::from_counter_mode(mode), item);
             assert_eq!(item.as_special_mode_i32(), Some(mode.to_num()));
@@ -403,10 +409,7 @@ fn items() {
         Item::from_counter_mode(CounterMode::Unrecognized(-50)),
         Item::Counter(0)
     );
-    assert_eq!(
-        Item::from_id_type(4, ItemType::Unrecognized(77)),
-        Item::Counter(0)
-    );
+    assert_eq!(Item::from_id_type(4, ItemType::Points), Item::Points);
 }
 
 #[test]

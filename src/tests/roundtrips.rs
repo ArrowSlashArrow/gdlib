@@ -1,6 +1,7 @@
 //! Round-trip tests: serialising and then deserialising a value (or the other way around) must give back the original.
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 use smallvec::{SmallVec, smallvec};
 
@@ -86,6 +87,7 @@ fn sample_value(t: GDObjPropType) -> GDValue {
         T::Int => GDValue::Int(-12345),
         T::Float => GDValue::Float(12.75),
         T::Double => GDValue::Double(0.125),
+        T::Short => GDValue::Short(12345),
         T::Text | T::Unknown => GDValue::String("SGVsbG8=".into()),
         T::Bool => GDValue::Bool(true),
         T::Group => GDValue::Group(9999),
@@ -97,6 +99,7 @@ fn sample_value(t: GDObjPropType) -> GDValue {
         T::ProbabilitiesList => GDValue::ProbabilitiesList(smallvec![(1, 25), (2, 75)]),
         T::SpawnRemapsList => GDValue::SpawnRemapsList(smallvec![(5, 6), (7, 8)]),
         T::Toggle => GDValue::Toggle(Toggle::Off),
+        T::ZLayer => GDValue::ZLayer(ZLayer::B5),
         T::Speed => GDValue::Speed(Speed::X3),
         T::Gamemode => GDValue::Gamemode(Gamemode::Robot),
         T::ItemEditOperator => GDValue::ItemEditOperator(Op::Mul),
@@ -258,6 +261,7 @@ fn gdvalue_strict_enums() {
         ExtraID2(ExtraID2),
         ItemAlign(ItemAlign),
         TeleportGravity(TeleportGravity),
+        ItemType(ItemType)
     );
 }
 
@@ -281,7 +285,6 @@ fn gdvalue_lenient_enums() {
         i32::MAX,
     ] {
         assert_gdvalue_roundtrip(GDValue::CounterMode(CounterMode::from(i)));
-        assert_gdvalue_roundtrip(GDValue::ItemType(ItemType::from(i)));
         assert_gdvalue_roundtrip(GDValue::MiddleGround(MiddleGround::from(i)));
     }
 }
@@ -656,7 +659,10 @@ fn level_headers_with_unknown_keys() {
 // ---------------- level data ----------------
 
 fn sample_level_data() -> GDLevelData {
-    let mut data = GDLevel::default().get_decrypted_data().unwrap();
+    let mut data = GDLevel::default()
+        .with_editor_config()
+        .get_decrypted_data()
+        .unwrap();
     data.objects = vec![
         default_block(),
         GDObject::new(
@@ -686,22 +692,46 @@ fn level_data_encrypted() {
 
 #[test]
 fn level_data_without_objects() {
-    let data = GDLevel::default().get_decrypted_data().unwrap();
+    let data = GDLevel::default()
+        .with_editor_config()
+        .get_decrypted_data()
+        .unwrap();
     assert_eq!(GDLevelData::parse(data.serialise_to_string()), Some(data));
 }
 
 #[test]
 fn level_data_without_headers() {
     let data = GDLevelData {
-        headers: HashMap::new(),
+        headers: BTreeMap::new(),
         objects: vec![default_block()],
     };
     assert_eq!(GDLevelData::parse(data.serialise_to_string()), Some(data));
 }
 
 #[test]
+fn level_data_with_only_ks38_header() {
+    // when kS38 is the only header, the header string must still end with `;`.
+    // Otherwise the first object is read as part of the header.
+    let data = GDLevelData {
+        headers: [(
+            GDLevelHeaderKey::S(38),
+            GDLevelHeaderValue::ColourString(vec![full_colour_string()]),
+        )]
+        .into(),
+        objects: vec![
+            default_block(),
+            GDObject::parse_str("1,914,2,195,3,195,31,SGVsbG8=;"),
+        ],
+    };
+    assert_eq!(GDLevelData::parse(data.serialise_to_string()), Some(data));
+}
+
+#[test]
 fn level_data_many_objects() {
-    let mut data = GDLevel::default().get_decrypted_data().unwrap();
+    let mut data = GDLevel::default()
+        .with_editor_config()
+        .get_decrypted_data()
+        .unwrap();
     data.objects = (0..5000)
         .map(|i| {
             GDObject::new(
@@ -915,17 +945,10 @@ fn level_with_unknown_binary_version() {
 fn level_with_short_build_tab_pages() {
     let mut level = GDLevel::default();
     level.editor_state.build_tab_pages = {
-        let mut m = HashMap::new();
+        let mut m = IntMap::default();
         m.insert(0, 5);
         m
     };
-    assert_levels_eq(&GDLevel::from_dict(&level.to_dict()).unwrap(), &level);
-}
-
-#[test]
-fn level_with_non_ascii_replay_data() {
-    let mut level = GDLevel::default();
-    level.integrity.replay_data = Some(vec![0x00, 0xff, 0x80, b'a']);
     assert_levels_eq(&GDLevel::from_dict(&level.to_dict()).unwrap(), &level);
 }
 

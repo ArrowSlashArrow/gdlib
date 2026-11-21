@@ -55,6 +55,7 @@ use std::{
     path::PathBuf,
 };
 
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -331,7 +332,7 @@ impl CCLocalLevels {
  * 5. Struct fields that are unknown, unused, or unclear as annotated as such with comments.
  */
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// The descriptor struct for GD levels which contains all known properties.
 ///
 /// Reference: <https://boomlings.dev/resources/client/level>
@@ -425,7 +426,7 @@ pub struct GDLevelIdentity {
     pub update_date: Option<i32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// Values to do with the level data / gameplay. Notably, the level data itself, object count, length, etc.
 ///
 /// This struct also contains data for the platformer saves and level backups.
@@ -461,8 +462,10 @@ pub struct GDLevelContents {
     pub length: Length,
     /// Internal key: `k43`
     pub two_player_mode: bool,
+    /// This level is only searchable by friends of the uploader.
+    ///
     /// Internal key: `k94`
-    pub is_platformer: bool,
+    pub friends_only: bool,
     /// Interal key: `k126`
     pub autobackup_id: Option<String>,
     /// Interal key: `k127`
@@ -474,7 +477,9 @@ pub struct GDLevelContents {
     pub enable_platformer_save: bool,
     /// Interal key: `k130`
     pub platformer_save_level_version: i32,
-    // TODO: parse replay string
+    // TODO: parse replay string (same as k34)
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Interal key: `k131`
     pub platformer_save_replay: Option<Vec<u8>>,
     /// Interal key: `k132`
@@ -491,32 +496,10 @@ impl Default for GDLevelData {
 }
 
 /// Returns a default decrypted `GDLevelState` ready for being written to. The value returned is of the same type as the `data` field in [`GDLevelContents`].
+///
+/// By default, `GDLevelData` has no objects, and its headers are initialized according to [`DEFAULT_LEVEL_HEADERS`].
 pub fn default_level_data() -> Option<GDLevelState> {
     Some(GDLevelState::Decrypted(GDLevelData::default()))
-}
-
-impl Default for GDLevelContents {
-    fn default() -> Self {
-        Self {
-            data: default_level_data(),
-            object_count: 0,
-            high_object_count: false,
-            song_list: vec![],
-            sfx_list: None,
-            official_song_id: None,
-            custom_song_id: None,
-            length: Length::default(),
-            two_player_mode: false,
-            is_platformer: false,
-            autobackup_id: None,
-            last_autobackup_time: 0,
-            platformer_save: None,
-            enable_platformer_save: false,
-            platformer_save_level_version: 0,
-            platformer_save_replay: None,
-            platformer_save_format_version: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -694,9 +677,13 @@ pub struct GDLevelPlayerStats {
     /// Internal key: `k118`
     pub clicks_best_points: Option<i32>,
     // NOTE: has a similar (if not identical) structure to k34
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Internal key: `k119`
     pub replay_best_time: Option<Vec<u8>>,
     // NOTE: has a similar (if not identical) structure to k34
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Internal key: `k120`
     pub replay_best_points: Option<Vec<u8>>,
     /// Internal key: `k121`
@@ -777,7 +764,7 @@ pub struct GDLevelEditorState {
     /// For example, `build_tab_pages.get(&0)` is the page of the first tab that the user was last in.
     ///
     /// Internal key: `kI6`
-    pub build_tab_pages: HashMap<i32, i32>,
+    pub build_tab_pages: IntMap<i32, i32>,
     /// Internal key: `kI7`
     pub editor_layer: i32,
     /// Internal key: `k102`
@@ -803,13 +790,14 @@ pub struct GDLevelIntegrity {
     /// Internal key: `k111`
     pub platformer_seed: Option<i32>,
     /// Gzip-compressed replay data.
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
     ///
     /// Internal key: `k34`
     pub replay_data: Option<Vec<u8>>,
 }
 
 impl GDLevel {
-    /// Creates a new instance of this object that is set with values necessary for the level to open in GD.
+    /// Creates a new instance of this object that is set with values necessary for the level to open in GD. Note that `GDLevel::default` does NOT set these options.
     ///
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
     pub fn new(game_version: GDVersion) -> Self {
@@ -827,10 +815,28 @@ impl GDLevel {
     ///
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
     pub fn with_level_data(game_version: GDVersion, leveldata: GDLevelData) -> Self {
-        let mut this = GDLevel::default();
-        this.identity.binary_version = game_version;
+        let mut this = Self::new(game_version);
         this.content.data = Some(GDLevelState::Decrypted(leveldata));
         this
+    }
+
+    /// Sets options for this level that are set for new levels created in GD. Use this to initialize level data and editor state.
+    ///
+    /// The values set are: the camera position and zoom, the level data (with [`default_level_data`]), and the `is_editable` flag.
+    pub fn set_editor_config(&mut self) {
+        self.editor_state.camera_x = 100.0;
+        self.editor_state.camera_y = 100.0;
+        self.editor_state.camera_zoom = 1.0;
+        self.flags.is_editable = true;
+        self.content.data = default_level_data();
+    }
+
+    /// Applies options set by default when creating a new level in GD. Use this to initialize level data and editor state.
+    ///
+    /// Reference: See [`GDLevel::set_editor_config`].
+    pub fn with_editor_config(mut self) -> Self {
+        self.set_editor_config();
+        self
     }
 
     /// Parses a .gmd file to a GDLevel. This function will fail if:
@@ -940,6 +946,7 @@ impl GDLevel {
         )
     }
 
+    /* TODO: 1. fix it to prevent integer overflow  2. verify what these are  3. find what they are used for
     /// Generates the leaderboard seed for a classic level (property `k87` found at `GDLevel.integrity.level_seed`).
     ///
     /// Parameter info:
@@ -967,6 +974,7 @@ impl GDLevel {
             % 94433;
         return ((number ^ number >> 16) * 829) % 77849;
     }
+    */
 
     /// Parses a `plist::Dictionary` into a GDLevel object.
     ///
@@ -975,7 +983,7 @@ impl GDLevel {
     pub(crate) fn from_dict(d: &Dictionary) -> Option<Self> {
         let mut level = Self::default();
         for (k, v) in d {
-            level.add_raw_key(k, v);
+            level.set_raw_key(k, v);
         }
 
         Some(level)
@@ -987,7 +995,7 @@ impl GDLevel {
     /// The function will return `None` when the property's type mismatches or the value fails parsing.
     ///
     /// References: <https://boomlings.dev/resources/client/level>, <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/casting/level_loader.py>
-    pub fn add_raw_key(&mut self, k: &String, v: &Value) -> Option<()> {
+    pub fn set_raw_key(&mut self, k: &String, v: &Value) -> Option<()> {
         // keys come in a few shapes:
         // 1. kCEK: special kCEK key
         // 2. kXX: general keys
@@ -1031,7 +1039,7 @@ impl GDLevel {
                                     .unwrap_or_default(),
                             )
                         })
-                        .collect::<HashMap<_, _>>()
+                        .collect::<IntMap<_, _>>()
                 }
                 7 => {
                     self.editor_state.editor_layer =
@@ -1052,7 +1060,7 @@ impl GDLevel {
                 3 => {
                     // special case: b64-encoded data
                     self.identity.description =
-                        Some(vec_as_str_lossy(&b64_decode(&v.as_string()?[..]).ok()?[..]))
+                        Some(vec_as_str_lossy(&b64_decode(v.as_string()?).ok()?))
                 }
                 4 => {
                     // special case: self data
@@ -1166,7 +1174,7 @@ impl GDLevel {
                 91 => self.editor_state.locked_layers = parse_csv(v),
                 /* k101 - confirmed to exist but unknown */
                 93 => self.flags.unlimited_objects = v.as_boolean()?,
-                94 => self.content.is_platformer = v.as_boolean()?,
+                94 => self.content.friends_only = v.as_boolean()?,
                 95 => self.player_stats.verification_time = Some(v.as_signed_integer()? as i32),
                 /* 96, 97 are unused */
                 98 => self.identity.upload_date = Some(v.as_signed_integer()? as i32),
@@ -1247,8 +1255,8 @@ impl GDLevel {
          * dict of 14 ints: kI6
          *
          * kIX keys:
-         * floats: 1, 2, 3, 7
-         * ints: 4, 5
+         * floats: 1, 2, 3
+         * ints: 4, 5, 7
          */
 
         let mut d = Dictionary::new();
@@ -1319,6 +1327,7 @@ impl GDLevel {
                 ("k46", self.identity.level_revision),
                 ("k66", self.ratings.requested_stars),
                 ("k87", self.integrity.level_seed),
+                ("k95", self.player_stats.verification_time),
                 ("k98", self.identity.upload_date),
                 ("k99", self.identity.update_date),
                 ("k107", self.player_stats.best_time_ms),
@@ -1388,7 +1397,7 @@ impl GDLevel {
                 ("k82", self.flags.is_favourited),
                 ("k89", self.integrity.vfd_chk),
                 ("k93", self.flags.unlimited_objects),
-                ("k94", self.content.is_platformer),
+                ("k94", self.content.friends_only),
                 ("k112", self.flags.no_shake),
                 ("k123", self.player_stats.saved_best_time),
                 ("k124", self.player_stats.saved_best_points),
@@ -1662,34 +1671,9 @@ impl Display for GDLevel {
             self.identity
                 .description
                 .clone()
-                .unwrap_or("<No desciption>".to_string()),
+                .unwrap_or("<No description>".to_string()),
             self.identity.creator,
         )
-    }
-}
-
-impl Default for GDLevel {
-    fn default() -> Self {
-        Self {
-            identity: GDLevelIdentity::default(),
-            content: GDLevelContents::default(),
-            ratings: GDLevelRatings::default(),
-            coins: GDLevelCoins::default(),
-            player_stats: GDLevelPlayerStats::default(),
-            flags: GDLevelFlags {
-                is_editable: true,
-                ..Default::default()
-            },
-            editor_state: GDLevelEditorState {
-                camera_x: 100.0,
-                camera_y: 100.0,
-                camera_zoom: 1.0,
-                ..Default::default()
-            },
-            meta: GDLevelMeta::default(),
-            integrity: GDLevelIntegrity::default(),
-            unknowns: HashMap::default(),
-        }
     }
 }
 
@@ -1758,9 +1742,13 @@ fn to_float(v: &Value) -> Option<f32> {
 
 /// replaces unparsable values with 0
 pub(crate) fn parse_csv(v: &Value) -> Vec<i32> {
-    v.as_string()
-        .unwrap_or_default()
-        .split(",")
+    let Value::String(s) = v else {
+        return vec![];
+    };
+    if s.is_empty() {
+        return vec![];
+    }
+    s.split(",")
         .map(|d| d.parse::<i32>().unwrap_or_default())
         .collect::<Vec<i32>>()
 }

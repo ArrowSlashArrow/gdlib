@@ -62,11 +62,12 @@ macro_rules! gd_versions {
             ///
             /// The variants of this enum correspond to different builds of GD. Not all of the values of this enum are known.
             ///
-            /// **WARNING:** This function will NOT return a value for the following versions:
+            /// **WARNING:** This function returns an unconfirmed value following versions:
             /// * 2.207
             /// * 2.2071
             /// * 2.2072
             /// * 2.2073
+            /// * These values are returned for compatility, so that levels using these versions are still playable in GD
             ///
             /// For `Self::Unknown`, the internal value is returned.
             pub fn to_binary_version_id(&self) -> Option<i32> {
@@ -174,20 +175,20 @@ gd_versions! {
     /* presumably these ones have 42 < binaryVersion < 45 */
     /// GD Version 2.207
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD2207 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD2207 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2071
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22071 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22071 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2072
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22072 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22072 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2073
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22073 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22073 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2074
     GD22074 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.208
@@ -207,6 +208,11 @@ impl GDVersion {
     ///
     /// The argument value is preserved: calling `to_binary_version_id` on the returned object returns `Some(bv)`.
     pub fn from_binary_version(bv: i32) -> Self {
+        // TODO: remove when versions are confirmed for 2.207x
+        // 45 is used as a placeholder for 2.207x, which don't have a known binaryVersion
+        if bv == 45 {
+            return Self::GD22074;
+        }
         Self::ALL
             .iter()
             .copied()

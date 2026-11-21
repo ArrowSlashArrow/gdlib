@@ -33,7 +33,7 @@
 //! - **This module can only read.** There's currently no way to write a [`CCGameManager`] back to a file.
 //! - **Malformed files can panic.** [`CCGameManager::from_raw_string`] returns errors for some problems, but it panics on others, such as mistyped values.
 //! - **This data is sensitive.** [`account`](CCGameManager::account) can hold the player's password in plaintext and in hashed form in savefiles from GD older than 2.0, and [`CCGameManager`]'s `Debug` output prints both. Don't log it or share it.
-use std::{array, collections::HashMap, hash::BuildHasherDefault, io::Cursor};
+use std::{collections::HashMap, hash::BuildHasherDefault, io::Cursor};
 
 use nohash_hasher::NoHashHasher;
 use plist::{Dictionary, Value};
@@ -288,13 +288,18 @@ impl CCGameManager {
                 self.config.glm12_unknown = v
                     .as_dictionary()?
                     .iter()
-                    .map(|(k, _)| {
+                    .filter_map(|(k, _)| {
                         let mut split = k.split("_").into_iter();
                         let _ = split.next(); // skip `likes`
-                        let keys = array::from_fn(|_| {
-                            split.next().unwrap().parse::<i32>().unwrap_or_default()
-                        });
-                        keys
+                        const KEY_COUNT: usize = 4;
+                        let mut keys = [0i32; KEY_COUNT];
+                        for k in 0..KEY_COUNT {
+                            let Some(i) = split.next() else {
+                                return None;
+                            };
+                            keys[k] = i.parse::<i32>().unwrap_or_default()
+                        }
+                        Some(keys)
                     })
                     .collect::<Vec<_>>();
                 Some(())

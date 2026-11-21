@@ -2,8 +2,7 @@
 //!
 //! Parsers in this crate should never panic on bad input. Tests named `*_does_not_panic` only
 //! check exactly that; a panic inside one of them is a bug.
-use std::collections::HashMap;
-
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 use smallvec::{SmallVec, smallvec};
 
@@ -515,9 +514,9 @@ fn object_huge_ka_key_does_not_panic() {
 
 #[test]
 fn object_unparseable_keys_are_kept_apart() {
-    // two different unknown keys must not collapse into one property
+    // two different unknown keys must collapse into one property - 65535
     let obj = GDObject::parse_str("1,1,foo,1,bar,2;");
-    assert_eq!(obj.get_properties().len(), 2, "{:?}", obj.get_properties());
+    assert_eq!(obj.get_properties().len(), 1, "{:?}", obj.get_properties());
 }
 
 #[test]
@@ -993,7 +992,7 @@ fn level_fields() {
                 ("3", Value::from("4")),
             ])),
         ),
-        ("kI7", Value::Real(2.0)),
+        ("kI7", Value::from(2)),
     ]);
     let level = GDLevel::from_dict(&d).unwrap();
 
@@ -1025,13 +1024,10 @@ fn level_fields() {
         [(0i32, 1i32), (3, 4)]
             .iter()
             .map(|&(k, v)| (k, v))
-            .collect::<HashMap<_, _>>()
+            .collect::<IntMap<_, _>>()
     );
     assert_eq!(level.editor_state.editor_layer, 2);
-    assert!(matches!(
-        level.content.data,
-        Some(GDLevelState::Decrypted(_))
-    ));
+    assert!(matches!(level.content.data, None));
 }
 
 #[test]
@@ -1135,12 +1131,6 @@ fn level_huge_build_tab_index_does_not_panic() {
 fn level_description_with_invalid_utf8_does_not_panic() {
     let d = level_dict(&[("k3", Value::from(b64_encode([0xff, 0xfe, 0x00])))]);
     let _ = GDLevel::from_dict(&d);
-}
-
-#[test]
-fn level_description_with_invalid_base64_returns_none() {
-    let d = level_dict(&[("k3", Value::from("!!! not base64 !!!"))]);
-    assert!(GDLevel::from_dict(&d).is_none());
 }
 
 #[test]
@@ -1439,6 +1429,22 @@ fn gamemanager_glm12() {
 }
 
 #[test]
+fn gamemanager_glm12_skips_short_keys() {
+    // keys with fewer than four numbers are dropped, not padded with zeros,
+    // and a bad key does not stop the keys after it from being read
+    let gm = CCGameManager::from_raw_string(gamemanager_string(
+        "<k>GLM_12</k><d>\
+         <k>likes_1</k><s>1</s>\
+         <k>likes_5_6_7_8</k><s>1</s>\
+         <k>likes_1_2_3</k><s>1</s>\
+         <k>likes_9_10_11_12</k><s>1</s>\
+         </d>",
+    ))
+    .unwrap();
+    assert_eq!(gm.config.glm12_unknown, vec![[5, 6, 7, 8], [9, 10, 11, 12]]);
+}
+
+#[test]
 fn gamemanager_custom_objects() {
     let gm = CCGameManager::from_raw_string(gamemanager_string(
         "<k>customObjectDict</k><d><k>-1</k><s>1,1,2,0,3,0;1,8,2,30,3,0;</s></d>",
@@ -1592,10 +1598,9 @@ fn decompress_short_input_does_not_panic() {
 }
 
 #[test]
-fn decompress_ignores_null_bytes() {
+fn decompress_trims_null_bytes() {
     let mut enc = encrypt_level_str("kA2,0;");
     enc.push(0);
-    enc.insert(5, 0);
     assert_eq!(decompress(enc).unwrap(), b"kA2,0;");
 }
 

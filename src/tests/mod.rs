@@ -178,7 +178,7 @@ fn sample_level() -> GDLevel {
     level.content.custom_song_id = Some(467339);
     level.content.length = Length::Long;
     level.content.two_player_mode = true;
-    level.content.is_platformer = true;
+    level.content.friends_only = true;
 
     level.ratings.rating = DifficultyRating::Harder;
     level.ratings.rating_sum = 40;

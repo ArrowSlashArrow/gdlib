@@ -152,7 +152,6 @@ fn gdvalue_enums() {
         (GDValue::CounterMode(CounterMode::Attempts), "-3"),
         (GDValue::CounterMode(CounterMode::Unrecognized(-50)), "-50"),
         (GDValue::ItemType(ItemType::Attempts), "5"),
-        (GDValue::ItemType(ItemType::Unrecognized(77)), "77"),
         (GDValue::StopMode(StopMode::Resume), "2"),
         (GDValue::ExtraID2(ExtraID2::P2), "2"),
         (GDValue::ItemAlign(ItemAlign::Right), "2"),
@@ -376,10 +375,34 @@ fn object_property_that_belongs_to_config_is_not_duplicated() {
     let obj = GDObject::new(
         1,
         &GDObjConfig::new().with_multitrigger(true),
-        vec![(p::MULTITRIGGERABLE, GDValue::Bool(false))],
+        vec![(p::MULTITRIGGERABLE, GDValue::Bool(true))],
     );
     let s = obj.serialise_to_string();
     assert_eq!(values_of(&s, "87").len(), 1, "{s}");
+}
+
+#[test]
+fn object_new_moves_config_properties_into_config() {
+    // config properties in the property list replace the matching values in `config` and are not
+    // kept in the list, so the object reads back unchanged.
+    let obj = GDObject::new(
+        1,
+        &GDObjConfig::new()
+            .with_multitrigger(true)
+            .with_groups([1i16])
+            .with_pos(15.0, 15.0),
+        vec![
+            (p::MULTITRIGGERABLE, GDValue::Bool(false)),
+            (p::GROUPS, GDValue::GroupList(smallvec![3, 2])),
+            (p::X_POS, GDValue::Float(45.0)),
+            (51, GDValue::Group(5)),
+        ],
+    );
+    assert!(!obj.config.trigger_cfg.multitriggerable);
+    assert_eq!(obj.config.groups.to_vec(), vec![2, 3]);
+    assert_eq!(obj.config.pos, (45.0, 15.0));
+    assert_eq!(obj.get_properties(), &[(51, GDValue::Group(5))]);
+    assert_eq!(GDObject::parse_str(obj.serialise_to_string()), obj);
 }
 
 #[test]
@@ -690,6 +713,7 @@ fn level_headers_are_deterministic() {
     // each default level builds its own header map, so the iteration order of the map can differ
     let headers = || {
         GDLevel::default()
+            .with_editor_config()
             .get_decrypted_data()
             .unwrap()
             .serialise_level_headers()
@@ -721,7 +745,10 @@ fn level_data_raw_string() {
 
 #[test]
 fn level_data_encrypted_string_has_gd_header() {
-    let data = GDLevel::default().get_decrypted_data().unwrap();
+    let data = GDLevel::default()
+        .with_editor_config()
+        .get_decrypted_data()
+        .unwrap();
     assert!(data.serialise_to_string().starts_with("H4sIAAAAAAAAC"));
 }
 
@@ -731,8 +758,22 @@ fn level_data_encrypted_string_has_gd_header() {
 fn level_default_dict() {
     let d = GDLevel::default().to_dict();
     assert_eq!(d.get("kCEK"), Some(&Value::from(4)));
+    assert_eq!(d.get("k21"), Some(&Value::from(2))); // default: LevelType::Local
+    assert_eq!(d.get("k50"), Some(&Value::from(0))); // default: LevelType::Local
+    // defaults are omitted
+    for key in [
+        "k1", "k2", "k3", "k14", "k18", "k42", "k45", "k105", "k13", "k4",
+    ] {
+        assert!(!d.contains_key(key), "{key} should be omitted");
+    }
+}
+
+#[test]
+fn level_default_editor_config_dict() {
+    let d = GDLevel::default().with_editor_config().to_dict();
+    assert_eq!(d.get("kCEK"), Some(&Value::from(4)));
     assert_eq!(d.get("k13"), Some(&Value::Boolean(true)));
-    assert_eq!(d.get("k21"), Some(&Value::from(2))); // local level
+    assert_eq!(d.get("k21"), Some(&Value::from(2))); // default: LevelType::Local
     assert!(d.contains_key("k4"));
     assert!(d.contains_key("k50"));
     assert!(d.contains_key("kI6"));
@@ -818,14 +859,6 @@ fn level_unknown_binary_version_is_preserved() {
 }
 
 #[test]
-fn level_binary_version_without_known_id_is_not_written_as_zero() {
-    // see `GDVersion::to_binary_version_id`: 2.207 has no known binary version.
-    // Writing 0 makes GD treat the level as a 1.0 level and wipe its data.
-    let level = GDLevel::new(GDVersion::GD2207);
-    assert_ne!(level.to_dict().get("k50"), Some(&Value::from(0)));
-}
-
-#[test]
 fn level_serialise_to_string_is_gmd() {
     let s = GDLevel::default().serialise_to_string();
     assert!(s.starts_with(PLIST_HEADER), "{s}");
@@ -835,7 +868,7 @@ fn level_serialise_to_string_is_gmd() {
 
 #[test]
 fn level_display() {
-    let mut level = GDLevel::default();
+    let mut level = GDLevel::default().with_editor_config();
     level.identity.name = "Name".into();
     level.identity.creator = "Creator".into();
     assert_eq!(

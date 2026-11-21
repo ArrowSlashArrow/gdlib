@@ -98,8 +98,7 @@ pub fn check_seed_advanced_random(seed: u64, probabilities: &[(i16, i32)]) -> Op
         return Some(probabilities[0].0);
     }
 
-    let accumulated_chance_threshold =
-        (fast_rand_bits_norm(seed) as f32 * big_total_chance as f32) as i32;
+    let accumulated_chance_threshold = (fast_rand_bits_norm(seed) * big_total_chance as f32) as i32;
 
     let mut buf_ptr = 0;
     let mut accumulated_chance = probabilities[buf_ptr].1; // chance

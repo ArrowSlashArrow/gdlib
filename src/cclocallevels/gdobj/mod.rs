@@ -169,12 +169,24 @@ impl Debug for GDObject {
     }
 }
 
+macro_rules! config_property {
+    ($var:ident, $ptype:ident) => {{
+        let GDValue::$ptype(inner) = $var else {
+            return;
+        };
+        inner
+    }};
+}
+
 const KA_PROPERTY_OFFSET: u16 = 10_000;
 
 impl GDObject {
     /// Parses raw object string to `GDObject`
     ///
     /// Parsing never fails: values that can't be parsed fall back to defaults, and a string without an object ID gives an object with ID 1.
+    ///
+    /// For invalid properties - XX or kAXX with an unreasonably high XX (>55535) or any key that does not fit either form, its corresponding value is written to key `i16::MAX`, or 65535.
+    /// This property should be treated as invalid, as GD does not encode property 65535 anywhere.
     pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
         let s = s.as_ref();
         let mut obj = GDObject {
@@ -321,7 +333,7 @@ impl GDObject {
                     .config
                     .attributes
                     .set(GDObjAttributes::reverse, parse!(val => bool)),
-                MATERIAL_CONTROL_ID => obj.config.control_id = parse!(val => i16),
+                MATERIAL_CONTROL_ID => obj.config.control_id = parse!(val => i32),
                 PARENT_GROUPS => {
                     // add groups method handles deduping
                     obj.config.add_pink_groups(
@@ -349,15 +361,160 @@ impl GDObject {
         );
     }
 
-    /// Sets the property ID to the value, and creates it if it doesn't exist
+    /// Sets the property ID to the value, and creates it if it doesn't exist in `self.properties`. If the given property ID is a property defined in `self.config`, the property will be set there only if the type of `val` matches the type of the property.
+    ///
+    /// The `GDValue` variant must match for a property defined in `obj.config` - use `GDValue::Int` for integer values such as object id, use `GDValue::Float` for f32 values such as position, rotation, etc.
+    /// * For `GROUPS` and `PINK_GROUPS`, use `GDValue::GroupList`.
+    /// * For `OBJECT_COLOUR` and `DETAIL_COLOUR`, use `GDValue::ColourChannel`.
+    /// * For `MATERIAL_CONTROL_ID`, `ENTER_EFFECT_CHANNEL`, `OBJECT_MATERIAL`, `EDITOR_LAYER_1` and `EDITOR_LAYER_2`, use `GDValue::Short`.
+    /// * For `Z_LAYER`, use `GDValue::ZLayer`.
+    ///
+    /// If the given value does not match the expected type, the function will abruptly exit and not write any value.
     pub fn set_property(&mut self, p: u16, val: GDValue) {
-        match self.properties.binary_search_by_key(&p, |t| t.0) {
-            Ok(idx) => self.properties[idx].1 = val,
-            Err(idx) => self.properties.insert(idx, (p, val)),
+        // if this property is in self.config, change that property there
+        match p {
+            OBJECT_ID => self.id = config_property!(val, Int),
+            X_POS => self.config.pos.0 = config_property!(val, Float),
+            Y_POS => self.config.pos.1 = config_property!(val, Float),
+            ROTATION => self.config.angle = config_property!(val, Float),
+            TOUCH_TRIGGERABLE => self.config.trigger_cfg.touchable = config_property!(val, Bool),
+            SPAWN_TRIGGERABLE => self.config.trigger_cfg.spawnable = config_property!(val, Bool),
+            MULTITRIGGERABLE => {
+                self.config.trigger_cfg.multitriggerable = config_property!(val, Bool)
+            }
+            GROUPS => {
+                let GDValue::GroupList(g) = val else {
+                    return;
+                };
+                self.config.groups = g.to_vec();
+                self.config.groups.sort();
+            }
+            X_SCALE => self.config.scale.0 = config_property!(val, Float),
+            Y_SCALE => self.config.scale.1 = config_property!(val, Float),
+            EDITOR_LAYER_1 => self.config.editor_layers.0 = config_property!(val, Short),
+            EDITOR_LAYER_2 => self.config.editor_layers.1 = config_property!(val, Short),
+            OBJECT_COLOUR => {
+                self.config.colour_channels.0 = config_property!(val, ColourChannel);
+            }
+            SECONDARY_COLOUR => {
+                self.config.colour_channels.1 = config_property!(val, ColourChannel);
+            }
+            Z_LAYER => self.config.z_layer = config_property!(val, ZLayer),
+            Z_ORDER => self.config.z_order = config_property!(val, Int),
+            ENTER_EFFECT_CHANNEL => self.config.enter_effect_channel = config_property!(val, Short),
+            OBJECT_MATERIAL => self.config.material_id = config_property!(val, Short),
+            DONT_FADE => self
+                .config
+                .attributes
+                .set(GDObjAttributes::dont_fade, config_property!(val, Bool)),
+            DONT_ENTER => self
+                .config
+                .attributes
+                .set(GDObjAttributes::dont_enter, config_property!(val, Bool)),
+            NO_OBJECT_EFFECTS => self
+                .config
+                .attributes
+                .set(GDObjAttributes::no_effects, config_property!(val, Bool)),
+            IS_GROUP_PARENT => self.config.attributes.set(
+                GDObjAttributes::is_group_parent,
+                config_property!(val, Bool),
+            ),
+            IS_AREA_PARENT => self
+                .config
+                .attributes
+                .set(GDObjAttributes::is_area_parent, config_property!(val, Bool)),
+            DONT_BOOST_X => self
+                .config
+                .attributes
+                .set(GDObjAttributes::dont_boost_x, config_property!(val, Bool)),
+            DONT_BOOST_Y => self
+                .config
+                .attributes
+                .set(GDObjAttributes::dont_boost_y, config_property!(val, Bool)),
+            IS_HIGH_DETAIL => self
+                .config
+                .attributes
+                .set(GDObjAttributes::high_detail, config_property!(val, Bool)),
+            NO_TOUCH => self
+                .config
+                .attributes
+                .set(GDObjAttributes::no_touch, config_property!(val, Bool)),
+            PASSABLE => self
+                .config
+                .attributes
+                .set(GDObjAttributes::passable, config_property!(val, Bool)),
+            HIDDEN => self
+                .config
+                .attributes
+                .set(GDObjAttributes::hidden, config_property!(val, Bool)),
+            NONSTICK_X => self
+                .config
+                .attributes
+                .set(GDObjAttributes::non_stick_x, config_property!(val, Bool)),
+            NONSTICK_Y => self
+                .config
+                .attributes
+                .set(GDObjAttributes::non_stick_y, config_property!(val, Bool)),
+            EXTRA_STICKY => self
+                .config
+                .attributes
+                .set(GDObjAttributes::extra_sticky, config_property!(val, Bool)),
+            HAS_EXTENDED_COLLISION => self.config.attributes.set(
+                GDObjAttributes::extended_collision,
+                config_property!(val, Bool),
+            ),
+            IS_ICE_BLOCK => self
+                .config
+                .attributes
+                .set(GDObjAttributes::is_ice_block, config_property!(val, Bool)),
+            GRIP_SLOPE => self
+                .config
+                .attributes
+                .set(GDObjAttributes::grip_slope, config_property!(val, Bool)),
+            NO_GLOW => self
+                .config
+                .attributes
+                .set(GDObjAttributes::no_glow, config_property!(val, Bool)),
+            NO_PARTICLES => self
+                .config
+                .attributes
+                .set(GDObjAttributes::no_particles, config_property!(val, Bool)),
+            SCALE_STICK => self
+                .config
+                .attributes
+                .set(GDObjAttributes::scale_stick, config_property!(val, Bool)),
+            NO_AUDIO_SCALE => self
+                .config
+                .attributes
+                .set(GDObjAttributes::no_audio_scale, config_property!(val, Bool)),
+            SINGLE_PLAYER_TOUCH => self
+                .config
+                .attributes
+                .set(GDObjAttributes::single_ptouch, config_property!(val, Bool)),
+            CENTER_EFFECT => self
+                .config
+                .attributes
+                .set(GDObjAttributes::center_effect, config_property!(val, Bool)),
+            REVERSES_GAMEPLAY => self
+                .config
+                .attributes
+                .set(GDObjAttributes::reverse, config_property!(val, Bool)),
+            MATERIAL_CONTROL_ID => self.config.control_id = config_property!(val, Int),
+            PARENT_GROUPS => {
+                let GDValue::GroupList(g) = val else {
+                    return;
+                };
+                self.config.pink_groups = g.to_vec();
+                self.config.pink_groups.sort();
+            }
+            n => match self.properties.binary_search_by_key(&n, |t| t.0) {
+                Ok(idx) => self.properties[idx].1 = val,
+                Err(idx) => self.properties.insert(idx, (n, val)),
+            },
         }
     }
 
-    /// Removes the property from this object's property map by its ID.
+    /// Removes the property from this object's property map by its ID if the property exists in `self.properties`.
     pub fn del_property(&mut self, p: u16) {
         if let Ok(idx) = self.properties.binary_search_by_key(&p, |t| t.0) {
             let _ = self.properties.remove(idx);
@@ -406,11 +563,16 @@ impl GDObject {
         let mut p = properties;
         p.sort_by(|a, b| a.0.cmp(&b.0));
         p.dedup_by_key(|p| p.0);
-        Self {
+        let mut this = Self {
             id,
             config: config.clone(),
-            properties: p,
+            properties: vec![],
+        };
+        // ensure that any config properties are written to config and do not stay in self.properties
+        for (k, v) in p {
+            this.set_property(k, v);
         }
+        this
     }
 
     #[inline]
@@ -436,6 +598,7 @@ impl GDObject {
             6 => Some(GDValue::Float(self.config.angle)),
             11 => Some(GDValue::Bool(self.config.trigger_cfg.touchable)),
             57 => Some(GDValue::from_group_list(&self.config.groups)),
+            274 => Some(GDValue::from_group_list(&self.config.pink_groups)),
             62 => Some(GDValue::Bool(self.config.trigger_cfg.spawnable)),
             87 => Some(GDValue::Bool(self.config.trigger_cfg.multitriggerable)),
             128 => Some(GDValue::Float(self.config.scale.0)),
@@ -448,7 +611,7 @@ impl GDObject {
             25 => Some(GDValue::Int(self.config.z_order)),
             343 => Some(GDValue::Short(self.config.enter_effect_channel)),
             446 => Some(GDValue::Short(self.config.material_id)),
-            534 => Some(GDValue::Short(self.config.control_id)),
+            534 => Some(GDValue::Int(self.config.control_id)),
             64 => Some(self.get_attr_as_gdvalue(GDObjAttributes::dont_fade)),
             67 => Some(self.get_attr_as_gdvalue(GDObjAttributes::dont_enter)),
             116 => Some(self.get_attr_as_gdvalue(GDObjAttributes::no_effects)),
@@ -577,6 +740,15 @@ macro_rules! prop_value {
     // As a result, I have opted to leave this arm in specifically for those two fields.
     //
     // Note: **DO NOT** use this for any other field, unless it is bound to a property that also has a conflicting type situation.
+
+    // `@entry` arms build an `Option<(id, value)>` for `object_descriptor!`'s `serialise`.
+    // Optional fields produce `None` when unset, so the property is left out entirely.
+    (@entry $opt:literal $t:ident, $id:expr, $field:expr) => {
+        $field.map(|v| ($id, GDValue::$t(v)))
+    };
+    (@entry $t:ident, $id:expr, $field:expr) => {
+        Some(($id, crate::cclocallevels::gdobj::prop_value!($t, $field)))
+    };
     (as_i32, $field:expr) => {
         GDValue::Int($field as i32)
     };
@@ -645,11 +817,15 @@ macro_rules! object_descriptor {
 
         impl ObjectProperties for $descriptor {
             fn serialise(&self) -> Vec<(u16, GDValue)> {
-                vec![
+                // optional fields that are `None` are left out, so that they parse back as `None`.
+                [
                     $(
-                        ($prop_id, crate::cclocallevels::gdobj::prop_value!($($opt)? $prop_t, self.$field)),
+                        crate::cclocallevels::gdobj::prop_value!(@entry $($opt)? $prop_t, $prop_id, self.$field),
                     )*
                 ]
+                .into_iter()
+                .flatten()
+                .collect()
             }
 
             fn object_id(&self) -> i32 {

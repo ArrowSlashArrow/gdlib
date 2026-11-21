@@ -407,37 +407,37 @@ impl GDPlatformerUI {
     }
 
     fn parse_width(&mut self, s: &str) {
-        self.width = s.parse::<i32>().unwrap();
+        self.width = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_height(&mut self, s: &str) {
-        self.height = s.parse::<i32>().unwrap();
+        self.height = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_scale(&mut self, s: &str) {
-        self.scale = s.parse::<f32>().unwrap();
+        self.scale = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_opacity(&mut self, s: &str) {
-        self.opacity = s.parse::<i32>().unwrap();
+        self.opacity = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_pos_x(&mut self, s: &str) {
-        self.pos.0 = s.parse::<f32>().unwrap();
+        self.pos.0 = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_pos_y(&mut self, s: &str) {
-        self.pos.1 = s.parse::<f32>().unwrap();
+        self.pos.1 = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_mode_b(&mut self, s: &str) {
-        self.mode_b = s.parse::<i32>().unwrap() == 1;
+        self.mode_b = s.parse::<i32>().unwrap_or_default() == 1;
     }
     fn parse_deadzone(&mut self, s: &str) {
-        self.deadzone = s.parse::<f32>().unwrap();
+        self.deadzone = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_radius(&mut self, s: &str) {
-        self.radius = s.parse::<f32>().unwrap();
+        self.radius = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_snap(&mut self, s: &str) {
-        self.snap = s.parse::<i32>().unwrap() == 1;
+        self.snap = s.parse::<i32>().unwrap_or_default() == 1;
     }
     fn parse_split(&mut self, s: &str) {
-        self.split = s.parse::<i32>().unwrap() == 1;
+        self.split = s.parse::<i32>().unwrap_or_default() == 1;
     }
 }
 
