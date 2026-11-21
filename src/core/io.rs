@@ -147,10 +147,9 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
 /// Returns the decompressed bytes. Returns [`GDError::DecodeError`] if the base64 is invalid,
 /// [`GDError::CorruptedSavefile`] if the decoded payload is 10 bytes or shorter, and [`GDError::Io`] if inflating fails.
 pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
-    // null bytes are usually only found at the end of the string
-    // let last_non_null = data.iter().rposition(|&c| c != 0).unwrap_or(data.len());
-    // data.truncate(last_non_null);
-    data.retain(|c| *c != 0);
+    // null bytes are only found at the end of the string; payload is base64-encoded gzip
+    let last_non_null = data.iter().rposition(|&c| c != 0).map_or(0, |d| d + 1);
+    data.truncate(last_non_null);
 
     // decode DEFLATE payload
     let decoded = general_purpose::URL_SAFE.decode(data)?;
@@ -187,17 +186,10 @@ pub fn decrypt(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
 }
 
 /// Reads the savefile at `file` (CCLocalLevels.dat or CCGameManager.dat) and returns its decrypted contents, using [`decrypt`].
-///
-/// **Every non-ASCII byte is removed** before the bytes are converted to a string, so non-ASCII text such as level names is lost or altered.
-pub fn decrypt_file(file: PathBuf) -> Result<String, GDError> {
-    let savefile = match fs::read(file) {
-        Ok(v) => v,
-        Err(e) => return Err(GDError::Io(e)),
-    };
-    let mut data = decrypt(savefile)?;
-    data.retain(|c| *c < 128); // sometimes there are some weird chars in the ccgamemanager file
-
-    Ok(String::from_utf8(data)?)
+pub fn decrypt_file<'a>(file: PathBuf) -> Result<String, GDError> {
+    let savefile_bytes = decrypt(fs::read(file).map_err(GDError::Io)?)?;
+    Ok(String::from_utf8(savefile_bytes)
+        .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()))
 }
 
 /// Warning when using this fn: if the data isn't valid UTF8, the fn WILL panic!
