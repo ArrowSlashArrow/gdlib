@@ -1,16 +1,20 @@
 # Changelog
 
 ## Update v0.4.4
-A lot of issues fixed and cleanup:  
+* Added support for reading and writing `.gdlvl` files
+* Better error handling and crash aversion
+* Major test overhaul - GDLib now has 1157 test cases
+* `gdlib::core::rand` API was slightly improved
+Issues fixed and cleanup:  
 1. boolean flags are now encoded properly
 2. pink groups are serialized
 3. unknown binary versions not written as 0
 4. all setter methods for `GDObjConfig` now work properly
-5. `CounterLabel::from_object` is implemented correctly
+5. `ObjectProperties::from_object` is implemented correctly for all currently included object structs
 6. `GDOrb::Blue` now has the correct ID
 7. Pulse trigger is properly encoded for group pulse mode
 8. HSV string checkboxes are parsed in the correct order
-9. Duplicate properties are no longer possible 
+9. Duplicate properties are no longer possible in `GDObject.properties`
 10. Item edit trigger `eval_result` works properly
 11. Guideline strings are read and encoded correctly
 12. All object constructors use the correct types when serialising objects.
@@ -20,6 +24,13 @@ A lot of issues fixed and cleanup:
 16. Atomic file writes are used to prevent savefile corruption
 17. Plist aho-corasick automaton is built only once
 18. Keys others than LLM_01/2/3 are preserved in CCLocalLevels
+19. Some public items did not have documentation, now all public items (excluding `gdlib::cclocallevels::gdobj::ids` are fully documented)
+20. Properties set with `GDObject::set_property` now go to `GDObject.config` if they are configuration properties instead of `GDObject.properties`.
+21. \[Internal] `GDVersion` is now defined with a clean macro
+22. `ObjectProperties::from_object` implementations now use matching property types with `.serialise`
+23. Non-ASCII UTF-8 characters are now preserved in CCLocalLevels and CCGameManager
+24. #24 - `PulseTarget::Channel` now wraps `ColourChannel` instead of `PulseChannel`
+25. Bad `GLM_12` key no longer crashes
 
 ## Update v0.4.3
 * Introduced `ObjectProperties` trait which defines functions for seriailization and an optional function for converting from GDObject.
