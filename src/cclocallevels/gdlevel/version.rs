@@ -174,20 +174,20 @@ gd_versions! {
     /* presumably these ones have 42 < binaryVersion < 45 */
     /// GD Version 2.207
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD2207 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD2207 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2071
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22071 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22071 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2072
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22072 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22072 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2073
     ///
-    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 0 and will not work when used in either `LLM_02` or `k50` in a level.
-    GD22073 => game: Some(22), binary: None, manifest: None;
+    /// **NOTE:** This version of GD **DOES NOT** have a known binary version! This variant has a value of 45 (GD 2.2074 `binaryVersion`) as a replacement value for compatibility.
+    GD22073 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.2074
     GD22074 => game: Some(22), binary: Some(45), manifest: None;
     /// GD Version 2.208

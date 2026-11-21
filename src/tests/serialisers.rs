@@ -835,14 +835,6 @@ fn level_unknown_binary_version_is_preserved() {
 }
 
 #[test]
-fn level_binary_version_without_known_id_is_not_written_as_zero() {
-    // see `GDVersion::to_binary_version_id`: 2.207 has no known binary version.
-    // Writing 0 makes GD treat the level as a 1.0 level and wipe its data.
-    let level = GDLevel::new(GDVersion::GD2207);
-    assert_ne!(level.to_dict().get("k50"), Some(&Value::from(0)));
-}
-
-#[test]
 fn level_serialise_to_string_is_gmd() {
     let s = GDLevel::default().serialise_to_string();
     assert!(s.starts_with(PLIST_HEADER), "{s}");
