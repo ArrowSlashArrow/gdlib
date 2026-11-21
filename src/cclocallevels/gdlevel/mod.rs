@@ -477,7 +477,9 @@ pub struct GDLevelContents {
     pub enable_platformer_save: bool,
     /// Interal key: `k130`
     pub platformer_save_level_version: i32,
-    // TODO: parse replay string
+    // TODO: parse replay string (same as k34)
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Interal key: `k131`
     pub platformer_save_replay: Option<Vec<u8>>,
     /// Interal key: `k132`
@@ -494,6 +496,8 @@ impl Default for GDLevelData {
 }
 
 /// Returns a default decrypted `GDLevelState` ready for being written to. The value returned is of the same type as the `data` field in [`GDLevelContents`].
+///
+/// By default, `GDLevelData` has no objects, and its headers are initialized according to [`DEFAULT_LEVEL_HEADERS`].
 pub fn default_level_data() -> Option<GDLevelState> {
     Some(GDLevelState::Decrypted(GDLevelData::default()))
 }
@@ -673,9 +677,13 @@ pub struct GDLevelPlayerStats {
     /// Internal key: `k118`
     pub clicks_best_points: Option<i32>,
     // NOTE: has a similar (if not identical) structure to k34
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Internal key: `k119`
     pub replay_best_time: Option<Vec<u8>>,
     // NOTE: has a similar (if not identical) structure to k34
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
+    ///
     /// Internal key: `k120`
     pub replay_best_points: Option<Vec<u8>>,
     /// Internal key: `k121`
@@ -782,13 +790,14 @@ pub struct GDLevelIntegrity {
     /// Internal key: `k111`
     pub platformer_seed: Option<i32>,
     /// Gzip-compressed replay data.
+    /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
     ///
     /// Internal key: `k34`
     pub replay_data: Option<Vec<u8>>,
 }
 
 impl GDLevel {
-    /// Creates a new instance of this object that is set with values necessary for the level to open in GD.
+    /// Creates a new instance of this object that is set with values necessary for the level to open in GD. Note that `GDLevel::default` does NOT set these options.
     ///
     /// Ensure that the game_version returns `Some(id)` when [`GDVersion::to_binary_version_id`] is called on it. The level may not open with its assigned data otherwise.
     pub fn new(game_version: GDVersion) -> Self {
@@ -811,15 +820,23 @@ impl GDLevel {
         this
     }
 
-    /// Sets options for this level that are set for new levels created in GD.
+    /// Sets options for this level that are set for new levels created in GD. Use this to initialize level data and editor state.
     ///
-    /// The values set are: the camera position and zoom, the level data, and the `is_editable` flag
+    /// The values set are: the camera position and zoom, the level data (with [`default_level_data`]), and the `is_editable` flag.
     pub fn set_editor_config(&mut self) {
         self.editor_state.camera_x = 100.0;
         self.editor_state.camera_y = 100.0;
         self.editor_state.camera_zoom = 1.0;
         self.flags.is_editable = true;
         self.content.data = default_level_data();
+    }
+
+    /// Applies options set by default when creating a new level in GD. Use this to initialize level data and editor state.
+    ///
+    /// Reference: See [`GDLevel::set_editor_config`].
+    pub fn with_editor_config(mut self) -> Self {
+        self.set_editor_config();
+        self
     }
 
     /// Parses a .gmd file to a GDLevel. This function will fail if:
@@ -1654,7 +1671,7 @@ impl Display for GDLevel {
             self.identity
                 .description
                 .clone()
-                .unwrap_or("<No desciption>".to_string()),
+                .unwrap_or("<No description>".to_string()),
             self.identity.creator,
         )
     }

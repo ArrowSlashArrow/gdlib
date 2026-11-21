@@ -70,6 +70,7 @@ fn strict_object_value_enums() {
     check_strict!(Gamemode, -5..=10, expected_variants: 8);
     check_strict!(StopMode, -5..=10, expected_variants: 3);
     check_strict!(ItemAlign, -5..=10, expected_variants: 3);
+    check_strict!(ItemType, -5..=10, expected_variants: 5);
     check_strict!(TransitionMode, -5..=10, expected_variants: 3);
     check_strict!(TransitionType, -5..=2000, expected_variants: 13);
     check_strict!(Op, -5..=10, expected_variants: 5);
@@ -107,7 +108,6 @@ fn object_type_enums() {
 
 #[test]
 fn lenient_enums() {
-    check_lenient!(ItemType, -10..=20, expected_variants: 5);
     check_lenient!(CounterMode, -10..=20, expected_variants: 4);
     check_lenient!(Event, -10..=100, expected_variants: 78);
     check_lenient!(MiddleGround, -10..=20, expected_variants: 4);
@@ -389,7 +389,6 @@ fn items() {
             item,
             "{item:?}"
         );
-        assert_eq!(item.get_type_as_i32(), item.get_type().to_num());
         if let Some(mode) = item.as_special_mode() {
             assert_eq!(Item::from_counter_mode(mode), item);
             assert_eq!(item.as_special_mode_i32(), Some(mode.to_num()));
@@ -403,10 +402,7 @@ fn items() {
         Item::from_counter_mode(CounterMode::Unrecognized(-50)),
         Item::Counter(0)
     );
-    assert_eq!(
-        Item::from_id_type(4, ItemType::Unrecognized(77)),
-        Item::Counter(0)
-    );
+    assert_eq!(Item::from_id_type(4, ItemType::Points), Item::Points);
 }
 
 #[test]

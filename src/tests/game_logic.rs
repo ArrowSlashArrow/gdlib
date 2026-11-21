@@ -2,13 +2,10 @@
 use std::f32::consts::PI;
 
 use crate::{
-    cclocallevels::{
-        gdlevel::GDLevel,
-        gdobj::{
-            GDObject, ObjectProperties,
-            structs::*,
-            triggers::{AdvancedRandomTrigger, ItemCompareTrigger, ItemEditTrigger},
-        },
+    cclocallevels::gdobj::{
+        GDObject, ObjectProperties,
+        structs::*,
+        triggers::{AdvancedRandomTrigger, ItemCompareTrigger, ItemEditTrigger},
     },
     core::rand::*,
 };

@@ -156,12 +156,6 @@ impl Item {
             Self::Timer(_) => ItemType::Timer,
         }
     }
-    #[inline]
-    #[must_use]
-    /// Returns this item's type as an i32
-    pub fn get_type_as_i32(&self) -> i32 {
-        self.get_type().to_num()
-    }
     /// Returns this item's special mode if it has one
     #[inline]
     #[must_use]
@@ -213,14 +207,13 @@ impl Item {
             ItemType::Attempts => Self::Attempts,
             ItemType::Points => Self::Points,
             ItemType::MainTime => Self::MainTime,
-            ItemType::Unrecognized(_) => Self::Counter(0),
         }
     }
 }
 
 repr_t!(
     /// Enum for counter types
-    ItemType: i32 {
+    strict ItemType: i32 {
         /// This is the default item type designated by every trigger that deals with items.
         /// However, due to this variant having a value of 1 instead of 0, any properties of this type will not be automatically designated as `Self::Counter`.
         /// Using [`GDValue::from`] circumvents this by interpreting unset values as their default values, which in this case is the `Counter` variant.
@@ -817,7 +810,7 @@ impl Display for GDValue {
             GDValue::TransitionMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::UIReferencePos(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::CounterMode(v) => write!(f, "{}", i_buf.format(v.to_num())),
-            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(v.to_num())),
+            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ExtraID2(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ItemAlign(v) => write!(f, "{}", i_buf.format(*v as i32)),

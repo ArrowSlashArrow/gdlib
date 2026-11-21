@@ -147,6 +147,9 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
 /// Returns the decompressed bytes. Returns [`GDError::DecodeError`] if the base64 is invalid,
 /// [`GDError::CorruptedSavefile`] if the decoded payload is 10 bytes or shorter, and [`GDError::Io`] if inflating fails.
 pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
+    // null bytes are usually only found at the end of the string
+    // let last_non_null = data.iter().rposition(|&c| c != 0).unwrap_or(data.len());
+    // data.truncate(last_non_null);
     data.retain(|c| *c != 0);
 
     // decode DEFLATE payload

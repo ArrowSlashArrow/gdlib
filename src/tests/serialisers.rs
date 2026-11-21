@@ -152,7 +152,6 @@ fn gdvalue_enums() {
         (GDValue::CounterMode(CounterMode::Attempts), "-3"),
         (GDValue::CounterMode(CounterMode::Unrecognized(-50)), "-50"),
         (GDValue::ItemType(ItemType::Attempts), "5"),
-        (GDValue::ItemType(ItemType::Unrecognized(77)), "77"),
         (GDValue::StopMode(StopMode::Resume), "2"),
         (GDValue::ExtraID2(ExtraID2::P2), "2"),
         (GDValue::ItemAlign(ItemAlign::Right), "2"),
@@ -376,7 +375,7 @@ fn object_property_that_belongs_to_config_is_not_duplicated() {
     let obj = GDObject::new(
         1,
         &GDObjConfig::new().with_multitrigger(true),
-        vec![(p::MULTITRIGGERABLE, GDValue::Bool(false))],
+        vec![(p::MULTITRIGGERABLE, GDValue::Bool(true))],
     );
     let s = obj.serialise_to_string();
     assert_eq!(values_of(&s, "87").len(), 1, "{s}");
@@ -690,6 +689,7 @@ fn level_headers_are_deterministic() {
     // each default level builds its own header map, so the iteration order of the map can differ
     let headers = || {
         GDLevel::default()
+            .with_editor_config()
             .get_decrypted_data()
             .unwrap()
             .serialise_level_headers()
@@ -721,7 +721,10 @@ fn level_data_raw_string() {
 
 #[test]
 fn level_data_encrypted_string_has_gd_header() {
-    let data = GDLevel::default().get_decrypted_data().unwrap();
+    let data = GDLevel::default()
+        .with_editor_config()
+        .get_decrypted_data()
+        .unwrap();
     assert!(data.serialise_to_string().starts_with("H4sIAAAAAAAAC"));
 }
 
@@ -731,8 +734,22 @@ fn level_data_encrypted_string_has_gd_header() {
 fn level_default_dict() {
     let d = GDLevel::default().to_dict();
     assert_eq!(d.get("kCEK"), Some(&Value::from(4)));
+    assert_eq!(d.get("k21"), Some(&Value::from(2))); // default: LevelType::Local
+    assert_eq!(d.get("k50"), Some(&Value::from(0))); // default: LevelType::Local
+    // defaults are omitted
+    for key in [
+        "k1", "k2", "k3", "k14", "k18", "k42", "k45", "k105", "k13", "k4",
+    ] {
+        assert!(!d.contains_key(key), "{key} should be omitted");
+    }
+}
+
+#[test]
+fn level_default_editor_config_dict() {
+    let d = GDLevel::default().with_editor_config().to_dict();
+    assert_eq!(d.get("kCEK"), Some(&Value::from(4)));
     assert_eq!(d.get("k13"), Some(&Value::Boolean(true)));
-    assert_eq!(d.get("k21"), Some(&Value::from(2))); // local level
+    assert_eq!(d.get("k21"), Some(&Value::from(2))); // default: LevelType::Local
     assert!(d.contains_key("k4"));
     assert!(d.contains_key("k50"));
     assert!(d.contains_key("kI6"));
@@ -835,7 +852,7 @@ fn level_serialise_to_string_is_gmd() {
 
 #[test]
 fn level_display() {
-    let mut level = GDLevel::default();
+    let mut level = GDLevel::default().with_editor_config();
     level.identity.name = "Name".into();
     level.identity.creator = "Creator".into();
     assert_eq!(

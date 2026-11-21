@@ -34,7 +34,7 @@
 //! ```
 
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fmt::{Display, Write},
 };
 
@@ -71,7 +71,7 @@ pub struct GDEncryptedLevelData {
 #[derive(Clone, Debug, PartialEq)]
 pub struct GDLevelData {
     /// Headers for a GD level. This field stores all metadata about the level data itself (such as starting colour info and physics options).
-    pub headers: HashMap<GDLevelHeaderKey, GDLevelHeaderValue>,
+    pub headers: BTreeMap<GDLevelHeaderKey, GDLevelHeaderValue>,
     /// All objects in this level
     pub objects: Vec<GDObject>,
 }
@@ -174,9 +174,9 @@ pub enum GDLevelHeaderValType {
 }
 
 /// Parses a raw level header string to a map of parsed header keys and values.
-pub fn parse_raw_level_headers(headers: &str) -> HashMap<GDLevelHeaderKey, GDLevelHeaderValue> {
+pub fn parse_raw_level_headers(headers: &str) -> BTreeMap<GDLevelHeaderKey, GDLevelHeaderValue> {
     let mut headers_kv = headers.split(",");
-    let mut map = HashMap::new();
+    let mut map = BTreeMap::new();
     while let (Some(k), Some(v)) = (headers_kv.next(), headers_kv.next()) {
         let key = GDLevelHeaderKey::parse(k);
         let ptype = if let Some(id) = key.to_id() {
@@ -246,7 +246,11 @@ impl GDLevelData {
     pub fn serialise_level_headers(&self) -> String {
         // serialize kS38 first
         let mut out_str = if let Some(ks38) = self.headers.get(&GDLevelHeaderKey::S(38)) {
-            format!("kS38,{ks38},")
+            if self.headers.len() > 1 {
+                format!("kS38,{ks38},")
+            } else {
+                return format!("kS38,{ks38}");
+            }
         } else {
             String::new()
         };
@@ -677,8 +681,9 @@ impl Display for GDLevelHeaderValue {
     }
 }
 
+// Note: PartialOrd/Ord needed for storage in BTreeMap
 /// Enum for keys in a level header dictionary.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum GDLevelHeaderKey {
     /// kSxx key
     S(u16),

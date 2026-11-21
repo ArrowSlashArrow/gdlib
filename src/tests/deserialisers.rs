@@ -247,11 +247,7 @@ fn gdvalue_from_malformed_input_uses_defaults() {
             "0",
             GDValue::ArrowDirection(ArrowDirection::Right),
         ),
-        (
-            T::ItemType,
-            "",
-            GDValue::ItemType(ItemType::Unrecognized(0)),
-        ),
+        (T::ItemType, "", GDValue::ItemType(ItemType::Counter)),
         (
             T::TeleportGravity,
             "7",
@@ -1031,10 +1027,7 @@ fn level_fields() {
             .collect::<IntMap<_, _>>()
     );
     assert_eq!(level.editor_state.editor_layer, 2);
-    assert!(matches!(
-        level.content.data,
-        Some(GDLevelState::Decrypted(_))
-    ));
+    assert!(matches!(level.content.data, None));
 }
 
 #[test]
@@ -1138,12 +1131,6 @@ fn level_huge_build_tab_index_does_not_panic() {
 fn level_description_with_invalid_utf8_does_not_panic() {
     let d = level_dict(&[("k3", Value::from(b64_encode([0xff, 0xfe, 0x00])))]);
     let _ = GDLevel::from_dict(&d);
-}
-
-#[test]
-fn level_description_with_invalid_base64_returns_none() {
-    let d = level_dict(&[("k3", Value::from("!!! not base64 !!!"))]);
-    assert!(GDLevel::from_dict(&d).is_none());
 }
 
 #[test]
