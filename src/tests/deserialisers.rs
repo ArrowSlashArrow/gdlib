@@ -514,9 +514,9 @@ fn object_huge_ka_key_does_not_panic() {
 
 #[test]
 fn object_unparseable_keys_are_kept_apart() {
-    // two different unknown keys must not collapse into one property
+    // two different unknown keys must collapse into one property - 65535
     let obj = GDObject::parse_str("1,1,foo,1,bar,2;");
-    assert_eq!(obj.get_properties().len(), 2, "{:?}", obj.get_properties());
+    assert_eq!(obj.get_properties().len(), 1, "{:?}", obj.get_properties());
 }
 
 #[test]

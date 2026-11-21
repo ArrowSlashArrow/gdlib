@@ -184,6 +184,9 @@ impl GDObject {
     /// Parses raw object string to `GDObject`
     ///
     /// Parsing never fails: values that can't be parsed fall back to defaults, and a string without an object ID gives an object with ID 1.
+    ///
+    /// For invalid properties - XX or kAXX with an unreasonably high XX (>55535) or any key that does not fit either form, its corresponding value is written to key `i16::MAX`, or 65535.
+    /// This property should be treated as invalid, as GD does not encode property 65535 anywhere.
     pub fn parse_str<T: AsRef<str>>(s: T) -> GDObject {
         let s = s.as_ref();
         let mut obj = GDObject {

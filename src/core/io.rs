@@ -51,7 +51,7 @@ pub fn encrypt_level_str(s: &str) -> Vec<u8> {
     let mut data = b"H4sIAAAAAA".to_vec();
     data.extend_from_slice(&compress[2..compress.len() - 4]);
     let crc_checksum = crc32fast::hash(s.as_bytes()).to_le_bytes();
-    let size = s.len().to_le_bytes();
+    let size = (s.len() as u32).to_le_bytes();
 
     data.extend_from_slice(&crc_checksum);
     data.extend_from_slice(&size);
