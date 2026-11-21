@@ -169,7 +169,7 @@ pub mod prelude {
     //! ```
     //! use gdlib::prelude::*;
     //!
-    //! let level = GDLevel::new_latest_version();
+    //! let level = GDLevel::new_latest_version().with_editor_config();
     //! assert!(level.get_objects_ref().is_some());
     //! ```
     pub use crate::cclocallevels::gdlevel::GDLevel;
