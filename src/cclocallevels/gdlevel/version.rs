@@ -62,11 +62,12 @@ macro_rules! gd_versions {
             ///
             /// The variants of this enum correspond to different builds of GD. Not all of the values of this enum are known.
             ///
-            /// **WARNING:** This function will NOT return a value for the following versions:
+            /// **WARNING:** This function returns an unconfirmed value following versions:
             /// * 2.207
             /// * 2.2071
             /// * 2.2072
             /// * 2.2073
+            /// * These values are returned for compatility, so that levels using these versions are still playable in GD
             ///
             /// For `Self::Unknown`, the internal value is returned.
             pub fn to_binary_version_id(&self) -> Option<i32> {

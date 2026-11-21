@@ -368,7 +368,7 @@ fn gd_version_examples() {
     assert_eq!(GDVersion::GD22082.to_binary_version_id(), Some(48));
     assert_eq!(GDVersion::GD22082.to_game_version_id(), Some(22));
     assert_eq!(GDVersion::from_binary_version(47), GDVersion::GD22081);
-    assert_eq!(GDVersion::GD2207.to_binary_version_id(), None);
+    assert_eq!(GDVersion::GD2207.to_binary_version_id(), Some(45));
     assert_eq!(GDVersion::GD2113.to_manifest_version(), None);
     assert_eq!(GDVersion::GD2111.to_manifest_version(), Some(33));
 }

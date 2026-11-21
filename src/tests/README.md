@@ -8,6 +8,11 @@ cargo test --lib tests::object_properties # one file
 cargo test --lib move_trigger             # anything with "move_trigger" in its name
 cargo test --lib -- --nocapture           # also show println! output (benchmarks, dumps)
 cargo test --lib -- --ignored             # run the #[ignore]d scratch tests
+cargo test --lib --bins --tests           # everything but examples
+cargo test --lib --bins --tests --release # everything but examples + release build (takes longer to compile but faster)
+
+# I use nextest due to the sheer number of test cases
+cargo nextest run --no-fail-fast --lib --bins --tests
 ```
 
 ## The rule: test what the code *should* do

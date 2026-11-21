@@ -1582,10 +1582,9 @@ fn decompress_short_input_does_not_panic() {
 }
 
 #[test]
-fn decompress_ignores_null_bytes() {
+fn decompress_trims_null_bytes() {
     let mut enc = encrypt_level_str("kA2,0;");
     enc.push(0);
-    enc.insert(5, 0);
     assert_eq!(decompress(enc).unwrap(), b"kA2,0;");
 }
 

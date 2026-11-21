@@ -68,13 +68,3 @@ fn cc_game_manager_parse() {
         );
     }
 }
-
-#[test]
-#[ignore]
-fn read_gdlvl() {
-    let mut lvl = GDLevel::from_gdlvl("test_gmds/asdasd.gdlvl").unwrap();
-    lvl.decrypt_level_data().unwrap();
-    for object in lvl.get_decrypted_data().unwrap().objects {
-        println!("{object:#?}");
-    }
-}
