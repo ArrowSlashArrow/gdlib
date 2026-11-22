@@ -99,7 +99,7 @@ impl CCGameManager {
         };
 
         let mut this = Self::default();
-        if let None = this.parse_dict(xmltree) {
+        if this.parse_dict(xmltree).is_none() {
             return Err(GDError::CorruptedSavefile(
                 "Unable to parse corrupted savefile.".into(),
             ));
@@ -289,15 +289,12 @@ impl CCGameManager {
                     .as_dictionary()?
                     .iter()
                     .filter_map(|(k, _)| {
-                        let mut split = k.split("_").into_iter();
+                        let mut split = k.split("_");
                         let _ = split.next(); // skip `likes`
                         const KEY_COUNT: usize = 4;
                         let mut keys = [0i32; KEY_COUNT];
-                        for k in 0..KEY_COUNT {
-                            let Some(i) = split.next() else {
-                                return None;
-                            };
-                            keys[k] = i.parse::<i32>().unwrap_or_default()
+                        for key in &mut keys {
+                            *key = split.next()?.parse::<i32>().unwrap_or_default();
                         }
                         Some(keys)
                     })
@@ -429,7 +426,7 @@ fn parse_foldernames(v: Value) -> Option<Vec<(i32, String)>> {
         .collect::<Vec<_>>();
 
     // this ensures that the folders are ordered by index
-    raw_folders.sort_by(|(a, _), (b, _)| a.cmp(b));
+    raw_folders.sort_by_key(|(a, _)| *a);
 
     Some(raw_folders)
 }

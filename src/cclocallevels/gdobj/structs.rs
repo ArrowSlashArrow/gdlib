@@ -11,7 +11,7 @@
 //! | Layers | [`ZLayer`] |
 //! | Movement | [`MoveMode`], [`DefaultMove`], [`TargetMove`], [`DirectionalMove`], [`MoveLock`], [`MoveTarget`], [`AxisOnlyMove`] |
 //! | Easing | [`Easing`], [`MoveEasing`] |
-//! | Pulse | [`PulseMode`], [`PulseTarget`], [`PulseChannel`], [`PulseGroup`], [`PulseHSV`] |
+//! | Pulse | [`PulseMode`], [`PulseTarget`], [`PulseGroup`], [`PulseHSV`] |
 //! | Rotation and scale | [`RotationMode`], [`RotationNormal`], [`RotationAim`], [`RotationPlayerTarget`], [`ScaleConfig`] |
 //! | Items and counters | [`Item`], [`ItemType`], [`CounterMode`], [`CompareOperand`] |
 //! | Collision | [`ColliderConfig`] |
@@ -1306,7 +1306,7 @@ macro_rules! set_value {
 impl HSVColour {
     /// Parses a string to this object
     pub fn parse(s: &str) -> Option<Self> {
-        let mut vals_iter = s.split("a").into_iter();
+        let mut vals_iter = s.split("a");
         let mut new = Self {
             hue_shift: 0,
             saturation_mult: 1.0,

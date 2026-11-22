@@ -18,7 +18,7 @@ fn main() {
     objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
     let configs = objects
         .iter()
-        .filter_map(|obj| AdvancedRandomTrigger::from_object(obj))
+        .filter_map(AdvancedRandomTrigger::from_object)
         .collect::<Vec<_>>();
 
     // the group we want spawned for each trigger
@@ -42,7 +42,7 @@ fn main() {
     println!("got seed: {seed}");
 }
 
-fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<AdvancedRandomTrigger>) -> bool {
+fn crack_seed(seed: u64, expected: &[i16], objects: &[AdvancedRandomTrigger]) -> bool {
     let mut seed_clone = seed;
 
     for (idx, obj) in objects.iter().enumerate() {

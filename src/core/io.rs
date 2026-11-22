@@ -103,7 +103,7 @@ pub fn stringify_xml(dict: &Dictionary, root: bool) -> String {
     });
 
     for (key, value) in dict {
-        let escaped_key = escape_xml(&key);
+        let escaped_key = escape_xml(key);
         match value {
             Value::String(s) => {
                 let _ = write!(dict_str, "<k>{escaped_key}</k><s>{}</s>", escape_xml(s));
@@ -173,7 +173,6 @@ pub fn decompress(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
 ///
 /// The raw file's contents are returned as a byte array.
 #[inline]
-#[must_use]
 pub fn decrypt(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
     #[cfg(feature = "parallel")]
     data.par_iter_mut().for_each(|c| *c ^= XOR_KEY_PLAYER_DATA);
@@ -186,7 +185,7 @@ pub fn decrypt(mut data: Vec<u8>) -> Result<Vec<u8>, GDError> {
 }
 
 /// Reads the savefile at `file` (CCLocalLevels.dat or CCGameManager.dat) and returns its decrypted contents, using [`decrypt`].
-pub fn decrypt_file<'a>(file: PathBuf) -> Result<String, GDError> {
+pub fn decrypt_file(file: PathBuf) -> Result<String, GDError> {
     let savefile_bytes = decrypt(fs::read(file).map_err(GDError::Io)?)?;
     Ok(String::from_utf8(savefile_bytes)
         .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()))

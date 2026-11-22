@@ -529,7 +529,7 @@ fn object_empty_string() {
 fn object_large_and_negative_numbers() {
     let obj = GDObject::parse_str("1,1,2,-1e6,3,123456.789,25,-2147483648;");
     assert_eq!(obj.config.pos.0, -1e6);
-    assert_eq!(obj.config.pos.1, 123456.789);
+    assert_eq!(obj.config.pos.1, 123_456.79);
     assert_eq!(obj.config.z_order, i32::MIN);
 }
 
@@ -1027,7 +1027,7 @@ fn level_fields() {
             .collect::<IntMap<_, _>>()
     );
     assert_eq!(level.editor_state.editor_layer, 2);
-    assert!(matches!(level.content.data, None));
+    assert!(level.content.data.is_none());
 }
 
 #[test]

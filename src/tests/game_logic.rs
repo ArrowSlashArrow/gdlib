@@ -339,9 +339,9 @@ fn random_trigger_chance() {
 
 #[test]
 fn advanced_random_empty_and_single() {
-    assert_eq!(check_seed_advanced_random(5, &vec![]), None);
+    assert_eq!(check_seed_advanced_random(5, &[]), None);
     for seed in 0..100 {
-        assert_eq!(check_seed_advanced_random(seed, &vec![(7, 1)]), Some(7));
+        assert_eq!(check_seed_advanced_random(seed, &[(7, 1)]), Some(7));
     }
 }
 
@@ -357,14 +357,14 @@ fn advanced_random_only_picks_listed_groups() {
 #[test]
 fn advanced_random_zero_chances_do_not_panic() {
     for seed in 0..100 {
-        let _ = check_seed_advanced_random(seed, &vec![(1, 0), (2, 0)]);
+        let _ = check_seed_advanced_random(seed, &[(1, 0), (2, 0)]);
     }
 }
 
 #[test]
 fn advanced_random_negative_chances_do_not_panic() {
     for seed in 0..100 {
-        let _ = check_seed_advanced_random(seed, &vec![(1, -10), (2, 5)]);
+        let _ = check_seed_advanced_random(seed, &[(1, -10), (2, 5)]);
     }
 }
 
@@ -372,7 +372,7 @@ fn advanced_random_negative_chances_do_not_panic() {
 fn advanced_random_huge_chances_do_not_panic() {
     for seed in 0..100 {
         assert_eq!(
-            check_seed_advanced_random(seed, &vec![(1, i32::MAX), (2, i32::MAX)]),
+            check_seed_advanced_random(seed, &[(1, i32::MAX), (2, i32::MAX)]),
             Some(1)
         );
     }

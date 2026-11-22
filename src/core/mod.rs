@@ -187,7 +187,7 @@ pub fn proper_plist_tags(s: String) -> Result<String, GDError> {
 pub fn b64_decode<T: AsRef<[u8]>>(encoded: T) -> Result<Vec<u8>, GDError> {
     base64::engine::general_purpose::URL_SAFE
         .decode(encoded)
-        .map_err(|e| GDError::DecodeError(e))
+        .map_err(GDError::DecodeError)
 }
 
 /// Encodes bytes as padded base64 using the URL-safe alphabet (`-` and `_`), which is what GD uses.

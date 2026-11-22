@@ -252,7 +252,7 @@ impl CCLocalLevels {
             .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
             .collect::<Vec<(String, Value)>>();
 
-        levels_dict.extend(level_dict_entries.into_iter());
+        levels_dict.extend(level_dict_entries);
 
         /* lists */
 
@@ -275,7 +275,7 @@ impl CCLocalLevels {
             .map(|(idx, level)| (format!("k_{idx}"), Value::from(level.to_dict())))
             .collect::<Vec<(String, Value)>>();
 
-        lists_dict.extend(list_dict_entries.into_iter());
+        lists_dict.extend(list_dict_entries);
 
         dict.insert("LLM_01".to_string(), Value::Dictionary(levels_dict));
         dict.insert(
@@ -298,7 +298,7 @@ impl CCLocalLevels {
     /// Standard location on linux: [`crate::core::io::linux_gd_files_path`]
     pub fn export_to_savefile(&mut self) -> Result<(), GDError> {
         let savefile = get_cclocallevels_path().ok_or(GDError::MissingSavefile)?;
-        let export_str = encrypt_savefile_str(&&self.serialise_to_string());
+        let export_str = encrypt_savefile_str(&self.serialise_to_string());
         atomic_export(savefile, &export_str)?;
         Ok(())
     }
@@ -849,14 +849,12 @@ impl GDLevel {
         let file = proper_plist_tags(vec_as_str_lossy(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
-        Ok(
-            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
-                "XML tree is not a dictionary".into(),
-            ))?)
-            .ok_or(GDError::CorruptedSavefile(
-                "Unable to parse file to valid level.".into(),
-            ))?,
-        )
+        Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+            "XML tree is not a dictionary".into(),
+        ))?)
+        .ok_or(GDError::CorruptedSavefile(
+            "Unable to parse file to valid level.".into(),
+        ))
     }
 
     /// Parses a .gdlvl file to a GDLevel. This function will fail if:
@@ -870,14 +868,12 @@ impl GDLevel {
         let file = proper_plist_tags(vec_as_str_lossy(&decompress(read(path.into())?)?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
-        Ok(
-            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
-                "XML tree is not a dictionary".into(),
-            ))?)
-            .ok_or(GDError::CorruptedSavefile(
-                "Unable to parse file to valid level.".into(),
-            ))?,
-        )
+        Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+            "XML tree is not a dictionary".into(),
+        ))?)
+        .ok_or(GDError::CorruptedSavefile(
+            "Unable to parse file to valid level.".into(),
+        ))
     }
 
     /// Exports the level to a .gmd file
@@ -936,14 +932,12 @@ impl GDLevel {
         let file = proper_plist_tags(plist.into())?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
-        Ok(
-            Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
-                "XML tree is not a dictionary".into(),
-            ))?)
-            .ok_or(GDError::CorruptedSavefile(
-                "Unable to parse file to valid level.".into(),
-            ))?,
-        )
+        Self::from_dict(xmltree.as_dictionary().ok_or(GDError::CorruptedSavefile(
+            "XML tree is not a dictionary".into(),
+        ))?)
+        .ok_or(GDError::CorruptedSavefile(
+            "Unable to parse file to valid level.".into(),
+        ))
     }
 
     /* TODO: 1. fix it to prevent integer overflow  2. verify what these are  3. find what they are used for
@@ -1007,8 +1001,7 @@ impl GDLevel {
         // - if the key (or its value) was not parsed successfully, try the next branch
 
         if k == "kCEK" {
-            self.meta.kcek = KCEKValue::try_from(v.as_signed_integer().unwrap_or_default() as i32)
-                .unwrap_or(KCEKValue::GJGameLevel);
+            self.meta.kcek = KCEKValue::from(v.as_signed_integer().unwrap_or_default() as i32);
             return Some(());
         }
         if k.starts_with("kI")
@@ -1090,9 +1083,7 @@ impl GDLevel {
                 20 => self.player_stats.practice_percentage = v.as_signed_integer()? as i32,
                 21 => {
                     // special case: GDselfType enum
-                    self.identity.level_type = GDLevelType::try_from(v.as_signed_integer()? as i32)
-                        .ok()
-                        .unwrap_or_default()
+                    self.identity.level_type = GDLevelType::from(v.as_signed_integer()? as i32)
                 }
                 22 => self.ratings.like_rating = v.as_signed_integer()? as i32,
                 23 => self.content.length = Length::from(v.as_signed_integer()? as i32),
@@ -1144,17 +1135,11 @@ impl GDLevel {
                 74 => self.identity.timely_id = v.as_signed_integer()? as i32,
                 75 => {
                     // special case: EpicRating
-                    self.ratings.epic_rating = EpicRating::try_from(v.as_signed_integer()? as i32)
-                        .ok()
-                        .unwrap()
+                    self.ratings.epic_rating = EpicRating::from(v.as_signed_integer()? as i32)
                 }
                 76 => {
                     // special case: DemonType
-                    self.ratings.demon_type = Some(
-                        DemonType::try_from(v.as_signed_integer()? as i32)
-                            .ok()
-                            .unwrap(),
-                    )
+                    self.ratings.demon_type = Some(DemonType::from(v.as_signed_integer()? as i32))
                 }
                 77 => self.flags.is_gauntlet = v.as_boolean()?,
                 78 => self.flags.is_alt_game = v.as_boolean()?,
@@ -1451,13 +1436,7 @@ impl GDLevel {
                 ("k120", &self.player_stats.replay_best_points),
                 ("k131", &self.content.platformer_save_replay),
             ],
-            |v| {
-                if let Some(str) = v {
-                    Some(Value::String(vec_as_str(&str[..])))
-                } else {
-                    None
-                }
-            },
+            |v| v.as_ref().map(|str| Value::String(vec_as_str(&str[..]))),
         );
 
         d.insert(
@@ -1605,7 +1584,7 @@ impl GDLevel {
         if let Some(data) = &mut self.content.data {
             match data {
                 GDLevelState::Decrypted(state) => {
-                    state.objects.extend(objects.into_iter());
+                    state.objects.extend(objects);
                 }
                 GDLevelState::Encrypted(_) => (),
             };
@@ -1733,10 +1712,8 @@ pub(crate) fn serialise_bool_fields(d: &mut Dictionary, fields: &[(&str, bool)])
 fn to_float(v: &Value) -> Option<f32> {
     if let Some(f) = v.as_real() {
         Some(f as f32)
-    } else if let Some(i) = v.as_signed_integer() {
-        Some(i as f32)
     } else {
-        None
+        v.as_signed_integer().map(|i| i as f32)
     }
 }
 

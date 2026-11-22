@@ -162,7 +162,6 @@ macro_rules! repr_t {
 }
 pub(crate) use repr_t;
 
-/// Common types and traits
 pub mod prelude {
     //! Common types and traits, for glob importing.
     //!

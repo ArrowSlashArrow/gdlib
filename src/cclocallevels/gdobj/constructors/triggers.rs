@@ -895,7 +895,7 @@ impl ObjectProperties for GravityTrigger {
 
         Some(Self {
             gravity: get_property!(obj, GRAVITY => Float => f32),
-            target_player: target_player,
+            target_player,
         })
     }
 }
@@ -999,7 +999,7 @@ impl ObjectProperties for CounterLabel {
 ///     * In the case that one operand is specified, this result is the value of that operand.
 ///     * In the case that two operands are specified, this result = `first <op> second`, where `op` is the `id_op`.
 /// 2. The operand result is then modified according to the value of the modifier and `multiply_mod`. If the operand result was not computed, the operand result is now set to the value of the modifier.
-/// Otherwise, the operand result becomes `operand result <op> modifier` where `op` is multiplication if `multiply_mod` is enabled and division if not.
+///    Otherwise, the operand result becomes `operand result <op> modifier` where `op` is multiplication if `multiply_mod` is enabled and division if not.
 /// 3. The operand result is rounded according to `id_rounding` and then its sign is modified according to `id_sign`.
 /// 4. If `assign_op` is set to something other than `Op::Set`, the operand result becomes `current target item value <op> operand result` where `op` is `assign_op`.
 /// 5. If step 4 executed, the operand result is rounded again according to `result_rounding` and then its sign is modified according to `result_sign`.
@@ -1122,7 +1122,7 @@ impl ObjectProperties for ItemEditTrigger {
                 Some(GDValue::ItemType(t)) => t,
                 _ => ItemType::default(),
             };
-            Item::from_id_type(id as i16, item_type)
+            Item::from_id_type(id, item_type)
         };
 
         let modifier = match obj.get_property(MODIFIER) {
@@ -1132,8 +1132,8 @@ impl ObjectProperties for ItemEditTrigger {
 
         // transmutate COMPARE_OPERATOR since this property has type of ItemCompareOperator (we want ItemEditOperator).
         let multiply_mod = match obj.get_property(COMPARE_OPERATOR) {
-            Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::Less => true, // Op::Mul
-            Some(GDValue::ItemCompareOperator(o)) if o == CompareOp::LessOrEquals => false, // Op::Div
+            Some(GDValue::ItemCompareOperator(CompareOp::Less)) => true, // Op::Mul
+            Some(GDValue::ItemCompareOperator(CompareOp::LessOrEquals)) => false, // Op::Div
             _ => false,
         };
 
@@ -2091,8 +2091,8 @@ impl ObjectProperties for ScaleTrigger {
                 relative_rotation,
             },
             easing,
-            center_group_id: center_group_id,
-            target_group: target_group,
+            center_group_id,
+            target_group,
             duration,
         })
     }

@@ -1,8 +1,6 @@
 - add proper benchmarks
 - have full api coverage of both savefiles
-- big massive documentation update
-    - cover all enums and struct fields
-    - also cover all the known edgecases/anomalies
+- macos support for decoding/encdogin
 
 ## cclocallevels
 - gdlevel

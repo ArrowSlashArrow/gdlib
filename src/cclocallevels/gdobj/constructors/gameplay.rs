@@ -156,10 +156,7 @@ repr_t!(
 impl GDOrbType {
     /// Returns true if this type of orb is a dash orb.
     pub fn is_dash_orb(&self) -> bool {
-        match self {
-            GreenDash | PinkDash => true,
-            _ => false,
-        }
+        matches!(self, GreenDash | PinkDash)
     }
 }
 

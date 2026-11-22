@@ -206,9 +206,9 @@ impl GDObjConfig {
 
         let serialize_groups = |prop: u16, groups: &Vec<i16>, properties: &mut String| {
             if !groups.is_empty() {
-                properties.push_str(",");
+                properties.push(',');
                 properties.push_str(itoa::Buffer::new().format(prop));
-                properties.push_str(",");
+                properties.push(',');
                 let mut i_buf = itoa::Buffer::new();
                 for (idx, group) in groups.iter().enumerate() {
                     if idx != 0 {

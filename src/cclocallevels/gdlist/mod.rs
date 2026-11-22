@@ -206,12 +206,11 @@ impl GDList {
 
         for (k, v) in d {
             if k == "kCEK" {
-                list.kcek = KCEKValue::try_from(v.as_signed_integer().unwrap_or_default() as i32)
-                    .unwrap_or(KCEKValue::GJLevelList);
+                list.kcek = KCEKValue::from(v.as_signed_integer().unwrap_or_default() as i32);
                 continue;
             }
 
-            if k.len() < 2 || k.chars().next().unwrap() != 'k' {
+            if k.len() < 2 || !k.starts_with('k') {
                 list.other_properties.insert(k.clone(), v.clone());
                 continue;
             }
@@ -234,15 +233,14 @@ impl GDList {
                 5 => list.creator = v.as_string()?.to_owned(),
                 7 => {
                     // special case: difficulty
-                    list.difficulty =
-                        GDListDifficulty::try_from(v.as_signed_integer()? as i32).ok()?
+                    list.difficulty = GDListDifficulty::from(v.as_signed_integer()? as i32)
                 }
                 11 => list.downloads = v.as_signed_integer()? as i32,
                 15 => list.is_uploaded = v.as_boolean()?,
                 16 => list.version = v.as_signed_integer()? as i32,
                 21 => {
                     // special case: list type
-                    list.list_type = GDListType::try_from(v.as_signed_integer()? as i32).ok()?
+                    list.list_type = GDListType::from(v.as_signed_integer()? as i32)
                 }
                 22 => list.likes = v.as_signed_integer()? as i32,
                 25 => list.is_demon = v.as_boolean()?,
@@ -264,9 +262,7 @@ impl GDList {
                         .unwrap_or(&Dictionary::default())
                         .iter()
                         .filter_map(|(_id, level_dict)| {
-                            level_dict
-                                .as_dictionary()
-                                .and_then(|d| GDLevel::from_dict(d))
+                            level_dict.as_dictionary().and_then(GDLevel::from_dict)
                         })
                         .collect::<Vec<GDLevel>>();
                 }
@@ -374,14 +370,14 @@ impl GDList {
         let file = proper_plist_tags(vec_as_str_lossy(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
-        Ok(Self::from_dictionary(
+        Self::from_dictionary(
             xmltree
                 .as_dictionary()
                 .ok_or(GDError::CorruptedSavefile("gmdl isn't a dictionary".into()))?,
         )
         .ok_or(GDError::CorruptedSavefile(
             "Unable to parse file to valid list.".into(),
-        ))?)
+        ))
     }
 
     /// Exports the list to a .gmdl file

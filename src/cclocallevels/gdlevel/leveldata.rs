@@ -180,7 +180,7 @@ pub fn parse_raw_level_headers(headers: &str) -> BTreeMap<GDLevelHeaderKey, GDLe
     while let (Some(k), Some(v)) = (headers_kv.next(), headers_kv.next()) {
         let key = GDLevelHeaderKey::parse(k);
         let ptype = if let Some(id) = key.to_id() {
-            if let Some(t) = get_level_header_property_type(id as u16) {
+            if let Some(t) = get_level_header_property_type(id) {
                 t
             } else {
                 // assume int
@@ -431,7 +431,6 @@ pub fn parse_objects(s: &str) -> Vec<GDObject> {
     #[cfg(not(feature = "parallel"))]
     let objects = s
         .split(";")
-        .into_iter()
         .filter(|obj| obj.len() > 1)
         .map(GDObject::parse_str)
         .collect();
@@ -588,7 +587,7 @@ impl ColourString {
                 15 => new.to_opacity = parse!(v => f32),
                 16 => new.duration = parse!(v => f32),
                 17 => new.copy_opacity = parse!(v),
-                18 => new.unknown_property18 = parse!(v) as bool,
+                18 => new.unknown_property18 = parse!(v),
                 _ => {}
             }
         }

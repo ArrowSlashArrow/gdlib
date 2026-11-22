@@ -56,11 +56,11 @@ pub mod consts {
     //! Reference: <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/constants/game/speed/__init__.py>
 
     /// Units per second of movement at 0.5x speed
-    pub const SPEED_05X: f32 = 0.7 * 5.98000200 * 60.0;
+    pub const SPEED_05X: f32 = 0.7 * 5.980_002 * 60.0;
     /// Units per second of movement at 1x speed
-    pub const SPEED_1X: f32 = 0.9 * 5.77000189 * 60.0;
+    pub const SPEED_1X: f32 = 0.9 * 5.770_002 * 60.0;
     /// Units per second of movement at 2x speed
-    pub const SPEED_2X: f32 = 1.1 * 5.87000200 * 60.0;
+    pub const SPEED_2X: f32 = 1.1 * 5.870_002 * 60.0;
     /// Units per second of movement at 3x speed
     pub const SPEED_3X: f32 = 1.3 * 6.000002 * 60.0;
     /// Units per second of movement at 4x speed
@@ -68,7 +68,7 @@ pub mod consts {
     /// The rate of activation of a spawn trigger with "Spawn ordered" enabled.
     ///
     /// See [`crate::cclocallevels::gdobj::SpawnTrigger`].
-    pub const SPAWN_ORDER: f32 = 311.5801086425781;
+    pub const SPAWN_ORDER: f32 = 311.580_1;
 
     pub(crate) const LEVEL_HEADER_PROP_ID_OFFSET: u16 = 1000;
 }

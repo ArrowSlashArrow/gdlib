@@ -1007,9 +1007,11 @@ fn list_sample_dict() {
 
 #[test]
 fn list_with_unicode_description() {
-    let mut list = GDList::default();
-    list.description = "Описание ✓ 日本".into();
-    list.name = "Liste élevée".into();
+    let list = GDList {
+        description: "Описание ✓ 日本".into(),
+        name: "Liste élevée".into(),
+        ..Default::default()
+    };
     assert_lists_eq(&GDList::from_dictionary(&list.to_dict()).unwrap(), &list);
 }
 
