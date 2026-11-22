@@ -1,5 +1,8 @@
-//! Shared structs and enums across the whole crate. The structs included here are those that are found across many different places in the savefiles.
-//! Area-specific structs, for instance those that are only concerned with GD objects are not included in this module.
+//! Types found in more than one part of GD's savefiles.
+//!
+//! Currently this is just [`KCEKValue`], the value of the `kCEK` key, which appears to tell GD what kind of object a dictionary holds. Levels must keep [`KCEKValue::GJGameLevel`] to be recognised as levels.
+//!
+//! Types used in only one area belong in that area's module instead, such as [`gdobj::structs`](crate::cclocallevels::gdobj::structs).
 
 use crate::repr_t;
 

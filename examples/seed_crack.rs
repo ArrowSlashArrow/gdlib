@@ -3,10 +3,10 @@ use gdlib::{
         gdlevel::GDLevel,
         gdobj::{
             ObjectProperties, constructors::triggers::AdvancedRandomTrigger,
-            ids::objects::ADVANCED_RANDOM_TRIGGER, structs::Group,
+            ids::objects::ADVANCED_RANDOM_TRIGGER,
         },
     },
-    core::rand::{check_seed_advanced_random, next_seed_mut},
+    core::rand::next_seed_mut,
 };
 
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
     objects.sort_by(|a, b| a.config.pos.0.total_cmp(&b.config.pos.0));
     let configs = objects
         .iter()
-        .filter_map(|obj| AdvancedRandomTrigger::from_object(obj))
+        .filter_map(AdvancedRandomTrigger::from_object)
         .collect::<Vec<_>>();
 
     // the group we want spawned for each trigger
@@ -42,7 +42,7 @@ fn main() {
     println!("got seed: {seed}");
 }
 
-fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<AdvancedRandomTrigger>) -> bool {
+fn crack_seed(seed: u64, expected: &[i16], objects: &[AdvancedRandomTrigger]) -> bool {
     let mut seed_clone = seed;
 
     for (idx, obj) in objects.iter().enumerate() {
@@ -65,7 +65,7 @@ fn crack_seed(seed: u64, expected: &[i16], objects: &Vec<AdvancedRandomTrigger>)
 
 fn check_object(seed: u64, object: &AdvancedRandomTrigger, expected_group: i16) -> bool {
     match object.determine_spawn_from_seed(seed) {
-        Some(Group::Regular(g)) => g == expected_group,
+        Some(g) => g == expected_group,
         _ => false, // this should never be hit since all of the triggers have set groups
     }
 }

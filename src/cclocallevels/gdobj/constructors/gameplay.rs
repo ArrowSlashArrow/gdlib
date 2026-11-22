@@ -1,8 +1,31 @@
-//! Constructors for all parameterized gameplay objects: pads, orbs, portals, and force blocks.
+//! Constructors for parameterized gameplay objects: pads, orbs, portals and force blocks.
+//!
+//! | Object | Config struct | Selects the object with | Extra options |
+//! |---|---|---|---|
+//! | Pads | [`GDPad`] | [`GDPadType`] | None |
+//! | Orbs | [`GDOrb`] | [`GDOrbType`] | [`OrbOptions`], including [`DashOrbSettings`] |
+//! | Force blocks | [`ForceObjectConfig`] | [`ForceObject`] | [`Force`] |
+//! | Portals | [`GameplayPortalConfig`] | [`GameplayPortal`] | [`PortalOptions`], including [`PortalCameraOptions`] |
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdobj::{GDObject, GDPad, GDPadType, ids::objects, meta::GDObjConfig};
+//!
+//! let config = GDObjConfig::new().with_pos(150.0, 105.0);
+//! let pad = GDObject::from_config(&config, GDPad::new(GDPadType::Yellow));
+//! assert_eq!(pad.id, objects::YELLOW_JUMP_PAD);
+//! ```
+//!
+//! # Gotchas
+//!
+//! - **A toggle orb has one multi-activate setting.** [`GDOrb::multi_activate`] and the [`ToggleBlock::multi_activate`] inside [`OrbOptions::ToggleOrb`] are the same property. The orb's own field is the one that's written, and [`ObjectProperties::from_object`] copies it into both.
+//! - **Portal options are inferred when converting back.** [`ObjectProperties::from_object`] picks [`PortalOptions`] from the portal type, and only returns [`PortalOptions::Camera`] if the object has camera properties.
 
 use crate::cclocallevels::{
     consts::*,
     gdobj::{
+        GDObject,
         GDOrbType::{GreenDash, PinkDash},
         ObjectProperties, ToggleBlock,
         ids::{objects::*, properties::*},
@@ -10,6 +33,28 @@ use crate::cclocallevels::{
     },
 };
 use crate::repr_t;
+
+/// Reads a boolean property, treating anything other than `Bool(true)` as `false`.
+fn flag(obj: &GDObject, p: u16) -> bool {
+    matches!(obj.get_property(p), Some(GDValue::Bool(true)))
+}
+
+/// Reads a float property, or returns `default` if it is missing or has another type.
+fn float(obj: &GDObject, p: u16, default: f32) -> f32 {
+    match obj.get_property(p) {
+        Some(GDValue::Float(f)) => f,
+        _ => default,
+    }
+}
+
+/// Reads an integer-like property, or returns 0 if it is missing or has another type.
+fn int(obj: &GDObject, p: u16) -> i32 {
+    match obj.get_property(p) {
+        Some(GDValue::Int(i)) => i,
+        Some(GDValue::Short(i) | GDValue::Group(i) | GDValue::Item(i)) => i as i32,
+        _ => 0,
+    }
+}
 
 repr_t!(
     /// All types of pads in the game. Casting this type to an integer yields the corresponding variant's object ID.
@@ -96,7 +141,7 @@ repr_t!(
     strict GDOrbType: i32 {
         Yellow = YELLOW_JUMP_ORB,
         Pink = PINK_JUMP_ORB,
-        Blue = BLUE_GRAVITY_PAD,
+        Blue = BLUE_GRAVITY_ORB,
         Red = RED_JUMP_ORB,
         Green = GREEN_GRAVITY_ORB,
         Black = BLACK_DROP_ORB,
@@ -111,20 +156,18 @@ repr_t!(
 impl GDOrbType {
     /// Returns true if this type of orb is a dash orb.
     pub fn is_dash_orb(&self) -> bool {
-        match self {
-            GreenDash | PinkDash => true,
-            _ => false,
-        }
+        matches!(self, GreenDash | PinkDash)
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 /// Configuration struct for orbs.
 pub struct GDOrb {
-    /// What type of pad this object is.
+    /// What type of orb this object is.
     pub otype: GDOrbType,
-    /// Allows the pad to activate multiple times in normal mode
+    /// Allows the orb to activate multiple times in normal mode
     pub multi_activate: bool,
-    /// Restricts the pad from activating multiple times in platformer mode
+    /// Restricts the orb from activating multiple times in platformer mode
     pub no_plat_multi_activate: bool,
     /// Extra configuration for orbs that have it.
     pub extra_orb_config: OrbOptions,
@@ -167,24 +210,61 @@ impl ObjectProperties for GDOrb {
                 (DASH_ORB_MAXIMAL_DURATION, GDValue::Float(d.max_duration)),
             ]),
             OrbOptions::Teleporb(tp) => properties.extend_from_slice(&tp.to_properties()),
-            OrbOptions::ToggleOrb(ref t) => properties.extend_from_slice(&t.serialise()),
+            // the toggle block's multi-activate is the same property as the orb's own, which was written above.
+            OrbOptions::ToggleOrb(ref t) => properties.extend(
+                t.serialise()
+                    .into_iter()
+                    .filter(|(id, _)| *id != MULTI_ACTIVATE),
+            ),
         };
 
         properties
     }
 
-    /* TODO: implement from_object */
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        let otype = GDOrbType::try_from(obj.id).ok()?;
+        let multi_activate = flag(obj, MULTI_ACTIVATE);
+
+        let extra_orb_config = match otype {
+            GreenDash | PinkDash => {
+                let defaults = DashOrbSettings::default();
+                OrbOptions::DashOrb(DashOrbSettings {
+                    speed: float(obj, DASH_ORB_SPEED, defaults.speed),
+                    end_boost: float(obj, DASH_ORB_END_BOOST, defaults.end_boost),
+                    max_duration: float(obj, DASH_ORB_MAXIMAL_DURATION, defaults.max_duration),
+                    allow_collide: flag(obj, DASH_ORB_ALLOW_COLLIDE),
+                    stop_slide: flag(obj, DASH_ORB_STOP_SLIDE),
+                })
+            }
+            GDOrbType::Teleport => OrbOptions::Teleporb(TeleportConfig::from_object(obj)),
+            GDOrbType::Toggle => OrbOptions::ToggleOrb(ToggleBlock {
+                target_group: int(obj, TARGET_ITEM) as i16,
+                activate_group: flag(obj, ACTIVATE_GROUP),
+                claim_touch: flag(obj, CLAIM_TOUCH),
+                multi_activate,
+                spawn_only: flag(obj, SPAWN_ONLY),
+            }),
+            _ => OrbOptions::None,
+        };
+
+        Some(Self {
+            otype,
+            multi_activate,
+            no_plat_multi_activate: flag(obj, NO_MULTIACTIVATE_PLATFORMER),
+            extra_orb_config,
+        })
+    }
 }
 
 /// Settings for dash orbs.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DashOrbSettings {
     /// Speed of the dash. Default is `1.0`
-    pub speed: f64,
+    pub speed: f32,
     /// Force applied to the player when the dash stops. Default is `1.0`
-    pub end_boost: f64,
+    pub end_boost: f32,
     /// Dash ends automatically after this many seconds have passed since the orb was activated. Set to `0.0` for infinite duration.
-    pub max_duration: f64,
+    pub max_duration: f32,
     /// Makes the dash not end when the player collides with a hitbox.
     pub allow_collide: bool,
     // TODO: clarify
@@ -248,19 +328,40 @@ impl ObjectProperties for ForceObjectConfig {
 
         properties
     }
+
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        let force_object = ForceObject::try_from(obj.id).ok()?;
+        // a force object uses a range if either bound is set; otherwise it uses a fixed magnitude.
+        let force =
+            if obj.has_property(FORCE_RANGE_MINIMUM) || obj.has_property(FORCE_RANGE_MAXIMUM) {
+                Force::Range {
+                    minimum: float(obj, FORCE_RANGE_MINIMUM, 0.0),
+                    maximum: float(obj, FORCE_RANGE_MAXIMUM, 0.0),
+                }
+            } else {
+                Force::Scalar(float(obj, FORCE_MAGNITUDE, 0.0))
+            };
+
+        Some(Self {
+            force_object,
+            force,
+            is_relative: flag(obj, RELATIVE_FORCE),
+            force_id: int(obj, FORCE_ID),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Force that is applied to a player in a force object
 pub enum Force {
     /// Applies a fixed amount of force in the direction that the force block is pointing - 0 degrees = up, 90 degrees = right, 180 degrees = down, -90 degrees = left
-    Scalar(f64),
+    Scalar(f32),
     /// Applies force based on player position.
     Range {
         /// @nodoc
-        minimum: f64,
+        minimum: f32,
         /// @nodoc
-        maximum: f64,
+        maximum: f32,
     },
 }
 
@@ -271,6 +372,8 @@ pub enum Force {
 
 repr_t!(
     /// Type of speed portal in GD. The variant corresponds to each speed portal by its color.
+    ///
+    /// **Note:** to create a speed portal with `multi activate` enabled, you must set this in the object's `GDObjConfig.trigger_cfg.multitriggerable` (see [`GDObjConfig::set_multitrigger`](crate::cclocallevels::gdobj::meta::GDObjConfig::set_multitrigger)).
     ///
     /// Casting a variant of this enum to an integer yields its object ID.
     strict SpeedPortal: i32 {
@@ -287,7 +390,7 @@ impl SpeedPortal {
     ///
     /// In classic mode, this is how fast the player will travel in the forward direction when this portal is hit.
     /// In platformer mode, this is the upper limit of the player's speed either forwards or backwards.
-    pub fn get_speed(&self) -> f64 {
+    pub fn get_speed(&self) -> f32 {
         match self {
             Self::Yellow => SPEED_05X,
             Self::Blue => SPEED_1X,
@@ -295,43 +398,6 @@ impl SpeedPortal {
             Self::Pink => SPEED_3X,
             Self::Red => SPEED_4X,
         }
-    }
-}
-
-/// Settings for a speed portal
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SpeedPortalConfig {
-    /// What kind of speed portal this object is
-    pub portal: SpeedPortal,
-    /// Allow this portal to be hit multiple times
-    pub multi_activate: bool,
-}
-
-impl ObjectProperties for SpeedPortalConfig {
-    fn object_id(&self) -> i32 {
-        self.portal as i32
-    }
-
-    fn serialise(&self) -> Vec<(u16, GDValue)> {
-        vec![(MULTITRIGGERABLE, GDValue::Bool(self.multi_activate))]
-    }
-
-    fn from_object(obj: &crate::cclocallevels::gdobj::GDObject) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        let kind = SpeedPortal::try_from(obj.id).ok()?;
-        let multi_activate = match obj
-            .get_property(MULTITRIGGERABLE)
-            .unwrap_or(GDValue::Bool(false))
-        {
-            GDValue::Bool(b) => b,
-            _ => false,
-        };
-        Some(Self {
-            portal: kind,
-            multi_activate,
-        })
     }
 }
 
@@ -365,7 +431,7 @@ repr_t!(
         /// When said object is placed, another object is created on the same y-position as the blue portal (object 749, [`LINKED_ORANGE_TELEPORT_PORTAL`]).
         ///
         /// Normally, the game tries to keep these two objects linked as much as possible - it won't let you delete just the orange portal or move it away from the blue one on the x-axis.
-        /// If the blue portal is deleted, so is the orange one. Part of this effort is revealed in how the game serializes this object. For each pair of linked teleportals,
+        /// If the blue portal is deleted, so is the orange one. This is revealed in how the game serializes this object. For each pair of linked teleportals,
         /// the y-position of the orange portal relative to the blue one is stored *in this object* (specifically in property 54, [`LINKED_ORANGE_TELEPORTAL_YOFFSET`])
         ///
         /// **TL;DR** - This is only one of two linked teleportal objects (the blue one), however, this object also stores the position of the orange counterpart.
@@ -399,7 +465,7 @@ pub enum PortalOptions {
     /// For `UnlinkedBlueTeleportal` only.
     Teleportal(TeleportConfig),
     /// For `LinkedTeleportals` only. The second item specifies the y-position of the orange teleportal in units relative to the blue one (default = 100).
-    LinkedTeleportal((TeleportConfig, f64)),
+    LinkedTeleportal((TeleportConfig, f32)),
     /// For gameplay portals and dual portals.
     Camera(PortalCameraOptions),
 }
@@ -416,15 +482,35 @@ pub struct PortalCameraOptions {
     /// Tuple of two items - (easing, padding)
     /// * Easing: smoothness of camera motion
     /// * Padding: how close the player has to be to the edge of the screen for the camera to move
-    pub edit_camera_settings: Option<(i32, f64)>,
+    pub edit_camera_settings: Option<(i32, f32)>,
 }
 
-// 1,1933,2,2295,3,855,155,9,36,1                                      ;    nothing
-// 1,1933,2,2355,3,855,155,9,36,1                                ,370,1;    + disable gridsnap
-// 1,1933,2,2415,3,855,155,9,36,1,111,1                          ,370,1;    + free mode
-// 1,1933,2,2475,3,855,155,9,36,1,111,1,112,1,113,26,114,0.306667,370,1;    + edit camera settings
-
 impl PortalCameraOptions {
+    /// Reads the camera options of a portal. Returns `None` if the object has none of the camera properties.
+    pub fn from_object(obj: &GDObject) -> Option<Self> {
+        if ![
+            DISABLE_GRIDSNAP,
+            PORTAL_FREE_MODE,
+            PORTAL_EDIT_CAMERA_SETTINGS,
+        ]
+        .iter()
+        .any(|p| obj.has_property(*p))
+        {
+            return None;
+        }
+
+        Some(Self {
+            disable_gridsnap: flag(obj, DISABLE_GRIDSNAP),
+            free_mode: flag(obj, PORTAL_FREE_MODE),
+            edit_camera_settings: flag(obj, PORTAL_EDIT_CAMERA_SETTINGS).then(|| {
+                (
+                    int(obj, PORTAL_CAMERA_EASING),
+                    float(obj, PORTAL_CAMERA_PADDING, 0.0),
+                )
+            }),
+        })
+    }
+
     /// Serializes this object to a list of GDValues
     pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
@@ -467,5 +553,30 @@ impl ObjectProperties for GameplayPortalConfig {
 
         properties
     }
-    /* TODO: implement from_object */
+
+    fn from_object(obj: &GDObject) -> Option<Self> {
+        use GameplayPortal::*;
+        let portal = GameplayPortal::try_from(obj.id).ok()?;
+
+        let extra_config = match portal {
+            UnlinkedBlueTeleportal => PortalOptions::Teleportal(TeleportConfig::from_object(obj)),
+            LinkedTeleportals => PortalOptions::LinkedTeleportal((
+                TeleportConfig::from_object(obj),
+                float(obj, LINKED_ORANGE_TELEPORTAL_YOFFSET, 100.0),
+            )),
+            CubeGamemode | ShipGamemode | BallGamemode | UFOGamemode | WaveGamemode
+            | RobotGamemode | SpiderGamemode | SwingGamemode | EnterDual | ExitDual => {
+                PortalCameraOptions::from_object(obj)
+                    .map_or(PortalOptions::None, PortalOptions::Camera)
+            }
+            _ => PortalOptions::None,
+        };
+
+        Some(Self {
+            portal,
+            multi_activate: flag(obj, MULTI_ACTIVATE),
+            no_plat_multi_activate: flag(obj, NO_MULTIACTIVATE_PLATFORMER),
+            extra_config,
+        })
+    }
 }

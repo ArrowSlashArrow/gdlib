@@ -1,4 +1,23 @@
-//! GD lists
+//! Level lists: named, ordered collections of levels.
+//!
+//! [`GDList`] is one list. Lists in a savefile are in [`CCLocalLevels::lists`](crate::cclocallevels::gdlevel::CCLocalLevels::lists), and single lists are stored in `.gmdl` files, which you can read with [`GDList::from_gmdl`] and write with [`GDList::export_to_gmdl`].
+//!
+//! # Example
+//!
+//! ```no_run
+//! use gdlib::cclocallevels::gdlist::GDList;
+//!
+//! # fn main() -> Result<(), gdlib::core::GDError> {
+//! let list = GDList::from_gmdl("list.gmdl")?;
+//! println!("{}: {} levels", list.name, list.level_ids.len());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Common pitfalls
+//!
+//! - **[`GDList::levels`] holds summaries, not full levels.** They're missing many properties, so don't treat them as complete [`GDLevel`]s. This is not a fault of GDLib - lists in GD are stored this way.
+//! - **[`GDList::level_ids`] and [`GDList::levels`] are stored separately.** Keep them in sync if you change either one.
 
 use std::{
     collections::HashMap,
@@ -7,7 +26,6 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Result;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -18,7 +36,7 @@ use crate::{
     },
     core::{
         GDError, b64_decode, b64_encode,
-        io::{stringify_xml, vec_as_str},
+        io::{stringify_xml, vec_as_str, vec_as_str_lossy},
         proper_plist_tags,
         structs::KCEKValue,
     },
@@ -109,15 +127,17 @@ pub struct GDList {
     ///
     /// Internal key: `k96`
     pub level_ids: Vec<i32>,
-    /// Dictionary of all the levels in the list. Levels in this dictionary are summaries and are missing many properties, notably, the level's object data.
+    /// All the levels in the list, stored in the file as a dictionary keyed by level ID. Levels in this dictionary are summaries and are missing many properties, notably, the level's object data.
+    ///
+    /// Levels that fail to parse are skipped when the list is read.
     ///
     /// Internal key: `k97`
     pub levels: Vec<GDLevel>,
-    /// UNIX timestamp of the level's upload time in seconds.
+    /// UNIX timestamp of the list's upload time in seconds.
     ///
     /// Internal key: `k98`
-    pub upload_time: i32,
-    /// UNIX timestamp of the level's update time in seconds.
+    pub upload_time: Option<i32>,
+    /// UNIX timestamp of the list's update time in seconds.
     ///
     /// Internal key: `k99`
     pub update_time: Option<i32>,
@@ -163,7 +183,7 @@ impl Default for GDList {
             order: 0,
             level_ids: vec![],
             levels: vec![],
-            upload_time: 0,
+            upload_time: None,
             update_time: None,
             diamond_reward: 0,
             required_levels: 0,
@@ -173,7 +193,9 @@ impl Default for GDList {
 }
 
 impl GDList {
-    /// Parses a plist dictionary a GD list object
+    /// Parses a plist dictionary to a GD list object
+    ///
+    /// Returns `None` if a known key has a value of the wrong type.
     pub fn from_dictionary(d: &Dictionary) -> Option<Self> {
         /* Input dict structure
          * kXX: regular list values
@@ -184,7 +206,12 @@ impl GDList {
 
         for (k, v) in d {
             if k == "kCEK" {
-                list.kcek = KCEKValue::try_from(v.as_signed_integer().unwrap() as i32).unwrap();
+                list.kcek = KCEKValue::from(v.as_signed_integer().unwrap_or_default() as i32);
+                continue;
+            }
+
+            if k.len() < 2 || !k.starts_with('k') {
+                list.other_properties.insert(k.clone(), v.clone());
                 continue;
             }
 
@@ -206,15 +233,14 @@ impl GDList {
                 5 => list.creator = v.as_string()?.to_owned(),
                 7 => {
                     // special case: difficulty
-                    list.difficulty =
-                        GDListDifficulty::try_from(v.as_signed_integer()? as i32).ok()?
+                    list.difficulty = GDListDifficulty::from(v.as_signed_integer()? as i32)
                 }
                 11 => list.downloads = v.as_signed_integer()? as i32,
                 15 => list.is_uploaded = v.as_boolean()?,
                 16 => list.version = v.as_signed_integer()? as i32,
                 21 => {
                     // special case: list type
-                    list.list_type = GDListType::try_from(v.as_signed_integer()? as i32).ok()?
+                    list.list_type = GDListType::from(v.as_signed_integer()? as i32)
                 }
                 22 => list.likes = v.as_signed_integer()? as i32,
                 25 => list.is_demon = v.as_boolean()?,
@@ -226,28 +252,21 @@ impl GDList {
                 79 => list.unlisted = v.as_boolean()?,
                 82 => list.favourited = v.as_boolean()?,
                 83 => list.order = v.as_signed_integer()? as i32,
-                96 => {
-                    // special case: comma-separated list of ids
-                    list.level_ids = parse_csv(v)?
-                }
+                // special case: comma-separated list of ids
+                96 => list.level_ids = parse_csv(v),
                 97 => {
                     // special case: levels dictionary
                     // omit id (key) since it is found in the level anyway
                     list.levels = v
                         .as_dictionary()
-                        .unwrap()
+                        .unwrap_or(&Dictionary::default())
                         .iter()
-                        .map(|(_id, level_dict)| {
-                            match GDLevel::from_dict(level_dict.as_dictionary().unwrap()) {
-                                Some(l) => l,
-                                None => {
-                                    panic!("couldnt parse {level_dict:#?}")
-                                }
-                            }
+                        .filter_map(|(_id, level_dict)| {
+                            level_dict.as_dictionary().and_then(GDLevel::from_dict)
                         })
                         .collect::<Vec<GDLevel>>();
                 }
-                98 => list.upload_time = v.as_signed_integer()? as i32,
+                98 => list.upload_time = Some(v.as_signed_integer()? as i32),
                 99 => list.update_time = Some(v.as_signed_integer()? as i32),
                 113 => list.diamond_reward = v.as_signed_integer()? as i32,
                 114 => list.required_levels = v.as_signed_integer()? as i32,
@@ -293,14 +312,20 @@ impl GDList {
                 ("k46", self.list_revision),
                 ("k60", self.account_id),
                 ("k83", self.order),
-                ("k98", self.upload_time),
                 ("k113", self.diamond_reward),
                 ("k114", self.required_levels),
             ],
         );
 
         // Option<i32>
-        serialise_optional_fields(&mut d, &[("k42", self.original), ("k99", self.update_time)]);
+        serialise_optional_fields(
+            &mut d,
+            &[
+                ("k42", self.original),
+                ("k99", self.update_time),
+                ("k98", self.upload_time),
+            ],
+        );
 
         serialise_bool_fields(
             &mut d,
@@ -340,19 +365,22 @@ impl GDList {
         d
     }
 
-    /// Parses a .gmdl file to a `Self` object
+    /// Parses a .gmdl file to a GDList
     pub fn from_gmdl<T: Into<PathBuf>>(path: T) -> Result<Self, GDError> {
-        let file = proper_plist_tags(vec_as_str(&read(path.into())?))?;
+        let file = proper_plist_tags(vec_as_str_lossy(&read(path.into())?))?;
         let xmltree = Value::from_reader_xml(Cursor::new(file.as_bytes()))?;
 
-        Ok(
-            Self::from_dictionary(xmltree.as_dictionary().unwrap()).ok_or(
-                GDError::CorruptedSavefile("Unable to parse file to valid level.".into()),
-            )?,
+        Self::from_dictionary(
+            xmltree
+                .as_dictionary()
+                .ok_or(GDError::CorruptedSavefile("gmdl isn't a dictionary".into()))?,
         )
+        .ok_or(GDError::CorruptedSavefile(
+            "Unable to parse file to valid list.".into(),
+        ))
     }
 
-    /// Exports the level to a .gmdl file
+    /// Exports the list to a .gmdl file
     pub fn export_to_gmdl<T: Into<PathBuf>>(&self, path: T) -> Result<(), GDError> {
         let export_str = format!(
             "{PLIST_HEADER}{}{PLIST_FOOTER}",

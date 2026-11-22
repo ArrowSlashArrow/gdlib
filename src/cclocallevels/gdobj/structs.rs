@@ -1,11 +1,38 @@
-//! This module contains all structs and enums for values that are present in GD objects.
+//! The value types used by object properties and constructors.
+//!
+//! The most important type is [`GDValue`], which holds any object property value. Its expected variant for each property is given by [`GDObjPropType`] and the [`properties`](crate::cclocallevels::properties) tables.
+//!
+//! # Finding a type
+//!
+//! | Area | Types |
+//! |---|---|
+//! | Property values | [`GDValue`], [`GDObjPropType`] |
+//! | Colours | [`ColourChannel`], [`Colour`], [`HSVColour`], [`CopyColourConfig`] |
+//! | Layers | [`ZLayer`] |
+//! | Movement | [`MoveMode`], [`DefaultMove`], [`TargetMove`], [`DirectionalMove`], [`MoveLock`], [`MoveTarget`], [`AxisOnlyMove`] |
+//! | Easing | [`Easing`], [`MoveEasing`] |
+//! | Pulse | [`PulseMode`], [`PulseTarget`], [`PulseGroup`], [`PulseHSV`] |
+//! | Rotation and scale | [`RotationMode`], [`RotationNormal`], [`RotationAim`], [`RotationPlayerTarget`], [`ScaleConfig`] |
+//! | Items and counters | [`Item`], [`ItemType`], [`CounterMode`], [`CompareOperand`] |
+//! | Collision | [`ColliderConfig`] |
+//! | Teleports | [`TeleportConfig`], [`TeleportForce`] |
+//! | Events | [`Event`] |
+//!
+//! # Enums and unknown values
+//!
+//! Most enums here have an `Unrecognized` variant, which keeps values gdlib doesn't know about so they can be written back unchanged. Use `to_num` to get the raw value.
+//!
+//! Some enums don't have that variant. Converting an unknown value to one of those either returns an error or falls back to a default, so the original value can be lost.
+//! This behaviour is reserved only for the enums that have a more or less fixed set of values, such as `CompareOp` (the six compare operators).
 
-use std::{f64::consts::PI, fmt::Display, str::FromStr};
+use std::{f32::consts::PI, fmt::Display, str::FromStr};
 
-use anyhow::anyhow;
 use smallvec::SmallVec;
 
-use crate::{cclocallevels::gdobj::ids::properties::*, repr_t};
+use crate::{
+    cclocallevels::gdobj::{GDObject, ids::properties::*},
+    repr_t,
+};
 
 const LIST_ALLOCSIZE: usize = 5;
 
@@ -129,12 +156,6 @@ impl Item {
             Self::Timer(_) => ItemType::Timer,
         }
     }
-    #[inline]
-    #[must_use]
-    /// Returns this item's type as an i32
-    pub fn get_type_as_i32(&self) -> i32 {
-        self.get_type().to_num()
-    }
     /// Returns this item's special mode if it has one
     #[inline]
     #[must_use]
@@ -186,14 +207,13 @@ impl Item {
             ItemType::Attempts => Self::Attempts,
             ItemType::Points => Self::Points,
             ItemType::MainTime => Self::MainTime,
-            ItemType::Unrecognized(_) => Self::Counter(0),
         }
     }
 }
 
 repr_t!(
     /// Enum for counter types
-    ItemType: i32 {
+    strict ItemType: i32 {
         /// This is the default item type designated by every trigger that deals with items.
         /// However, due to this variant having a value of 1 instead of 0, any properties of this type will not be automatically designated as `Self::Counter`.
         /// Using [`GDValue::from`] circumvents this by interpreting unset values as their default values, which in this case is the `Counter` variant.
@@ -223,7 +243,10 @@ repr_t!(
 #[non_exhaustive]
 pub enum GDObjPropType {
     Int,
+    /// A signed 16-bit integer
+    Short,
     Float,
+    Double,
     Text,
     Bool,
     /// Refers specifically to a single group field.
@@ -239,6 +262,7 @@ pub enum GDObjPropType {
     SpawnRemapsList,
     /// Like a boolean, except it can also be `Unset`. Used in the option trigger.
     Toggle,
+    ZLayer,
     Speed,
     Gamemode,
     ItemEditOperator,
@@ -259,59 +283,66 @@ pub enum GDObjPropType {
     ItemAlign,
     MiddleGround,
     TeleportGravity,
+    ExtraID2,
     Unknown,
 }
 
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[allow(missing_docs)]
-pub enum ZLayer {
-    B5 = -5,
-    B4 = -3,
-    B3 = -1,
-    B2 = 1,
-    B1 = 3,
-    #[default]
-    Default = 0,
-    T1 = 5,
-    T2 = 7,
-    T3 = 9,
-    T4 = 11,
-}
+repr_t!(
+    ZLayer: i32 {
+        B5 = -5,
+        B4 = -3,
+        B3 = -1,
+        B2 = 1,
+        B1 = 3,
+        Default = 0,
+        T1 = 5,
+        T2 = 7,
+        T3 = 9,
+        T4 = 11,
+    } default Default
+);
 
-impl From<i32> for ZLayer {
-    fn from(int: i32) -> Self {
-        match int {
-            -5 => Self::B5,
-            -3 => Self::B4,
-            -1 => Self::B3,
-            1 => Self::B2,
-            3 => Self::B1,
-            5 => Self::T1,
-            7 => Self::T2,
-            9 => Self::T3,
-            11 => Self::T4,
-            _ => Self::Default,
-        }
-    }
-}
-
-/// Enum for colour channels and their IDs
+/// Enum for colour channels and their IDs.
+///
+/// Reference: <https://boomlings.dev/resources/client/level-components/level-colors#color-channel-id-s>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[allow(missing_docs)]
 pub enum ColourChannel {
     Channel(i16),
     Background,
+    /// Colour of the bottom ground
     Ground1,
+    /// Colour of the top ground
     Ground2,
+    /// Colour of the line that separates the ground from the player area.
     Line,
     #[default]
+    /// Default primary (base) colour of objects.
     Object,
+    /// Line of the 3D objects
     ThreeDLine,
+    /// Primary colour of middleground
     MiddleGround,
+    /// Secondary colour of middleground
     MiddleGround2,
+    /// Lighter version of `Background`.
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    LBG,
+    /// This colour channel cannot be re-assigned a colour.
     P1,
+    /// This colour channel cannot be re-assigned a colour.
     P2,
+    /// Colour that is always `#000000` (pure black).
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    Black,
+    /// Colour that is always `#FFFFFF` (pure white).
+    ///
+    /// This colour channel cannot be re-assigned a colour.
+    White,
+    /// Lighter version of the primary colour for objects. Used in a handful of objects
+    Lighter, /* todo: add Black, White, other colour channels */
 }
 
 impl From<i16> for ColourChannel {
@@ -319,14 +350,18 @@ impl From<i16> for ColourChannel {
         match c {
             1000 => Self::Background,
             1001 => Self::Ground1,
-            1009 => Self::Ground2,
             1002 => Self::Line,
-            1004 => Self::Object,
             1003 => Self::ThreeDLine,
-            1013 => Self::MiddleGround,
-            1014 => Self::MiddleGround2,
+            1004 => Self::Object,
             1005 => Self::P1,
             1006 => Self::P2,
+            1007 => Self::LBG,
+            1009 => Self::Ground2,
+            1010 => Self::Black,
+            1011 => Self::White,
+            1012 => Self::Lighter,
+            1013 => Self::MiddleGround,
+            1014 => Self::MiddleGround2,
             n => Self::Channel(n),
         }
     }
@@ -334,18 +369,54 @@ impl From<i16> for ColourChannel {
 
 impl From<ColourChannel> for i16 {
     fn from(value: ColourChannel) -> Self {
-        match value {
-            ColourChannel::Channel(n) => n,
+        value.id()
+    }
+}
+
+impl ColourChannel {
+    /// Returns the default colour of that colour channel.
+    ///
+    /// Notes:
+    /// * `Self::Line` is white with blending enabled by default
+    /// * `Self::P1` returns the default primary player colour in GD, but is actually whatever the player colour is.
+    /// * `Self::P2` is the same as `Self::P1` but for the secondary player colour
+    pub fn get_default_colour(&self) -> (u8, u8, u8) {
+        match self {
+            Self::Channel(_) => (255, 255, 255),
+            Self::Background => (40, 125, 255),
+            Self::Ground1 => (0, 102, 255),
+            Self::Line => (255, 255, 255), // with blending enabled
+            Self::ThreeDLine => (255, 255, 255),
+            Self::Object => (255, 255, 255),
+            Self::P1 => (0, 125, 255),
+            Self::P2 => (0, 125, 255),
+            Self::LBG => (255, 255, 255),
+            Self::Ground2 => (0, 102, 255),
+            Self::Black => (0, 0, 0),
+            Self::White => (255, 255, 255),
+            Self::Lighter => (255, 255, 255),
+            Self::MiddleGround => (40, 125, 255),
+            Self::MiddleGround2 => (40, 125, 255),
+        }
+    }
+    /// Returns the ID of this colour channel
+    pub fn id(&self) -> i16 {
+        match self {
+            ColourChannel::Channel(n) => *n,
             ColourChannel::Background => 1000,
             ColourChannel::Ground1 => 1001,
-            ColourChannel::Ground2 => 1009,
             ColourChannel::Line => 1002,
-            ColourChannel::Object => 1004,
             ColourChannel::ThreeDLine => 1003,
-            ColourChannel::MiddleGround => 1013,
-            ColourChannel::MiddleGround2 => 1014,
+            ColourChannel::Object => 1004,
             ColourChannel::P1 => 1005,
             ColourChannel::P2 => 1006,
+            ColourChannel::LBG => 1007,
+            ColourChannel::Ground2 => 1009,
+            ColourChannel::Black => 1010,
+            ColourChannel::White => 1011,
+            ColourChannel::Lighter => 1012,
+            ColourChannel::MiddleGround => 1013,
+            ColourChannel::MiddleGround2 => 1014,
         }
     }
 }
@@ -376,12 +447,12 @@ repr_t!(
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-/// How an easing
+/// Easing settings for a trigger's motion: the easing type and its rate.
 pub struct Easing {
     /// Type of easing to apply. Different easings produce different curves of motion.
     pub easing: MoveEasing,
     /// The higher this number is, the "smoother" the movement will be.
-    pub easing_rate: f64,
+    pub easing_rate: f32,
 }
 
 impl Easing {
@@ -394,15 +465,36 @@ impl Easing {
     }
 
     /// Converts an (easing, rate) tuple into Self.
-    pub fn from(easing: MoveEasing, rate: f64) -> Self {
+    pub fn from(easing: MoveEasing, rate: f32) -> Self {
         Easing {
             easing,
             easing_rate: rate,
         }
     }
+
+    /// Rebuilds a copy of this struct from a `GDObject`. If the required parameters are not found, the default ones are used instead.
+    pub fn from_object(object: &GDObject) -> Self {
+        let mut this = Self::none();
+        if let Some(GDValue::Float(f)) = object.get_property(EASING_RATE) {
+            this.easing_rate = f;
+        }
+        if let Some(GDValue::Easing(e)) = object.get_property(MOVE_EASING) {
+            this.easing = e;
+        }
+
+        this
+    }
+
+    /// Serializes this struct into object properties
+    pub fn serialise(&self) -> [(u16, GDValue); 2] {
+        [
+            (MOVE_EASING, GDValue::Easing(self.easing)),
+            (EASING_RATE, GDValue::Float(self.easing_rate)),
+        ]
+    }
 }
 /// The default easing rate for any move easing.
-pub const DEFAULT_EASING_RATE: f64 = 2.00;
+pub const DEFAULT_EASING_RATE: f32 = 2.00;
 
 impl From<MoveEasing> for Easing {
     fn from(easing: MoveEasing) -> Self {
@@ -430,8 +522,10 @@ pub enum GDValue {
     Int(i32),
     /// Any 16-bit signed integer.
     Short(i16),
+    /// Any 32-bit signed float.
+    Float(f32),
     /// Any 64-bit signed float.
-    Float(f64),
+    Double(f64),
     /// Any boolean.
     Bool(bool),
     /// Alternative boolean form. It is serialised as -1 instead of 0 if false. Used in the OptionTrigger.
@@ -440,20 +534,18 @@ pub enum GDValue {
     ///
     /// This enum deals only with normal groups where the distinction between regular and parent groups is not important.
     /// Parent groups should only show up in [`Self::GroupList`] when parsing the `PARENT_GROUPS` property regardless.
-    /// See [`Group`] for the GDLib group struct.
     Group(i16),
     /// Any item ID, which is represented by an `i16`.
     Item(i16),
     /// A list of group IDs as i16 which are stored in a `SmallVec`.
     ///
     /// All groups in this vector are treated as normal groups. Keep this in mind when the distiction between regular and parent groups is important.
-    /// See [`Group`] for the GDLib group struct.
     GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
     /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger.
     ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
     /// A list of spawn remap pairs: (old id, new id). Used in the spawn trigger.
-    SpawnRemapsList(smallvec::SmallVec<[(i16, i16); LIST_ALLOCSIZE]>),
-    /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for a more
+    SpawnRemapsList(smallvec::SmallVec<[(i32, i32); LIST_ALLOCSIZE]>),
+    /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for the type and rate together.
     Easing(MoveEasing),
     /// A [`ColourChannel`]. It may be any of the built in ones, or one with an ID in the range of \[1, 999]
     ColourChannel(ColourChannel),
@@ -523,25 +615,32 @@ impl GDValue {
                 Self::ColourChannel(ColourChannel::from(parse!(s => i16)))
             }
             GDObjPropType::Easing => Self::Easing(parse!(s => i32 => MoveEasing)),
-            GDObjPropType::Float => Self::Float(parse!(s => f64)),
+            GDObjPropType::Double => Self::Double(parse!(s => f64)),
+            GDObjPropType::Float => Self::Float(parse!(s => f32)),
             GDObjPropType::Int => Self::Int(parse!(s => i32)),
-            GDObjPropType::EventsList => Self::Events(
+            GDObjPropType::Short => Self::Short(parse!(s => i16)),
+            GDObjPropType::EventsList => Self::Events(if s.trim().is_empty() {
+                vec![]
+            } else {
                 s.split('.')
                     .map(|i| Event::from(parse!(i => i32)))
-                    .collect(),
-            ),
+                    .collect()
+            }),
             GDObjPropType::ProbabilitiesList => {
                 let tuples = parse_sibling_items::<i16, i32>(s);
                 Self::ProbabilitiesList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::SpawnRemapsList => {
-                let tuples = parse_sibling_items::<i16, i16>(s);
+                let tuples = parse_sibling_items::<i32, i32>(s);
                 Self::SpawnRemapsList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
-            GDObjPropType::GroupList => {
-                Self::GroupList(s.split('.').map(|i| parse!(i => i16)).collect())
-            }
+            GDObjPropType::GroupList => Self::GroupList(if s.trim().is_empty() {
+                SmallVec::new()
+            } else {
+                s.split('.').map(|i| parse!(i => i16)).collect()
+            }),
+            GDObjPropType::ZLayer => Self::ZLayer(parse!(s => i32 => ZLayer)),
             GDObjPropType::Item => Self::Item(parse!(s => i16)),
             GDObjPropType::BPMSpeed => Self::BPMSpeed(parse!(s => i32 => BPMSpeed)),
             GDObjPropType::Gamemode => Self::Gamemode(parse!(s => i32 => Gamemode)),
@@ -573,6 +672,7 @@ impl GDValue {
             GDObjPropType::StopMode => Self::StopMode(parse!(s => i32 => StopMode)),
             GDObjPropType::ItemAlign => Self::ItemAlign(parse!(s => i32 => ItemAlign)),
             GDObjPropType::MiddleGround => Self::MiddleGround(parse!(s => i32 => MiddleGround)),
+            GDObjPropType::ExtraID2 => Self::ExtraID2(parse!(s => i32 => ExtraID2)),
             GDObjPropType::TeleportGravity => {
                 Self::TeleportGravity(parse!(s => i32 => TeleportGravity))
             }
@@ -584,22 +684,9 @@ impl GDValue {
     // returns Result<Self, &str> where Ok(Self) if all good, but Err(param) if bad
 
     #[inline]
-    /// Converts a vector of [`Group`]s to a [`GDValue`]
-    pub fn from_group_list(g: &[Group]) -> Self {
-        Self::GroupList(SmallVec::from_vec(g.iter().map(|&g| g.id()).collect()))
-    }
-
-    #[inline]
-    /// Converts a vector of parent [`Group`]s to a [`GDValue`]
-    pub fn parents_group_list(g: &[Group]) -> Self {
-        Self::GroupList(SmallVec::from_vec(
-            g.iter()
-                .filter_map(|g| match g {
-                    Group::Parent(p) => Some(*p),
-                    Group::Regular(_) => None,
-                })
-                .collect(),
-        ))
+    /// Converts a vector of group IDs to a [`GDValue::GroupList`]
+    pub fn from_group_list(g: &[i16]) -> Self {
+        Self::GroupList(SmallVec::from_slice(g))
     }
 
     #[inline]
@@ -610,7 +697,7 @@ impl GDValue {
 
     #[inline]
     /// Converts a spawn remaps list to a [`GDValue`].
-    pub fn from_spawn_remaps(g: Vec<(i16, i16)>) -> Self {
+    pub fn from_spawn_remaps(g: Vec<(i32, i32)>) -> Self {
         Self::SpawnRemapsList(SmallVec::from_vec(g))
     }
 
@@ -628,7 +715,7 @@ impl GDValue {
 
     #[inline]
     /// Quick cast for `Self::Easing` to [`Easing`]. Returns `None` if `self` is not `Self::Easing`.
-    pub fn to_easing(&self, easing_rate: f64) -> Option<Easing> {
+    pub fn to_easing(&self, easing_rate: f32) -> Option<Easing> {
         match self {
             Self::Easing(e) => Some(Easing {
                 easing: *e,
@@ -702,6 +789,7 @@ impl Display for GDValue {
             GDValue::ColourChannel(v) => write!(f, "{}", i_buf.format(Into::<i16>::into(*v))),
             GDValue::Easing(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::Float(v) => write!(f, "{}", d_buf.format(*v)),
+            GDValue::Double(v) => write!(f, "{}", d_buf.format(*v)),
             GDValue::Group(v) | GDValue::Item(v) | GDValue::Short(v) => {
                 write!(f, "{}", i_buf.format(*v))
             }
@@ -710,7 +798,7 @@ impl Display for GDValue {
             GDValue::SpawnRemapsList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::Int(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
-            GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(v.to_num())),
             GDValue::Events(evts) => write!(f, "{}", fmt_intlist!(evts => i_buf)),
             GDValue::BPMSpeed(b) => write!(f, "{}", i_buf.format(*b as i32)),
             GDValue::Gamemode(g) => write!(f, "{}", i_buf.format(*g as i32)),
@@ -726,7 +814,7 @@ impl Display for GDValue {
             GDValue::TransitionMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::UIReferencePos(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::CounterMode(v) => write!(f, "{}", i_buf.format(v.to_num())),
-            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(v.to_num())),
+            GDValue::ItemType(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ExtraID2(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ItemAlign(v) => write!(f, "{}", i_buf.format(*v as i32)),
@@ -792,7 +880,7 @@ repr_t!(
         PortalGravityFlip = 50,
         PortalGravityNormal = 51,
         PortalGravityInvert = 52,
-        PoratlFlip = 53,
+        PortalFlip = 53,
         PortalUnflip = 54,
         PortalNormalScale = 55,
         PortalMiniScale = 56,
@@ -937,24 +1025,30 @@ impl Op {
 }
 
 repr_t!(
-    /// Enum for item comparison operators
+    /// Enum for item comparison operators in ItemCompareTrigger
     strict CompareOp: i32 {
+        /// a == b
         Equals = 0,
+        /// a > b
         Greater = 1,
+        /// a >= b
         GreaterOrEquals = 2,
+        /// a < b
         Less = 3,
+        /// a <= b
         LessOrEquals = 4,
+        /// a != b
         NotEquals = 5,
     } default Equals
 );
 
-/// Compare operand configuration specifier for the item control trigger
+/// Compare operand configuration specifier for the item compare trigger ([`ItemCompareTrigger`](crate::cclocallevels::gdobj::ItemCompareTrigger))
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CompareOperand {
     /// Base item whose value is being used for the comparsion
     pub operand_item: Item,
-    /// Multiplier
-    pub modifier: f64,
+    /// Value that is combined with the item's value using `mod_op`. With the default `Op::Mul`, this is a multiplier.
+    pub modifier: f32,
     /// Operator between the item's value and modifier. Can be any operator except for `Op::Set`. Default is `Op::Mul` in item compare triggers.
     pub mod_op: Op,
     /// Forces a specific rounding on the resulting value: See [`RoundMode`]
@@ -966,7 +1060,7 @@ pub struct CompareOperand {
 impl CompareOperand {
     /// Constructor for an operand that is simply a number literal.  
     /// Useful for comparing an [`Item`] against a number.
-    pub fn number_literal(num: f64) -> Self {
+    pub fn number_literal(num: f32) -> Self {
         Self {
             operand_item: Item::Counter(0),
             modifier: num,
@@ -982,7 +1076,7 @@ impl CompareOperand {
     ///
     /// This implementation was ripped directly GD's source code.
     pub fn eval_operand(&self, num: f64) -> f64 {
-        let rounded_mod = round_3dp(self.modifier);
+        let rounded_mod = round_3dp(self.modifier as f64);
         match self.mod_op {
             Op::Set => Op::Mul,
             o => o,
@@ -991,7 +1085,9 @@ impl CompareOperand {
     }
 }
 
-/// Used internally by GD to round some things like items. This function truncates the last three decimal places of the given number towards zero. `NaN` returns 0.
+/// Used internally by GD to round some things like items. This function truncates everything past the last three decimal places of the given number towards zero. `NaN` returns 0.
+///
+/// Values beyond about Â±2,147,483.647 are clamped, since the intermediate value is an `i32`.
 pub fn round_3dp(num: f64) -> f64 {
     // in gd, the i32 is cast to an f32 instead of f64.
     ((num * 1000.0) as i32) as f64 / 1000.0
@@ -1102,9 +1198,9 @@ repr_t!(
 #[derive(Debug, Clone, PartialEq)]
 pub struct DefaultMove {
     /// Units to move in x-axis. Used as multiplier of player/camera movement if `x_lock` is used
-    pub dx: i32,
+    pub dx: f32,
     /// Units to move in y-axis. Used as multiplier of player/camera movement if `y_lock` is used
-    pub dy: i32,
+    pub dy: f32,
     /// Optional lock on x movement which allows the object to move relative to either the player or the camera
     pub x_lock: Option<MoveLock>,
     /// Optional lock on y movement which allows the object to move relative to either the player or the camera
@@ -1114,7 +1210,7 @@ pub struct DefaultMove {
 /// Config struct for moving to a specific target.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TargetMove {
-    /// Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+    /// Group that will be moved to. Use [`MoveTarget::Player1`] or [`MoveTarget::Player2`] to move to one of the players instead.
     pub target_group_id: MoveTarget,
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
@@ -1133,15 +1229,15 @@ repr_t!(
     } default Unset
 );
 
-/// Config struct for moving to a specific target.
+/// Config struct for moving in the direction of a specific target.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DirectionalMove {
-    /// Group that will be moved to. Use `POS_PLAYER1` and `POS_PLAYER2` consts to specify moving to one of the players.
+    /// Group that will be moved to. Use [`MoveTarget::Player1`] or [`MoveTarget::Player2`] to move to one of the players instead.
     pub target_group_id: MoveTarget,
     /// (Optional) The objects that represent the center of the group that is moving
     pub center_group_id: Option<i16>,
     /// Distance in units to move in the direction of the target objects.
-    pub distance: i32,
+    pub distance: f32,
 }
 
 repr_t!(
@@ -1210,20 +1306,21 @@ macro_rules! set_value {
 impl HSVColour {
     /// Parses a string to this object
     pub fn parse(s: &str) -> Option<Self> {
-        let mut vals_iter = s.split("a").into_iter();
+        let mut vals_iter = s.split("a");
         let mut new = Self {
             hue_shift: 0,
             saturation_mult: 1.0,
             brightness_mult: 1.0,
-            static_bright_scalar: false,
             static_sat_scalar: false,
+            static_bright_scalar: false,
         };
 
         new.hue_shift = set_value!(vals_iter => i32);
         new.saturation_mult = set_value!(vals_iter => f64);
         new.brightness_mult = set_value!(vals_iter => f64);
-        new.static_bright_scalar = set_value!(vals_iter);
+        // todo: figure out which is which (they are swapped)
         new.static_sat_scalar = set_value!(vals_iter);
+        new.static_bright_scalar = set_value!(vals_iter);
         Some(new)
     }
 }
@@ -1234,16 +1331,8 @@ pub enum PulseTarget {
     /// Pulse for a group
     Group(PulseGroup),
     /// Pulse for a channel
-    Channel(PulseChannel),
+    Channel(ColourChannel),
 }
-
-/// Config struct for channel pulses
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PulseChannel {
-    /// Channel which is pulsed
-    pub channel_id: i16,
-}
-
 /// Config struct for group pulses
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PulseGroup {
@@ -1256,6 +1345,7 @@ pub struct PulseGroup {
 }
 
 /// Enum for pulse mode
+#[derive(Debug, Clone, PartialEq)]
 pub enum PulseMode {
     /// Pulse with colour
     Colour(Colour),
@@ -1282,20 +1372,46 @@ impl Colour {
         }
     }
 
-    /// Parses a hex code (#123456) to a [`Colour`]. The hex code must start with a `#` and be seven chars in length, the last 6 being hexadecimal digits.
-    pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Result<Self, anyhow::Error> {
+    /// Parses a hex code (#123456) to a [`Colour`]. The hex code must start with a `#` and end with 6 hexadecimal digits without any whitespace.
+    ///
+    /// Returns `None` if the given string could not be parsed as a hex code.
+    pub fn from_hex<S: AsRef<str>>(hex_str: S) -> Option<Self> {
         let str = hex_str.as_ref();
-        if str.len() != 7 || !str.starts_with('#') {
-            return Err(anyhow!(
-                "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
-            ));
+        if str.len() != 7
+            || !str.starts_with('#')
+            || !str[1..].chars().all(|d| {
+                matches!(
+                    d,
+                    '0' | '1'
+                        | '2'
+                        | '3'
+                        | '4'
+                        | '5'
+                        | '6'
+                        | '7'
+                        | '8'
+                        | '9'
+                        | 'a'
+                        | 'b'
+                        | 'c'
+                        | 'd'
+                        | 'e'
+                        | 'f'
+                        | 'A'
+                        | 'B'
+                        | 'C'
+                        | 'D'
+                        | 'E'
+                        | 'F'
+                )
+            })
+        {
+            // "Hex code must start with a hashtag # followed by a 6-digit RGB hex tuple."
+            return None;
         }
 
-        let mut owned = str.to_string();
-        owned.remove(0);
-
-        let hex = i32::from_str_radix(&owned, 16)?;
-        Ok(Self {
+        let hex = i32::from_str_radix(&str[1..], 16).ok()?;
+        Some(Self {
             red: (hex >> 16 & 0xFF) as u8,
             green: (hex >> 8 & 0xFF) as u8,
             blue: (hex & 0xFF) as u8,
@@ -1316,9 +1432,9 @@ impl Colour {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScaleConfig {
     /// Scale of target on x-axis
-    pub x_scale: f64,
+    pub x_scale: f32,
     /// Scale of target on y-axis
-    pub y_scale: f64,
+    pub y_scale: f32,
     /// Divides the x scale by the existing x-axis scale value of the target
     pub div_by_value_x: bool,
     /// Divides the y scale by the existing y-axis scale value of the target
@@ -1370,14 +1486,14 @@ pub enum RotationMode {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RotationNormal {
     /// Amount of degrees
-    pub degrees: f64,
+    pub degrees: f32,
     /// Amount of full rotations. Specifying these is preferred to specifying an overly large number of degrees.
     pub x360: i32,
 }
 
 impl RotationNormal {
     /// Specify rotation amount with degrees
-    pub fn from_degrees(deg: f64) -> Self {
+    pub fn from_degrees(deg: f32) -> Self {
         Self {
             degrees: deg % 360.0,
             x360: (deg as i32 / 360),
@@ -1385,7 +1501,7 @@ impl RotationNormal {
     }
 
     /// Specify rotation amount with radians
-    pub fn from_radians(rad: f64) -> Self {
+    pub fn from_radians(rad: f32) -> Self {
         Self::from_degrees(rad * 180.0 / PI)
     }
 }
@@ -1404,7 +1520,7 @@ pub struct RotationAim {
     /// Group around which to rotate
     pub aim_target: i16,
     /// Rotation offset of the rotating group
-    pub rot_offset: f64,
+    pub rot_offset: f32,
     /// Overrides aim_target if not None, uses either P1 or P2 as the target instead.
     pub player_target: Option<RotationPlayerTarget>,
 }
@@ -1491,51 +1607,6 @@ where
     tuples
 }
 
-/// Group ID container for regular and parent groups
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-pub enum Group {
-    Regular(i16),
-    Parent(i16),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[allow(missing_docs)]
-/// Group type enum
-pub enum GroupType {
-    Regular,
-    Parent,
-}
-
-impl Group {
-    /// Returns this group's ID
-    pub fn id(&self) -> i16 {
-        match self {
-            Self::Regular(id) | Self::Parent(id) => *id,
-        }
-    }
-    /// Returns this group's type
-    #[must_use]
-    pub fn get_type(&self) -> GroupType {
-        match self {
-            Group::Parent(_) => GroupType::Parent,
-            Group::Regular(_) => GroupType::Regular,
-        }
-    }
-}
-
-impl From<i16> for Group {
-    fn from(value: i16) -> Self {
-        Self::Regular(value)
-    }
-}
-
-impl Into<i16> for Group {
-    fn into(self) -> i16 {
-        self.id()
-    }
-}
-
 repr_t!(
     strict BPMSpeed: i32 {
         /// 1x speed
@@ -1617,11 +1688,60 @@ pub struct TeleportConfig {
 }
 
 impl TeleportConfig {
+    /// Rebuilds a teleport config from the properties of any object that teleports the player:
+    /// the teleport trigger, the teleport orb and the teleportals. The object ID is not checked.
+    ///
+    /// Missing properties fall back to their defaults. The redirect force modifier defaults to `1.0`.
+    pub fn from_object(obj: &GDObject) -> Self {
+        let flag = |p| matches!(obj.get_property(p), Some(GDValue::Bool(true)));
+        let float = |p, default| match obj.get_property(p) {
+            Some(GDValue::Float(f)) => f,
+            _ => default,
+        };
+
+        let force = if flag(TELEPORT_USE_STATIC_FORCE) {
+            TeleportForce::Static {
+                force: float(TELEPORT_STATIC_FORCE_VALUE, 0.0),
+                is_additive: flag(TELEPORT_STATIC_FORCE_IS_ADDITIVE),
+            }
+        } else if flag(TELEPORT_USE_REDIRECT_FORCE) {
+            TeleportForce::Redirect {
+                min: float(TELEPORT_REDIRECT_FORCE_MINIMUM, 0.0),
+                max: float(TELEPORT_REDIRECT_FORCE_MAXIMUM, 0.0),
+                modifier: float(TELEPORT_REDIRECT_FORCE_MOD, 1.0),
+            }
+        } else {
+            TeleportForce::None
+        };
+
+        Self {
+            target_group_id: match obj.get_property(TARGET_ITEM) {
+                Some(GDValue::Group(g)) => g,
+                _ => 0,
+            },
+            gravity: match obj.get_property(TELEPORT_EXIT_GRAVITY) {
+                Some(GDValue::TeleportGravity(g)) => g,
+                _ => TeleportGravity::default(),
+            },
+            force,
+            smooth_ease: flag(TELEPORT_SMOOTH_EASE),
+            save_offset: flag(TELEPORT_SAVE_OFFSET),
+            ignore_x: flag(TELEPORT_IGNORE_X),
+            ignore_y: flag(TELEPORT_IGNORE_Y),
+            instant_camera: flag(TELEPORT_INSTANT_CAMERA),
+            snap_ground: flag(TELEPORT_SNAP_GROUND),
+            redirect_dash: flag(TELEPORT_REDIRECT_DASH),
+        }
+    }
+
     /// Convert this struct to a list of GDValues
     pub fn to_properties(&self) -> Vec<(u16, GDValue)> {
         let mut properties = vec![
+            (
+                TELEPORT_EXIT_GRAVITY,
+                GDValue::TeleportGravity(self.gravity),
+            ),
             (TARGET_ITEM, GDValue::Group(self.target_group_id)),
-            (TELEPORT_EXIT_GRAVITY, GDValue::Int(self.gravity as i32)),
             (TELEPORT_SMOOTH_EASE, GDValue::Bool(self.smooth_ease)),
             (TELEPORT_SAVE_OFFSET, GDValue::Bool(self.save_offset)),
             (TELEPORT_IGNORE_X, GDValue::Bool(self.ignore_x)),
@@ -1666,18 +1786,18 @@ pub enum TeleportForce {
     /// force applied to player after teleport
     Static {
         /// @nodoc
-        force: f64,
+        force: f32,
         /// @nodoc
         is_additive: bool,
     },
     /// exits based on input
     Redirect {
         /// @nodoc
-        min: f64,
+        min: f32,
         /// @nodoc
-        max: f64,
+        max: f32,
         /// default: 1.0
-        modifier: f64,
+        modifier: f32,
     },
 }
 

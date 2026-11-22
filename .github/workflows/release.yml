@@ -17,9 +17,9 @@ jobs:
                   toolchain: stable
 
             - name: run tests and linter
-              run: cargo test --verbose; cargo clippy
+              run: cargo test --verbose --release; cargo clippy
 
             - name: publish release
-              run: cargo publish
+              run: cargo publish --locked
               env:
                   CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}

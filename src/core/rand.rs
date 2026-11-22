@@ -1,6 +1,29 @@
-//! Implementations and uses of Pseudo-RNG in Geometry Dash.
-
-use crate::cclocallevels::gdobj::structs::Group;
+//! GD's pseudo-random number generator, for predicting random triggers.
+//!
+//! GD uses a linear congruential generator: `seed = seed * 214013 + 2531011`, with wrapping arithmetic.
+//!
+//! # Advancing the seed
+//!
+//! Unlike the game, the functions here **don't advance the seed for you**. Call [`next_seed`] or [`next_seed_mut`] yourself between checks:
+//!
+//! ```
+//! use gdlib::core::rand::{check_seed_random, next_seed};
+//!
+//! let seed = 1234;
+//! let _first_goes_to_group_1 = check_seed_random(seed, 0.5);
+//!
+//! let seed = next_seed(seed);
+//! assert_eq!(seed, 266_623_053);
+//! let _second_goes_to_group_1 = check_seed_random(seed, 0.5);
+//! ```
+//!
+//! # Which function to use
+//!
+//! - Random trigger: [`check_seed_random`].
+//! - Advanced random trigger: [`check_seed_advanced_random`]. Pass the probabilities in their original order, because sorting or pruning them changes the result.
+//! - Raw generator output: [`fast_rand_bits`] and [`fast_rand_bits_norm`].
+//!
+//! See `examples/seed_crack.rs` for a program that searches for a seed matching a set of expected results.
 
 const LCG_MULTIPLIER: u64 = 214_013;
 const LCG_CONSTANT: u64 = 2_531_011;
@@ -18,7 +41,7 @@ pub fn next_seed_mut(seed: &mut u64) {
     *seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(LCG_CONSTANT);
 }
 
-/// Function used by GD to generate a new seed. Internally known as `fast_rand`.
+/// Returns the random value GD generates from `seed`: bits 16 to 30 of [`next_seed`]`(seed)`, in the range 0 to 32767. Internally known as `fast_rand`.
 /// Unlike the actual PRNG used in GD, this function *DOES NOT* automatically update the seed.
 #[inline(always)]
 #[must_use]
@@ -30,8 +53,8 @@ pub fn fast_rand_bits(seed: u64) -> u64 {
 /// Internally known as `fast_rand_0_1`
 #[inline(always)]
 #[must_use]
-pub fn fast_rand_bits_norm(seed: u64) -> f64 {
-    fast_rand_bits(seed) as f64 / 32767.0
+pub fn fast_rand_bits_norm(seed: u64) -> f32 {
+    fast_rand_bits(seed) as f32 / 32767.0
 }
 
 /// Checks if the seed will activate group 1 or 2 in a random trigger.
@@ -43,7 +66,7 @@ pub fn fast_rand_bits_norm(seed: u64) -> f64 {
 /// since the official one automatically updates the seed when called.
 #[inline(always)]
 #[must_use]
-pub fn check_seed_random(seed: u64, chance: f64) -> bool {
+pub fn check_seed_random(seed: u64, chance: f32) -> bool {
     // Compare against the chance threshold
     fast_rand_bits_norm(seed) < chance
 }
@@ -52,29 +75,37 @@ pub fn check_seed_random(seed: u64, chance: f64) -> bool {
 /// and a list of the trigger's activation probabilities per group (can be easily gotten from the `probabilities` field of [`crate::cclocallevels::gdobj::AdvancedRandomTrigger`]).
 /// Note that this is the same type as the advanced trigger's `RANDOM_PROBABILITIES_LIST` property.
 /// If the given list of probabilities is empty, this method will return `None`.
+/// If the given list of probabilities has a single negative chance or the chances overflow the 32-bit integer limit, the first group is returned (as it is in GD).
 ///
 /// For accuracy, please do not sort or prune the list in any way.
 /// Doing so will likely affect the results of the check.
 ///
 /// Note: this function does not automatically update the seed. To do so, refer to [`next_seed`] or [`next_seed_mut`].
 ///
-/// This algorithm was sourced from the Andriod APK for GD and is verified to work as of GD 2.2801.
+/// This algorithm was sourced from the Android APK for GD and is verified to work as of GD 2.2091.
 #[must_use]
-pub fn check_seed_advanced_random(seed: u64, probabilities: &Vec<(i16, i32)>) -> Option<Group> {
-    let total_chance: i32 = probabilities.iter().map(|(_, chance)| chance).sum();
-    let accumulated_chance_threshold =
-        (fast_rand_bits_norm(seed) as f32 * total_chance as f32) as i32;
-
-    if !probabilities.is_empty() {
-        let mut buf_ptr = 0;
-        let mut accumulated_chance = probabilities[buf_ptr].1; // chance
-
-        while !(accumulated_chance_threshold <= accumulated_chance) {
-            buf_ptr += 1;
-            accumulated_chance = accumulated_chance + probabilities[buf_ptr].1;
-        }
-        Some(Group::Regular(probabilities[buf_ptr].0))
-    } else {
-        None
+pub fn check_seed_advanced_random(seed: u64, probabilities: &[(i16, i32)]) -> Option<i16> {
+    if probabilities.is_empty() {
+        return None;
     }
+
+    if probabilities.iter().any(|&(_, c)| c < 0) {
+        return Some(probabilities[0].0);
+    }
+    let big_total_chance: i64 = probabilities.iter().map(|(_, chance)| *chance as i64).sum();
+    if big_total_chance > i32::MAX as i64 {
+        // gd just spawns the first group if overflow
+        return Some(probabilities[0].0);
+    }
+
+    let accumulated_chance_threshold = (fast_rand_bits_norm(seed) * big_total_chance as f32) as i32;
+
+    let mut buf_ptr = 0;
+    let mut accumulated_chance = probabilities[buf_ptr].1; // chance
+
+    while accumulated_chance < accumulated_chance_threshold {
+        buf_ptr += 1;
+        accumulated_chance += probabilities[buf_ptr].1;
+    }
+    Some(probabilities[buf_ptr].0)
 }

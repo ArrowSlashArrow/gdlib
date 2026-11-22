@@ -1,6 +1,14 @@
-//! Default constructors for all objects
-
-use crate::cclocallevels::gdobj::meta::GDObjConfig;
+//! The in-game default state of each object.
+//!
+//! [`default_object`] returns an object as it would be when first placed in the editor. [`GDObject::default_from_id`](super::GDObject::default_from_id) calls the same function.
+//!
+//! A default is looked up in this order:
+//!
+//! 1. [`OBJECT_DEFAULTS_UNIQUE`], for objects with their own default string.
+//! 2. [`check_common_suffix`], for the many objects that share one.
+//! 3. An object with only the ID set, for IDs with no known default.
+//!
+//! [`default_object_string`] does the same lookup, but returns the raw string.
 
 use super::GDObject;
 
@@ -47,7 +55,7 @@ use super::GDObject;
  * ,2,0,3,0,128,30,129,1.875; 3274 3429 4227 4303
  * ,2,0,3,0,128,1.071,129,1.071; 2524 2525
  * ,2,0,3,0,128,2.143,129,15; 4115 4130
- * ,2,0,3,0,128,30,129,2.5; 4104 4107 412
+ * ,2,0,3,0,128,30,129,2.5; 4104 4107 4122
  * ,2,0,3,0,36,1,566,1,568,1; 3660 3661
  * ,2,0,3,0,128,2.5,129,30; 4105 4106
  * ,2,0,3,0,36,1,143,1,144,1; 3606 3612
@@ -122,15 +130,10 @@ pub static OBJECT_DEFAULTS_UNIQUE: phf::Map<i32, &'static str> = phf::phf_map! {
 };
 
 /// Returns the default [`GDObject`] for the given object ID.
-/// If the ID has a known entry in [`OBJECT_DEFAULTS_UNIQUE`], it is parsed from that string
+/// If the ID has a known entry in [`OBJECT_DEFAULTS_UNIQUE`], it is parsed from that string.
+/// Otherwise the ID is combined with its suffix from [`check_common_suffix`], or, for an unknown ID, an object with only the ID set is returned.
 pub fn default_object(id: i32) -> GDObject {
-    match OBJECT_DEFAULTS_UNIQUE.get(&id) {
-        Some(s) => GDObject::parse_str(s),
-        None => match check_common_suffix(id) {
-            Some(suf) => GDObject::parse_str(&format!("1,{id}{suf}")),
-            None => GDObject::new(id, &GDObjConfig::default(), vec![]),
-        },
-    }
+    GDObject::parse_str(default_object_string(id))
 }
 
 /// Returns the raw object string of a default object by ID.
@@ -139,15 +142,18 @@ pub fn default_object_string(id: i32) -> String {
     match OBJECT_DEFAULTS_UNIQUE.get(&id) {
         Some(s) => s.to_string(),
         None => match check_common_suffix(id) {
-            Some(suf) => format!("1,{id}{suf}"),
+            Some(suf) => format!("1,{id}{suf};"),
             // unknown id defaults to minimal needed properties
+            // technically, all that is needed is the object ID, as the rest can be filled in by GD
             None => format!("1,{id},2,0,3,0;"),
         },
     }
 }
 
 /// Returns a common suffix if a default object ID uses it.
-/// Example: IDs 1 through 9 all end with `,2,0,3,0;`
+/// Example: IDs 1 through 9 all end with `,2,0,3,0`.
+///
+/// Note: This function only returns a known suffix for documented IDs (which is every object placable in the editor)
 #[must_use]
 pub const fn check_common_suffix(id: i32) -> Option<&'static str> {
     // this match statement is particularly messy, so line breaks are forced through comments

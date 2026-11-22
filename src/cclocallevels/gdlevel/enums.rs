@@ -1,4 +1,19 @@
-//! Enums present in GDLevel and GDList.
+//! Enums for the fields of [`GDLevel`](super::GDLevel) and [`GDList`](crate::cclocallevels::gdlist::GDList).
+//!
+//! | Area | Enums |
+//! |---|---|
+//! | Level details | [`GDLevelType`], [`Length`], [`OfficialSong`] |
+//! | Ratings | [`DifficultyRating`], [`DemonType`], [`EpicRating`], [`FeatureRating`] |
+//! | Lists | [`GDListType`], [`GDListDifficulty`] |
+//!
+//! Enums convert from their raw value with `from` or `try_from`, and back with `to_num`. Most keep unknown values in an `Unrecognized` variant, so they can be written back unchanged:
+//!
+//! ```
+//! use gdlib::cclocallevels::gdlevel::enums::Length;
+//!
+//! assert_eq!(Length::from(5), Length::Platformer);
+//! assert_eq!(Length::from(99).to_num(), 99);
+//! ```
 //!
 //! Many of these were sourced from <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/utils/enums.py>. Thanks to HDanke for providing this resource.
 
@@ -17,18 +32,38 @@ repr_t!(
 
 repr_t!(
     #[allow(missing_docs)]
-    /// Enum for the list difficulties
+    /// Enum for the list difficulties. Very similar to `GDLevelDifficulty`, except `EasyDemon` is on 6, `MediumDemon` is on 7, and `HardDemon` is on 8.
     GDListDifficulty: i32 {
         NA = -1,
         Auto = 0,
         Easy = 1,
-        Medium = 2,
+        Normal = 2,
         Hard = 3,
         Harder = 4,
         Insane = 5,
         EasyDemon = 6,
         MediumDemon = 7,
         HardDemon = 8,
+        InsaneDemon = 9,
+        ExtremeDemon = 10,
+    }
+    default NA
+);
+
+repr_t!(
+    #[allow(missing_docs)]
+    /// Enum for the level difficulties
+    GDLevelDifficulty: i32 {
+        NA = -1,
+        Auto = 0,
+        Easy = 1,
+        Normal = 2,
+        Hard = 3,
+        Harder = 4,
+        Insane = 5,
+        HardDemon = 6,
+        EasyDemon = 7,
+        MediumDemon = 8,
         InsaneDemon = 9,
         ExtremeDemon = 10,
     }
@@ -211,4 +246,12 @@ repr_t!(
         Insane = 50,
     }
     default None
+);
+
+repr_t!(
+    BooleanToggle: i32 {
+        Default = 0,
+        On = 1,
+        Off = 2
+    } default Default
 );

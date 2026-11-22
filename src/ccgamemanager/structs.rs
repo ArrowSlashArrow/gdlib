@@ -1,4 +1,25 @@
-//! All sub-component structs of ccgamemanager::CCGameManager.
+//! The structs that make up [`CCGameManager`](super::CCGameManager), grouped by area of the savefile.
+//!
+//! **Note:** This file is very much WIP! We don't even have a serialiser for CCGameManager yet! (!!!)
+//!
+//! | Struct | Contains |
+//! |---|---|
+//! | [`GDPlayerInfo`] | Username, UDID, user ID, selected icons |
+//! | [`GDStatistics`] | Statistics and achievement progress |
+//! | [`GDConfig`] | Game settings, including [`Resolution`], [`TextureQuality`] and [`GDPlatformerUI`] |
+//! | [`GDAccount`] | Account details and credentials |
+//! | [`GDCurrentValues`] | Temporary values the game overwrites |
+//! | [`GDSongConfig`] | Song settings |
+//! | [`GDSearchFilters`] | Saved level search filters, with [`GDSearchFilterFlags`] |
+//!
+//! Most fields name the savefile key they're stored under, such as `GJA_001`.
+//!
+//! # Achievements
+//!
+//! [`GDStatistics`] has two ways to access achievement progress:
+//!
+//! - By variant, for vanilla achievements: [`GDStatistics::get_vanilla_achievement`] and [`GDStatistics::set_vanilla_achievement`].
+//! - By identifier string, which also covers non-vanilla ones: [`GDStatistics::get_achievement_by_ident`] and [`GDStatistics::set_achievement_by_ident`].
 
 use std::collections::HashMap;
 
@@ -17,8 +38,8 @@ use crate::{
 /// Type of a valid achievement progress value: unsigned integer that supports a maximum value of at least 10,000.
 ///
 /// For achievements that are not completed, the game uses one of two formats to represent completion progress:
-/// - A value on the interval \[0, 100] which is an integer percentage
-/// - A value on that interval\[0, 10'000] which is a percentage with double decimal point precision; e.g. 1962 is 19.62%
+/// * A value on the interval \[0, 100] which is an integer percentage
+/// * A value on that interval\[0, 10'000] which is a percentage with double decimal point precision; e.g. 1962 is 19.62%
 ///
 /// A value of 100 represents a completed achievement regardless of format.
 /// It is unknown what format is used by the game for specific achievements, however it is known that for values
@@ -105,7 +126,7 @@ pub struct GDStatistics {
     ///
     /// Internal keys: `GLM_10`
     pub completed_dailies: IntMap<GDLevel>,
-    /// All vanilla achievements. Each element is the achievement's progress is an integer from 0 - 100 inclusive.
+    /// Progress of all vanilla achievements, indexed by the achievement's repr value minus 1. See [`AchievementProgress`] for the value format.
     /// Use [`GDStatistics::get_vanilla_achievement`] to get an achievement's progress when using the [`GDAchievement`] enum.
     ///
     /// The split between vanilla achievements and custom achievements is to optimize indexing of achievements.
@@ -165,7 +186,7 @@ pub struct GDConfig {
     pub has_rated_game: bool,
     /// Internal key: `binaryVersion`
     pub binary_version: i32,
-    /// Respective internal keys: `practicePosX`, `praticePosY`
+    /// Respective internal keys: `practicePosX`, `practicePosY`
     pub practice_ui_pos: (f32, f32),
     /// Internal key: `practiceOpacity`
     pub practice_ui_opacity: f32,
@@ -179,11 +200,11 @@ pub struct GDConfig {
     pub dpads: [GDPlatformerUI; 5],
     /// Internal key: `dpad_layout`
     pub dpad_layout: Option<GDPlatformerUI>,
-    /// List of folder names for saved online levels. Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    /// List of folder names for saved online levels, as (folder number, name) pairs sorted by folder number.
     ///
     /// Internal key: `GLM_18`
     pub saved_levels_foldernames: Vec<(i32, String)>,
-    /// List of folder names for locally created levels (found in the editor tab). Folder names are stored in order, starting from folder 1. If an unnamed folder is found at index >= 1, it is stored as a `None`.
+    /// List of folder names for locally created levels (found in the editor tab), as (folder number, name) pairs sorted by folder number.
     ///
     /// Internal key: `GLM_19`
     pub local_levels_foldernames: Vec<(i32, String)>,
@@ -226,7 +247,7 @@ pub struct GDAccount {
     ///
     /// Internal key: `GJA_004`
     pub session_id: Option<String>,
-    /// Password encrypted with GJP2 encryption. This can be generated with [`crate::core::crypto::generate_gjp2_hexdigest`]
+    /// Password hashed with GJP2. This can be generated with [`crate::core::crypto::generate_gjp2_hexdigest`]
     ///
     /// Internal key: `GJA_005`
     pub hashed_password: Option<String>,
@@ -361,7 +382,7 @@ pub struct GDPlatformerUI {
 
 impl GDPlatformerUI {
     /// Parses a comma-separated list of values to this object
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         let mut this = Self::default();
         let fns = &[
             Self::parse_width,
@@ -376,46 +397,47 @@ impl GDPlatformerUI {
             Self::parse_snap,
             Self::parse_split,
         ];
-        s.split(",")
-            .into_iter()
-            .enumerate()
-            .for_each(|(idx, s)| (fns[idx])(&mut this, s));
+        s.split(",").enumerate().for_each(|(idx, s)| {
+            if idx < fns.len() {
+                (fns[idx])(&mut this, s)
+            }
+        });
 
         this
     }
 
     fn parse_width(&mut self, s: &str) {
-        self.width = s.parse::<i32>().unwrap();
+        self.width = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_height(&mut self, s: &str) {
-        self.height = s.parse::<i32>().unwrap();
+        self.height = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_scale(&mut self, s: &str) {
-        self.scale = s.parse::<f32>().unwrap();
+        self.scale = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_opacity(&mut self, s: &str) {
-        self.opacity = s.parse::<i32>().unwrap();
+        self.opacity = s.parse::<i32>().unwrap_or_default();
     }
     fn parse_pos_x(&mut self, s: &str) {
-        self.pos.0 = s.parse::<f32>().unwrap();
+        self.pos.0 = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_pos_y(&mut self, s: &str) {
-        self.pos.1 = s.parse::<f32>().unwrap();
+        self.pos.1 = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_mode_b(&mut self, s: &str) {
-        self.mode_b = s.parse::<i32>().unwrap() == 1;
+        self.mode_b = s.parse::<i32>().unwrap_or_default() == 1;
     }
     fn parse_deadzone(&mut self, s: &str) {
-        self.deadzone = s.parse::<f32>().unwrap();
+        self.deadzone = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_radius(&mut self, s: &str) {
-        self.radius = s.parse::<f32>().unwrap();
+        self.radius = s.parse::<f32>().unwrap_or_default();
     }
     fn parse_snap(&mut self, s: &str) {
-        self.snap = s.parse::<i32>().unwrap() == 1;
+        self.snap = s.parse::<i32>().unwrap_or_default() == 1;
     }
     fn parse_split(&mut self, s: &str) {
-        self.split = s.parse::<i32>().unwrap() == 1;
+        self.split = s.parse::<i32>().unwrap_or_default() == 1;
     }
 }
 
@@ -663,8 +685,8 @@ impl GDStatistics {
     }
 
     /// Set an achievement's progress value. The given identifier is first parsed
-    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::get_vanilla_achievement`]
-    /// is used to set its value. Otherwise, it is looked up in `self.custom_achievements`.
+    /// as a vanilla achievement. If the achievement is a vanilla achievement, [`Self::set_vanilla_achievement`]
+    /// is used to set its value. Otherwise, it is inserted into `self.custom_achievements`.
     /// See [`AchievementProgress`].
     #[inline]
     pub fn set_achievement_by_ident(&mut self, ident: &str, value: AchievementProgress) {

@@ -1,20 +1,33 @@
-//! This module contains various utilities for debugging and processing structs
+//! Shared foundations: the error type, savefile lookup and encoding helpers.
+//!
+//! - [`GDError`]: the error type used across the crate.
+//! - [`get_cclocallevels_path`] and [`get_ccgamemanager_path`]: find GD's savefiles on Windows and Linux.
+//! - [`proper_plist_tags`]: converts GD's shortened plist tags into standard ones.
+//! - [`b64_encode`] and [`b64_decode`]: URL-safe base64, as GD uses.
+//!
+//! # Modules
+//!
+//! - [`io`]: savefile and level string encoding.
+//! - [`rand`]: GD's random number generator.
+//! - [`crypto`]: password hashing.
+//! - [`structs`]: types shared by more than one savefile.
+
 use aho_corasick::AhoCorasick;
 use base64::{DecodeError, Engine};
 use std::{
     env,
     error::Error,
     fmt::{Debug, Display},
-    path::{Path, PathBuf},
+    path::PathBuf,
+    sync::LazyLock,
 };
+
+use crate::core::io::linux_gd_files_path;
 
 pub mod crypto;
 pub mod io;
 pub mod rand;
 pub mod structs;
-
-/// Standard file path of GD savefiles on linux.
-pub const LINUX_GD_FILES: &str = "~/.local/share/Steam/steamapps/compatdata/322170/pfx/drive_c/users/steamuser/AppData/Local/GeometryDash";
 
 macro_rules! count_exprs {
     () => { 0 };
@@ -46,13 +59,17 @@ build_plist_tags! {
     "</r>" => "</real>",
 }
 
+static PLIST_TAGS_AC: LazyLock<AhoCorasick> = LazyLock::new(|| {
+    AhoCorasick::new(PLIST_TAGS_FIND).expect("PLIST_TAGS_FIND contains valid patterns")
+});
+
 /// `GDLib`'s primary error type.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum GDError {
     /// Standard `std::io::Error`
     Io(std::io::Error),
-    /// Data could not be parsed from its raw form
+    /// Base64 decoding failed, e.g. for a level string or savefile that isn't valid URL-safe base64
     DecodeError(DecodeError),
     /// Unsuccessful plist parse
     BadPlist(plist::Error),
@@ -60,7 +77,9 @@ pub enum GDError {
     CorruptedSavefile(String),
     /// Unable to find the savefile
     MissingSavefile,
-    /// `AhoCorasick` error (UTF-8 parsing issues)
+    /// Building the Aho-Corasick automaton used by [`proper_plist_tags`] failed.
+    ///
+    /// The automaton's patterns are fixed and it is built once, so the crate no longer returns this variant.
     AhoCorasick(aho_corasick::BuildError),
     /// `FromUtf8Error` when converting decrypted bytes to string
     FromUtf8Error(std::string::FromUtf8Error),
@@ -96,7 +115,6 @@ from_error!(plist::Error => BadPlist);
 from_error!(aho_corasick::BuildError => AhoCorasick);
 from_error!(std::string::FromUtf8Error => FromUtf8Error);
 
-// TODO: make this more verbose, probably better?
 impl From<GDError> for std::fmt::Error {
     fn from(_: GDError) -> Self {
         std::fmt::Error
@@ -118,27 +136,28 @@ impl Display for GDError {
 }
 
 /// Returns path of CCLocalLevels.dat if it exists
+///
+/// Checks `%LOCALAPPDATA%\GeometryDash` first, then the Steam Proton path from [`linux_gd_files_path`].
 #[must_use]
-// -- TODO --: The fn only supports Windows, need to implement other OSes
 pub fn get_cclocallevels_path() -> Option<PathBuf> {
-    // TODO: need better way to validate/ensure Windows platforms
-    // TODO: need better way to check all Windows locations for gd?
-    // TODO: make into const
-    if let Ok(local_appdata) = env::var("LOCALAPPDATA")
-        && Path::new(&local_appdata).exists()
-    {
-        Some(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat").into())
-    } else {
-        let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCLocalLevels.dat"));
-        if linux_path.exists() {
-            return Some(linux_path);
+    if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
+        let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCLocalLevels.dat"));
+        if path.exists() {
+            return Some(path);
         }
-
-        None
     }
+
+    let linux_path = linux_gd_files_path()?.join("CCLocalLevels.dat");
+    if linux_path.exists() {
+        return Some(linux_path);
+    }
+
+    None
 }
 
 /// Returns path to CCGameManager.dat if it exists
+///
+/// Checks `%LOCALAPPDATA%\GeometryDash` first, then the Steam Proton path from [`linux_gd_files_path`].
 pub fn get_ccgamemanager_path() -> Option<PathBuf> {
     if let Ok(local_appdata) = env::var("LOCALAPPDATA") {
         let path = PathBuf::from(format!("{local_appdata}/GeometryDash/CCGameManager.dat"));
@@ -147,7 +166,7 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
         }
     }
 
-    let linux_path = PathBuf::from(format!("{LINUX_GD_FILES}/CCGameManager.dat"));
+    let linux_path = linux_gd_files_path()?.join("CCGameManager.dat");
     if linux_path.exists() {
         return Some(linux_path);
     }
@@ -156,19 +175,22 @@ pub fn get_ccgamemanager_path() -> Option<PathBuf> {
 }
 
 /// Replaces Robtop's plist format with actual plist tags; i.e. `<s>` becomes `<string>`
+///
+/// This function currently always returns `Ok`.
 pub fn proper_plist_tags(s: String) -> Result<String, GDError> {
     // replace gd plist with proper plist; use aho-corasick for single-pass instead of many .replace()s
-    let ac = AhoCorasick::new(PLIST_TAGS_FIND)?;
-    Ok(ac.replace_all(&s, &PLIST_TAGS_REPLACE))
+    Ok(PLIST_TAGS_AC.replace_all(&s, &PLIST_TAGS_REPLACE))
 }
 
-/// Quick function for decoding base64 bytes
+/// Decodes base64 bytes using the URL-safe alphabet (`-` and `_`), which is what GD uses.
 #[inline]
 pub fn b64_decode<T: AsRef<[u8]>>(encoded: T) -> Result<Vec<u8>, GDError> {
-    Ok(base64::engine::general_purpose::URL_SAFE.decode(encoded)?)
+    base64::engine::general_purpose::URL_SAFE
+        .decode(encoded)
+        .map_err(GDError::DecodeError)
 }
 
-/// Quick function for encoding base64 bytes
+/// Encodes bytes as padded base64 using the URL-safe alphabet (`-` and `_`), which is what GD uses.
 #[inline]
 #[must_use]
 pub fn b64_encode<T: AsRef<[u8]>>(encoded: T) -> String {

@@ -1,6 +1,39 @@
-//! This module covers everything in the CCGameManager.dat file.
-
-use std::{array, collections::HashMap, hash::BuildHasherDefault, io::Cursor};
+//! Read access to CCGameManager.dat, the savefile that holds a player's profile, stats and settings.
+//!
+//! [`CCGameManager`] is the top-level struct. Its fields split the file up by area:
+//!
+//! | Field | Contains |
+//! |---|---|
+//! | [`player_info`](CCGameManager::player_info) | Username, user ID, selected icons |
+//! | [`stats`](CCGameManager::stats) | Statistics and achievement progress |
+//! | [`config`](CCGameManager::config) | Game settings |
+//! | [`account`](CCGameManager::account) | Account details, including credentials |
+//! | [`keybinds`](CCGameManager::keybinds) | Keybinding data, left as raw dictionaries |
+//! | [`temp_state`](CCGameManager::temp_state) | Temporary values the game overwrites |
+//! | [`song_config`](CCGameManager::song_config) | Song settings |
+//! | [`other_properties`](CCGameManager::other_properties) | Keys gdlib doesn't parse yet |
+//!
+//! **Note:** This struct is unfinished and may include more subdivisions in the future.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use gdlib::ccgamemanager::{CCGameManager, achievements::GDAchievement};
+//!
+//! # fn main() -> Result<(), gdlib::core::GDError> {
+//! let save = CCGameManager::from_local()?;
+//! println!("{}", save.player_info.username);
+//! println!("{}", save.stats.get_vanilla_achievement(GDAchievement::Attempt01));
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Common pitfalls
+//!
+//! - **This module can only read.** There's currently no way to write a [`CCGameManager`] back to a file.
+//! - **Malformed files can panic.** [`CCGameManager::from_raw_string`] returns errors for some problems, but it panics on others, such as mistyped values.
+//! - **This data is sensitive.** [`account`](CCGameManager::account) can hold the player's password in plaintext and in hashed form in savefiles from GD older than 2.0, and [`CCGameManager`]'s `Debug` output prints both. Don't log it or share it.
+use std::{collections::HashMap, hash::BuildHasherDefault, io::Cursor};
 
 use nohash_hasher::NoHashHasher;
 use plist::{Dictionary, Value};
@@ -47,7 +80,7 @@ impl CCGameManager {
     /// Parses the local CCGameManager.dat file if it exists and is a valid file.
     pub fn from_local() -> Result<Self, GDError> {
         let path = get_ccgamemanager_path().ok_or(GDError::MissingSavefile)?;
-        Self::from_raw_string(decrypt_file(path).unwrap())
+        Self::from_raw_string(decrypt_file(path)?)
     }
 
     /// Parses a raw savefile plist to this object. The parser accounts for unknown keys, however it will panic in the case of a mistyped value.
@@ -59,12 +92,14 @@ impl CCGameManager {
         };
 
         let xmltree = match Value::from_reader_xml(Cursor::new(proper_plist_tags(s)?.as_bytes())) {
-            Ok(v) => v.into_dictionary().unwrap(),
+            Ok(v) => v.into_dictionary().ok_or(GDError::CorruptedSavefile(
+                "XML tree is not a dictionary".into(),
+            ))?,
             Err(e) => return Err(GDError::BadPlist(e)),
         };
 
         let mut this = Self::default();
-        if let None = this.parse_dict(xmltree) {
+        if this.parse_dict(xmltree).is_none() {
             return Err(GDError::CorruptedSavefile(
                 "Unable to parse corrupted savefile.".into(),
             ));
@@ -170,22 +205,25 @@ impl CCGameManager {
 
         for i in 0..5 {
             parse_val(&mut d, &format!("dpad0{}", i + 1), |v| {
-                self.config.dpads[i] = GDPlatformerUI::from_str(v.as_string().unwrap());
+                self.config.dpads[i] = GDPlatformerUI::parse(v.as_string()?);
                 Some(())
             })?;
         }
 
         self.config.dpad_layout = d
-            .get("dpad_layout")
-            .map(|v| GDPlatformerUI::from_str(v.as_string().unwrap()));
+            .remove("dpad_layout")
+            .map(|v| GDPlatformerUI::parse(v.as_string().unwrap_or_default()));
 
         parse_val(&mut d, "resolution", |v| {
-            self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32).ok()?;
+            self.config.resolution = Resolution::try_from(v.as_signed_integer()? as i32)
+                .ok()
+                .unwrap_or_default();
             Some(())
         })?;
         parse_val(&mut d, "texQuality", |v| {
-            self.config.texture_quality =
-                TextureQuality::try_from(v.as_signed_integer()? as i32).ok()?;
+            self.config.texture_quality = TextureQuality::try_from(v.as_signed_integer()? as i32)
+                .ok()
+                .unwrap_or_default();
             Some(())
         })?;
 
@@ -227,7 +265,7 @@ impl CCGameManager {
                 Some(
                     v.as_dictionary()?
                         .iter()
-                        .map(|(k, _)| k.parse::<i32>().unwrap())
+                        .map(|(k, _)| k.parse::<i32>().unwrap_or_default())
                         .collect::<Vec<_>>(),
                 )
             },
@@ -250,12 +288,15 @@ impl CCGameManager {
                 self.config.glm12_unknown = v
                     .as_dictionary()?
                     .iter()
-                    .map(|(k, _)| {
-                        let mut split = k.split("_").into_iter();
-                        let _ = split.next(); // skip `like`
-                        let keys =
-                            array::from_fn(|_| split.next().unwrap().parse::<i32>().unwrap());
-                        keys
+                    .filter_map(|(k, _)| {
+                        let mut split = k.split("_");
+                        let _ = split.next(); // skip `likes`
+                        const KEY_COUNT: usize = 4;
+                        let mut keys = [0i32; KEY_COUNT];
+                        for key in &mut keys {
+                            *key = split.next()?.parse::<i32>().unwrap_or_default();
+                        }
+                        Some(keys)
                     })
                     .collect::<Vec<_>>();
                 Some(())
@@ -266,11 +307,11 @@ impl CCGameManager {
             self.stats.completed_dailies = v
                 .as_dictionary()?
                 .iter()
-                .map(|(k, v)| {
-                    (
-                        k.parse::<i32>().unwrap(),
-                        GDLevel::from_dict(v.as_dictionary().unwrap()).unwrap(),
-                    )
+                .filter_map(|(k, v)| {
+                    Some((
+                        k.parse::<i32>().unwrap_or_default(),
+                        GDLevel::from_dict(v.as_dictionary()?)?,
+                    ))
                 })
                 .collect();
 
@@ -288,8 +329,8 @@ impl CCGameManager {
                 .iter()
                 .map(|(k, v)| {
                     (
-                        k.parse::<i32>().unwrap(),
-                        parse_objects(v.as_string().unwrap()),
+                        k.parse::<i32>().unwrap_or_default(),
+                        parse_objects(v.as_string().unwrap_or_default()),
                     )
                 })
                 .collect();
@@ -301,7 +342,11 @@ impl CCGameManager {
             v.as_dictionary()?.iter().for_each(|(ident, progress)| {
                 self.stats.set_achievement_by_ident(
                     ident,
-                    progress.as_string().unwrap().parse::<u16>().unwrap() as u16,
+                    progress
+                        .as_string()
+                        .unwrap_or_default()
+                        .parse::<u16>()
+                        .unwrap_or_default(),
                 );
             });
             Some(())
@@ -360,7 +405,7 @@ fn parse_val<F: FnMut(Value) -> Option<()>>(
 fn parse_level_dict(v: &Value) -> Option<Vec<GDLevel>> {
     v.as_dictionary()?
         .iter()
-        .map(|(_id, level_dict)| GDLevel::from_dict(level_dict.as_dictionary().unwrap()))
+        .filter_map(|(_id, level_dict)| Some(GDLevel::from_dict(level_dict.as_dictionary()?)))
         .collect::<Option<Vec<GDLevel>>>()
 }
 
@@ -374,14 +419,14 @@ fn parse_foldernames(v: Value) -> Option<Vec<(i32, String)>> {
         .iter()
         .map(|(idx, name)| {
             (
-                idx.parse::<i32>().unwrap(),
-                name.as_string().unwrap().to_string(),
+                idx.parse::<i32>().unwrap_or_default(),
+                name.as_string().unwrap_or_default().to_string(),
             )
         })
         .collect::<Vec<_>>();
 
     // this ensures that the folders are ordered by index
-    raw_folders.sort_by(|(a, _), (b, _)| a.cmp(b));
+    raw_folders.sort_by_key(|(a, _)| *a);
 
     Some(raw_folders)
 }

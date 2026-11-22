@@ -2,4 +2,5 @@
 GMDS/
 .vscode
 test_gmds/generated_*
-Cargo.lock
+# gddbg: level disassembler (kept local)
+gddbg/

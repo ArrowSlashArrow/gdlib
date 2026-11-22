@@ -1,44 +1,90 @@
-//! This module contains constructors for parameterized objects that have intrinsic properties other than those in GDObjConfig or GDObjAttributes.
+//! Typed constructors for objects that have their own properties.
+//!
+//! Most constructors are structs that implement [`ObjectProperties`]. Fill in the struct, then pass it to [`GDObject::from_config`] along with a [`GDObjConfig`](crate::cclocallevels::gdobj::meta::GDObjConfig) for the shared properties.
+//!
+//! - [`triggers`]: triggers and the objects that work with them.
+//! - [`gameplay`]: pads, orbs, portals and force blocks.
+//! - [`SpinningObjectConfig`]: objects that spin by themselves - mostly sawblades.
+//!
+//! All of these are also re-exported from [`gdobj`](crate::cclocallevels::gdobj).
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdobj::{GDObject, constructors::TextObject, ids::objects, meta::GDObjConfig};
+//!
+//! let text = TextObject { text: "hello".to_string(), kerning: 0 };
+//! let label = GDObject::from_config(&GDObjConfig::new().with_pos(90.0, 90.0), text);
+//! assert_eq!(label.id, objects::TEXT);
+//! ```
+//!
+//! # Adding a constructor
+//!
+//! Objects that map directly from fields to properties can use the internal `object_descriptor!` macro, which also generates `from_object`. Objects that need custom logic should implement [`ObjectProperties`] by hand.
+
 pub mod gameplay;
 pub mod triggers;
 
 use crate::{
     cclocallevels::gdobj::{
-        GDObjConfig, GDObject, GDValue, ObjectProperties,
+        GDObject, GDValue, ObjectProperties, get_property,
         ids::{
             objects::*,
             properties::{BASE64ENCODED_TEXT, CUSTOM_ROTATION_AMOUNT, KERNING, ROTATION_DISABLED},
         },
     },
-    core::b64_encode,
+    core::{b64_decode, b64_encode, io::vec_as_str_lossy},
     repr_t,
 };
 
-/// Returns a text object
-/// # Arguments
-/// `config`: Object config
-/// `text`: Text in the objecty
-/// `kerning`: Spacing between chars. Default is 0
-#[inline]
-pub fn text<T: AsRef<str>>(config: &GDObjConfig, text: T, kerning: i32) -> GDObject {
-    GDObject::new(
-        TEXT,
-        config,
+#[derive(Debug, Clone, PartialEq)]
+/// Text label
+pub struct TextObject {
+    /// Raw text payload that is disaplyed on this label. Can be multiple lines. This payload is encoded in base-64 when the object is serialized.
+    pub text: String,
+    /// Spacing between letters. Leave as 0 for no spacing difference. Negative values shrink spacing, positive values increase spacing.
+    pub kerning: i32,
+}
+
+impl ObjectProperties for TextObject {
+    fn object_id(&self) -> i32 {
+        TEXT
+    }
+
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
         vec![
             (
                 BASE64ENCODED_TEXT,
-                GDValue::String(b64_encode(text.as_ref())),
+                GDValue::String(b64_encode(self.text.clone())),
             ),
-            (KERNING, GDValue::Int(kerning)),
-        ],
-    )
+            (KERNING, GDValue::Int(self.kerning)),
+        ]
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != TEXT {
+            return None;
+        }
+
+        Some(Self {
+            text: vec_as_str_lossy(
+                &b64_decode(get_property!(obj, BASE64ENCODED_TEXT => String => String))
+                    .unwrap_or_default(),
+            ),
+            kerning: get_property!(obj, KERNING => Int => i32),
+        })
+    }
 }
 
 repr_t!(
     /// All objects that spin - i.e. have a parameter to control constant rotation, which can be in one of three modes:
-    ///     - Default: use the default rotation
-    ///     - Custom: set a custom rotation in degrees per second
-    ///     - Disable: equivalent to 0 degrees/second of rotation. Object is stationary is a result.
+    ///
+    /// * Default: use the default rotation
+    /// * Custom: set a custom rotation in degrees per second
+    /// * Disable: equivalent to 0 degrees/second of rotation. The object is stationary as a result.
     ///
     /// Casting a variant of this enum returns the object's ID.
     strict SpinningObject: i32 {
@@ -161,7 +207,7 @@ impl ObjectProperties for SpinningObjectConfig {
     }
 }
 
-/// Describes how a [`SpinningObject`] with rotate.
+/// Describes how a [`SpinningObject`] will rotate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum RotationConfig {
     /// Default rotation (randomly assigned by GD)
@@ -169,7 +215,7 @@ pub enum RotationConfig {
     Default,
     /// Custom amount of rotation in degrees per second. Positive rotation is clockwise, negative rotation is counterclockwise.
     ///
-    /// To set a rotation of 0 degrees / second, use `RotationConfig::Default`.
+    /// To set a rotation of 0 degrees / second, use [`RotationConfig::Disabled`].
     Custom(i32),
     /// Prevents the object from rotating naturally.
     Disabled,

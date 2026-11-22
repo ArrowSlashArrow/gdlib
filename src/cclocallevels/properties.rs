@@ -1,4 +1,17 @@
-//! Properties lookup table
+//! Lookup tables for object names and property types.
+//!
+//! - [`PROPERTY_TABLE`]: object property ID to name and type. Use [`get_obj_property_type`] to get just the type.
+//! - [`LEVEL_HEADER_PROPERTIES`]: the same for level headers. Use [`get_level_header_property_type`] to get just the type.
+//! - [`OBJECT_NAMES`]: object ID to name.
+//!
+//! The build script also generates the constants in [`ids`](crate::cclocallevels::gdobj::ids) from this module, so a new entry here becomes a new constant.
+//!
+//! ```
+//! use gdlib::cclocallevels::properties::OBJECT_NAMES;
+//!
+//! assert!(OBJECT_NAMES.get(&1).is_some());
+//! ```
+
 use phf::{Map, phf_map};
 
 use crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderValType;
@@ -27,14 +40,14 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     15u16 => ("Using player colour 1", GDObjPropType::Bool),
     16u16 => ("Using player colour 2", GDObjPropType::Bool),
     17u16 => ("Blending enabled", GDObjPropType::Bool),
-    20u16 => ("Editor layer 1", GDObjPropType::Int),
+    20u16 => ("Editor layer 1", GDObjPropType::Short),
     21u16 => ("Object colour", GDObjPropType::ColourChannel),
     22u16 => ("Secondary colour", GDObjPropType::ColourChannel),
     23u16 => ("Colour channel", GDObjPropType::ColourChannel),
-    24u16 => ("Z layer", GDObjPropType::Int),
+    24u16 => ("Z layer", GDObjPropType::ZLayer),
     25u16 => ("Z order", GDObjPropType::Int),
-    28u16 => ("Move units x", GDObjPropType::Int),
-    29u16 => ("Move units y", GDObjPropType::Int),
+    28u16 => ("Move units x", GDObjPropType::Float),
+    29u16 => ("Move units y", GDObjPropType::Float),
     30u16 => ("Move easing", GDObjPropType::Easing),
     31u16 => ("Base64-encoded text", GDObjPropType::Text),
     32u16 => ("Scale", GDObjPropType::Float),
@@ -46,7 +59,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     47u16 => ("Pulse fade out time", GDObjPropType::Float),
     48u16 => ("HSV is enabled", GDObjPropType::Bool),
     49u16 => ("Copy colour specs", GDObjPropType::Text),
-    50u16 => ("Copy colour from channel", GDObjPropType::Bool),
+    50u16 => ("Copy colour from channel", GDObjPropType::ColourChannel),
     // This property is used for any of the following:
     // - Primarily, the target group in a trigger; for example, the group which is being moved in a move trigger
     // - In the pulse trigger, it can also refer to a colour channel
@@ -69,7 +82,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     58u16 => ("Follow player's x movement", GDObjPropType::Bool),
     59u16 => ("Follow player's y movement", GDObjPropType::Bool),
     60u16 => ("Copy opacity", GDObjPropType::Bool),
-    61u16 => ("Editor layer 2", GDObjPropType::Int),
+    61u16 => ("Editor layer 2", GDObjPropType::Short),
     62u16 => ("Spawn triggerable", GDObjPropType::Bool),
     63u16 => ("Spawn delay", GDObjPropType::Float),
     64u16 => ("Don't fade", GDObjPropType::Bool),
@@ -146,7 +159,13 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     152u16 => ("Random probabilities list", GDObjPropType::ProbabilitiesList),
     153u16 => ("Div by value X", GDObjPropType::Bool),
     154u16 => ("Div by value Y", GDObjPropType::Bool),
-    /* we have yet to figure out this elusive property 155 */
+    /*  developer's note: property 155 has eluded me for close to a year */
+    /*  and i have finally found out what it does by virtue of a message */
+    /*   sent by @hdanke in the game creating discord server             */
+    // This property is present on most objects and is never negative. This property also
+    // does not need to correspond to a valid colour channel (i.e. 1 - 1014)
+    155u16 => ("Base colour cached index", GDObjPropType::Int),
+    156u16 => ("Detail colour cached index", GDObjPropType::Int),
     166u16 => ("Gravity direction", GDObjPropType::ArrowDirection),
     // Direction of rotate gameplay trigger
     167u16 => ("Arrow direction", GDObjPropType::ArrowDirection),
@@ -164,7 +183,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     279u16 => ("Is area parent?", GDObjPropType::Bool),
     284u16 => ("Single player touch", GDObjPropType::Bool),
     289u16 => ("Non-stick Y", GDObjPropType::Bool),
-    343u16 => ("Enter effect channel", GDObjPropType::Int),
+    343u16 => ("Enter effect channel", GDObjPropType::Short),
     344u16 => ("Target transition channel", GDObjPropType::Int),
     345u16 => ("Teleport use static force", GDObjPropType::Bool),
     346u16 => ("Teleport static force value", GDObjPropType::Float),
@@ -175,7 +194,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     351u16 => ("Teleport save offset", GDObjPropType::Bool),
     352u16 => ("Teleport ignore X", GDObjPropType::Bool),
     353u16 => ("Teleport ignore Y", GDObjPropType::Bool),
-    354u16 => ("Teleport exit gravity", GDObjPropType::Unknown),
+    354u16 => ("Teleport exit gravity", GDObjPropType::TeleportGravity),
     356u16 => ("Scale stick", GDObjPropType::Bool),
     368u16 => ("Instant offset", GDObjPropType::Bool),
     369u16 => ("Center effect", GDObjPropType::Bool),
@@ -194,11 +213,11 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     393u16 => ("Small step", GDObjPropType::Bool),
     394u16 => ("Directional move mode", GDObjPropType::Bool),
     395u16 => ("Center group id", GDObjPropType::Group),
-    396u16 => ("Directional mode distance", GDObjPropType::Int),
+    396u16 => ("Directional mode distance", GDObjPropType::Float),
     397u16 => ("Dynamic move", GDObjPropType::Bool),
     399u16 => ("Prep", GDObjPropType::Bool),
     400u16 => ("Load Prep", GDObjPropType::Bool),
-    401u16 => ("Rotation target ID", GDObjPropType::Int),
+    401u16 => ("Rotation target ID", GDObjPropType::Group),
     402u16 => ("Rotation offset", GDObjPropType::Float),
     403u16 => ("Dynamic mode easing", GDObjPropType::Int),
     404u16 => ("Song speed", GDObjPropType::Int),
@@ -216,7 +235,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     // Special "no multi-activate" option for platformer mode mainly on orbs, pads and portals
     444u16 => ("No multiactivate platformer", GDObjPropType::Bool),
     445u16 => ("Claim touch?", GDObjPropType::Bool),
-    446u16 => ("Object material", GDObjPropType::Int),
+    446u16 => ("Object material", GDObjPropType::Short),
     447u16 => ("Event extra ID", GDObjPropType::Group),
     448u16 => ("Checkpoint respawn ID", GDObjPropType::Group),
     449u16 => ("Pickup modifier", GDObjPropType::Float),
@@ -225,11 +244,11 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     461u16 => ("No end sound effects?", GDObjPropType::Bool),
     464u16 => ("Teleport instant camera", GDObjPropType::Bool),
     466u16 => ("Is Timer?", GDObjPropType::Bool),
-    467u16 => ("Start time", GDObjPropType::Bool),
+    467u16 => ("Start time", GDObjPropType::Float),
     468u16 => ("Don't override", GDObjPropType::Bool),
     469u16 => ("Ignore timewarp", GDObjPropType::Bool),
     470u16 => ("Time value multipler", GDObjPropType::Float),
-    471u16 => ("Start paused timer", GDObjPropType::Float),
+    471u16 => ("Start paused timer", GDObjPropType::Bool),
     472u16 => ("Stop time counter?", GDObjPropType::Bool),
     473u16 => ("Target time", GDObjPropType::Float),
     474u16 => ("Pause at target time", GDObjPropType::Bool),
@@ -250,7 +269,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     491u16 => ("Set persistent item", GDObjPropType::Bool),
     492u16 => ("Target all persistent items", GDObjPropType::Bool),
     493u16 => ("Reset item to 0", GDObjPropType::Bool),
-    494u16 => ("Timer", GDObjPropType::Item),
+    // Whether the item ID used in the persistent item trigger refers to a timer.
+    494u16 => ("Timer", GDObjPropType::Bool),
     495u16 => ("Extra sticky", GDObjPropType::Bool),
     496u16 => ("Don't boost Y?", GDObjPropType::Bool),
     498u16 => ("Beats per minute", GDObjPropType::Int),
@@ -267,7 +287,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     517u16 => ("MinY ID", GDObjPropType::Group),
     518u16 => ("MaxX ID", GDObjPropType::Group),
     519u16 => ("MaxY ID", GDObjPropType::Group),
-    525u16 => ("Event Extra ID 2", GDObjPropType::Bool),
+    525u16 => ("Event Extra ID 2", GDObjPropType::ExtraID2),
     526u16 => ("Force range minimum", GDObjPropType::Float),
     527u16 => ("Force range maximum", GDObjPropType::Float),
     528u16 => ("Relative force", GDObjPropType::Bool),
@@ -306,7 +326,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     588u16 => ("Dash orb end boost", GDObjPropType::Float),
     589u16 => ("Dash orb stop slide", GDObjPropType::Bool),
     590u16 => ("Dash orb maximal duration", GDObjPropType::Float),
-    591u16 => ("Teleport redirect dash", GDObjPropType::Float),
+    591u16 => ("Teleport redirect dash", GDObjPropType::Bool),
     595u16 => ("Don't stop song on death", GDObjPropType::Bool),
     10002u16 => ("Startpos gamemode", GDObjPropType::Gamemode),
     10003u16 => ("Startpos mini mode", GDObjPropType::Bool),
@@ -319,10 +339,14 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     10028u16 => ("Startpos mirror mode", GDObjPropType::Bool),
     10029u16 => ("Startpos Rotate gameplay", GDObjPropType::Bool),
     10035u16 => ("Startpos Reset camera", GDObjPropType::Bool),
+    // This property does not naturally occur and will only be parsed if there is an error
+    // while doing so - usually if a property key is unusually high.
+    65535u16 => ("Parsing error - this property does not exit", GDObjPropType::Unknown)
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
-/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`GDLevelHeaderKey::to_id`]
+/// while kSxx properties' indices are shifted 1000 upwards. To get a key's ID, use [`crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderKey::to_id`].
+/// Use [`crate::cclocallevels::gdlevel::leveldata::GDLevelHeaderKey::from_id`] to convert an integer ID into a usable key.
 ///
 /// Reference: <https://wyliemaster.github.io/gddocs/#/resources/client/level-components/level-start>
 pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType)> = phf_map! {
@@ -347,7 +371,7 @@ pub static LEVEL_HEADER_PROPERTIES: Map<u16, (&'static str, GDLevelHeaderValType
     19u16 => ("Startpos target order", GDLevelHeaderValType::Int),
     20u16 => ("Reverse gameplay", GDLevelHeaderValType::Bool),
     21u16 => ("Startpos disabled", GDLevelHeaderValType::Bool),
-    22u16 => ("Plaformer mode", GDLevelHeaderValType::Bool),
+    22u16 => ("Platformer mode", GDLevelHeaderValType::Bool),
     25u16 => ("Middleground texture ID", GDLevelHeaderValType::Int),
     26u16 => ("Startpos target channel", GDLevelHeaderValType::Int),
     27u16 => ("Allow multi-rotation", GDLevelHeaderValType::Bool),

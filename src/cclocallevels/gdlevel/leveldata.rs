@@ -1,7 +1,40 @@
-//! This module conatins methods and structs for operations with individual levels
+//! The level string: a level's start settings and objects, stored in key `k4` of a [`GDLevel`](super::GDLevel).
+//!
+//! # Format
+//!
+//! The string is gzip-compressed and base64-encoded. Decoded, it looks like this:
+//!
+//! ```text
+//! <headers>;<object>;<object>;...
+//! ```
+//!
+//! `headers` is a flat `key,value,key,value` list of start settings, such as colours, speed and gamemode. See [`GDLevelHeaderKey`], [`GDLevelHeaderValue`] and [`LEVEL_HEADER_PROPERTIES`](crate::cclocallevels::properties::LEVEL_HEADER_PROPERTIES). Each object is described in [`gdobj`](crate::cclocallevels::gdobj).
+//!
+//! # Main types
+//!
+//! - [`GDLevelState`]: the level string as either [`Encrypted`](GDLevelState::Encrypted) (still raw) or [`Decrypted`](GDLevelState::Decrypted) (parsed). Levels load in the raw state because parsing is slow.
+//! - [`GDLevelData`]: the parsed form, with `headers` and `objects`.
+//! - [`ColourString`] and [`GuidelineString`]: header values with their own formats.
+//!
+//! # Common tasks
+//!
+//! - Parse the encoded string: [`GDLevelData::parse`]. Most programs should use [`GDLevel::get_decrypted_data_ref`](super::GDLevel::get_decrypted_data_ref) instead.
+//! - Create level data for new objects: [`GDLevelData::with_default_headers`].
+//! - Find free group IDs: [`GDLevelData::get_used_groups`] and [`GDLevelData::get_unused_groups`].
+//!
+//! # Example
+//!
+//! ```
+//! use gdlib::cclocallevels::gdlevel::{GDLevel, leveldata::GDLevelData, version::GDVersion};
+//! use gdlib::cclocallevels::gdobj::GDObject;
+//!
+//! let data = GDLevelData::with_default_headers([GDObject::default_from_id(1)]);
+//! let level = GDLevel::with_level_data(GDVersion::LATEST, data);
+//! assert_eq!(level.get_objects_ref().unwrap().len(), 1);
+//! ```
 
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fmt::{Display, Write},
 };
 
@@ -12,7 +45,7 @@ use crate::{
         gdobj::{
             GDObject,
             ids::metadata::GROUP_PROPERTY_IDS,
-            structs::{Colour, GDValue, Gamemode, Group, HSVColour, Speed},
+            structs::{Colour, GDValue, Gamemode, HSVColour, Speed},
         },
         properties::get_level_header_property_type,
     },
@@ -38,7 +71,7 @@ pub struct GDEncryptedLevelData {
 #[derive(Clone, Debug, PartialEq)]
 pub struct GDLevelData {
     /// Headers for a GD level. This field stores all metadata about the level data itself (such as starting colour info and physics options).
-    pub headers: HashMap<GDLevelHeaderKey, GDLevelHeaderValue>,
+    pub headers: BTreeMap<GDLevelHeaderKey, GDLevelHeaderValue>,
     /// All objects in this level
     pub objects: Vec<GDObject>,
 }
@@ -74,7 +107,7 @@ pub enum GuidelineColour {
     Transparent,
 }
 
-/// Descriptor struct for the guildline string
+/// Descriptor struct for the guideline string
 #[derive(Clone, Debug, PartialEq)]
 pub struct GuidelineString {
     /// The guidelines themselves as (time, colour) tuples
@@ -110,7 +143,7 @@ pub struct ColourString {
     pub deltatime: f32,
     /// Time of transiton from `from` colour to `to` colour
     pub duration: f32,
-    /// @nodoc
+    /// Copy opacity: whether this colour also copies the opacity of the colour it inherits from (property 17)
     pub copy_opacity: bool,
     /// Unknown property with index 18
     pub unknown_property18: bool,
@@ -141,13 +174,13 @@ pub enum GDLevelHeaderValType {
 }
 
 /// Parses a raw level header string to a map of parsed header keys and values.
-pub fn parse_raw_level_headers(headers: &str) -> HashMap<GDLevelHeaderKey, GDLevelHeaderValue> {
+pub fn parse_raw_level_headers(headers: &str) -> BTreeMap<GDLevelHeaderKey, GDLevelHeaderValue> {
     let mut headers_kv = headers.split(",");
-    let mut map = HashMap::new();
+    let mut map = BTreeMap::new();
     while let (Some(k), Some(v)) = (headers_kv.next(), headers_kv.next()) {
         let key = GDLevelHeaderKey::parse(k);
         let ptype = if let Some(id) = key.to_id() {
-            if let Some(t) = get_level_header_property_type(id as u16) {
+            if let Some(t) = get_level_header_property_type(id) {
                 t
             } else {
                 // assume int
@@ -213,7 +246,11 @@ impl GDLevelData {
     pub fn serialise_level_headers(&self) -> String {
         // serialize kS38 first
         let mut out_str = if let Some(ks38) = self.headers.get(&GDLevelHeaderKey::S(38)) {
-            format!("kS38,{ks38},")
+            if self.headers.len() > 1 {
+                format!("kS38,{ks38},")
+            } else {
+                return format!("kS38,{ks38};");
+            }
         } else {
             String::new()
         };
@@ -234,7 +271,7 @@ impl GDLevelData {
 
     /// Returns a list of all the groups that contain at least one object
     #[must_use]
-    pub fn get_used_groups(&self) -> Vec<Group> {
+    pub fn get_used_groups(&self) -> Vec<i16> {
         if self.objects.is_empty() {
             return vec![];
         }
@@ -246,7 +283,7 @@ impl GDLevelData {
             .par_iter()
             .flat_map_iter(|obj| obj.config.groups.iter())
             .copied()
-            .collect::<Vec<Group>>();
+            .collect::<Vec<_>>();
 
         #[cfg(not(feature = "parallel"))]
         let mut groups = self
@@ -254,31 +291,29 @@ impl GDLevelData {
             .iter()
             .flat_map(|obj| obj.config.groups.iter())
             .copied()
-            .collect::<Vec<Group>>();
+            .collect::<Vec<_>>();
 
         groups.sort();
         groups.dedup();
         groups
     }
 
-    /// Returns a list of all the groups that do not contain any objects
+    /// Returns a list of all the groups from 1 to 9999 that do not contain any objects
     #[must_use]
-    pub fn get_unused_groups(&self) -> Vec<Group> {
+    pub fn get_unused_groups(&self) -> Vec<i16> {
         let mut used: [bool; 10_000] = [false; 10_000];
         for object in &self.objects {
             for group in &object.config.groups {
-                if let Group::Regular(g) = group
-                    && (1..10_000).contains(g)
-                {
-                    used[*g as usize] = true;
+                if (1..10_000).contains(group) {
+                    used[*group as usize] = true;
                 }
             }
         }
 
-        let mut unused: Vec<Group> = Vec::with_capacity(9_999);
+        let mut unused: Vec<_> = Vec::with_capacity(9_999);
         for id in 1..10_000 {
             if !used[id as usize] {
-                unused.push(Group::Regular(id));
+                unused.push(id);
             }
         }
 
@@ -335,6 +370,8 @@ impl GDLevelData {
     }
 
     /// Parse raw level data to this struct
+    ///
+    /// `raw_data` is the encoded level string, as stored in `k4` (gzip-compressed and base64-encoded). Returns `None` if it cannot be decoded.
     #[must_use]
     pub fn parse<T: AsRef<str>>(raw_data: T) -> Option<Self> {
         let raw_data = raw_data.as_ref();
@@ -368,6 +405,14 @@ impl GDLevelData {
             objects,
         })
     }
+
+    /// Creates a new instance of `GDLevelData` with the default level headers and set objects
+    pub fn with_default_headers<I: IntoIterator<Item = GDObject>>(objects: I) -> Self {
+        Self {
+            headers: parse_raw_level_headers(DEFAULT_LEVEL_HEADERS),
+            objects: objects.into_iter().collect(),
+        }
+    }
 }
 
 /// Parses a string of raw object strings separated by semicolons to a vector of [`GDObject`]s.
@@ -386,7 +431,6 @@ pub fn parse_objects(s: &str) -> Vec<GDObject> {
     #[cfg(not(feature = "parallel"))]
     let objects = s
         .split(";")
-        .into_iter()
         .filter(|obj| obj.len() > 1)
         .map(GDObject::parse_str)
         .collect();
@@ -400,7 +444,7 @@ impl GDLevelHeaderValue {
         match ptype {
             GDLevelHeaderValType::Int => Some(Self::Int(val.parse::<i32>().ok()?)),
             GDLevelHeaderValType::Float => Some(Self::Float(val.parse::<f32>().ok()?)),
-            GDLevelHeaderValType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? != 0)),
+            GDLevelHeaderValType::Bool => Some(Self::Bool(val.parse::<i32>().ok()? == 1)),
             GDLevelHeaderValType::Gamemode => Some(Self::Gamemode(
                 Gamemode::try_from(val.parse::<i32>().ok()?).ok()?,
             )),
@@ -408,17 +452,14 @@ impl GDLevelHeaderValue {
                 Some(Self::Speed(Speed::try_from(val.parse::<i32>().ok()?).ok()?))
             }
             GDLevelHeaderValType::ColourString => Some(Self::ColourString({
-                // there's usually 14 segments
                 let split = val.split("|").collect::<Vec<_>>();
                 split
                     .iter()
-                    .enumerate()
-                    .filter_map(|(idx, segment)| {
-                        // this avoids parsing the last element of the split which is an empty string
-                        if idx != split.len() - 1 {
-                            ColourString::parse(segment)
-                        } else {
+                    .filter_map(|segment| {
+                        if segment.is_empty() {
                             None
+                        } else {
+                            ColourString::parse(segment)
                         }
                     })
                     .collect::<Vec<_>>()
@@ -458,28 +499,29 @@ impl GuidelineColour {
 }
 
 impl GuidelineString {
-    /// Parses an input string to this object
+    /// Parses an input string to a guideline string.
+    ///
+    /// Reference: <https://boomlings.dev/resources/client/level-components/guideline-string>
     pub fn parse(s: &str) -> Option<Self> {
-        let guidelines = s
-            .split(".")
-            .filter_map(|g| {
-                let mut split_iter = g.split('~');
-                Some((
-                    split_iter.next()?.to_owned(),
-                    GuidelineColour::from_f32(split_iter.next()?.parse::<f32>().ok()?),
-                ))
-            })
-            .collect::<Vec<_>>();
+        let mut guideline_iter = s.split("~");
+        let mut guidelines = vec![];
+        while let (Some(t), Some(c)) = (guideline_iter.next(), guideline_iter.next()) {
+            guidelines.push((
+                t.to_owned(),
+                GuidelineColour::from_f32(c.parse::<f32>().ok()?),
+            ));
+        }
+
         Some(Self { guidelines })
     }
 
     /// Serialises this object to a string
-    pub fn to_string(&self) -> String {
+    pub fn serialise(&self) -> String {
         self.guidelines
             .iter()
             .map(|(t, c)| format!("{t}~{}", c.to_float()))
             .collect::<Vec<String>>()
-            .join(".")
+            .join("~")
     }
 }
 
@@ -502,7 +544,7 @@ macro_rules! parse {
 }
 
 impl ColourString {
-    /// Parses a colour string segment into this object
+    /// Parses a colour string segment into this object. Colour channel values outside the range \[0, 255] are clamped to that range.
     pub fn parse(s: &str) -> Option<Self> {
         let mut kv_iter = s.split("_");
         let mut new = Self::default();
@@ -514,9 +556,9 @@ impl ColourString {
             };
 
             match idx {
-                1 => new.from.red = parse!(v => i32) as u8,
-                2 => new.from.green = parse!(v => i32) as u8,
-                3 => new.from.blue = parse!(v => i32) as u8,
+                1 => new.from.red = parse!(v => i32).clamp(0, 255) as u8,
+                2 => new.from.green = parse!(v => i32).clamp(0, 255) as u8,
+                3 => new.from.blue = parse!(v => i32).clamp(0, 255) as u8,
                 4 => {
                     new.player_colour = match v.parse::<i32>() {
                         Ok(v) => match v {
@@ -545,7 +587,7 @@ impl ColourString {
                 15 => new.to_opacity = parse!(v => f32),
                 16 => new.duration = parse!(v => f32),
                 17 => new.copy_opacity = parse!(v),
-                18 => new.unknown_property18 = parse!(v) as bool,
+                18 => new.unknown_property18 = parse!(v),
                 _ => {}
             }
         }
@@ -554,7 +596,7 @@ impl ColourString {
     }
 
     /// Serialises this object to a String.
-    pub fn to_string(&self) -> String {
+    pub fn serialise(&self) -> String {
         // properties 1, 2, 3, 11, 12, 13, 18 are always present
 
         // casting to f32 is essential to keep all properties as one type
@@ -630,16 +672,17 @@ impl Display for GDLevelHeaderValue {
                 Self::Gamemode(g) => (*g as i32).to_string(),
                 Self::ColourString(c) => c
                     .iter()
-                    .map(|cl| format!("{}|", cl.to_string()))
+                    .map(|cl| format!("{}|", cl.serialise()))
                     .collect::<String>(),
-                Self::GuidelineString(g) => g.to_string(),
+                Self::GuidelineString(g) => g.serialise(),
             },
         )
     }
 }
 
+// Note: PartialOrd/Ord needed for storage in BTreeMap
 /// Enum for keys in a level header dictionary.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum GDLevelHeaderKey {
     /// kSxx key
     S(u16),
@@ -651,9 +694,10 @@ pub enum GDLevelHeaderKey {
 
 impl GDLevelHeaderKey {
     /// Parses a raw header identifier to a header. This function checks for these three forms:
-    ///     - `kAxx` where `xx` is an integer: becomes [`Self::A`]
-    ///     - `kSxx` where `xx` is an integer: becomes [`Self::S`]
-    ///     - anything else: becomes [`Self::Unknown`]
+    ///
+    /// * `kAxx` where `xx` is an integer: becomes [`Self::A`]
+    /// * `kSxx` where `xx` is an integer: becomes [`Self::S`]
+    /// * anything else: becomes [`Self::Unknown`]
     pub fn parse(s: &str) -> Self {
         match s {
             a if a.starts_with("kA") && s.len() > 2 && a[2..].parse::<u16>().is_ok() => {
@@ -670,7 +714,7 @@ impl GDLevelHeaderKey {
     pub fn to_id(&self) -> Option<u16> {
         match self {
             A(n) => Some(*n),
-            S(n) => Some(*n + LEVEL_HEADER_PROP_ID_OFFSET),
+            S(n) => Some(n.saturating_add(LEVEL_HEADER_PROP_ID_OFFSET)),
             _ => None,
         }
     }
@@ -679,7 +723,7 @@ impl GDLevelHeaderKey {
     ///
     /// Please use values defined in [`crate::cclocallevels::gdobj::ids::level_header`] to create instances of this object.
     pub fn from_id(id: u16) -> Self {
-        if id > LEVEL_HEADER_PROP_ID_OFFSET {
+        if id >= LEVEL_HEADER_PROP_ID_OFFSET {
             Self::S(id - LEVEL_HEADER_PROP_ID_OFFSET)
         } else {
             Self::A(id)

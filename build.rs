@@ -2,7 +2,6 @@ use std::{env, fmt::Write, fs, path::Path};
 
 // this file autogenerates `src/gdobj/ids.rs`, which is a file with
 // all of the currently implemented ids for objects and properties as consts.
-// currently broken due to `kAXX` properties
 
 fn to_const_name(s: &str) -> String {
     let mut seen_underscore = false;
@@ -54,10 +53,10 @@ fn get_map_from_line(file: &str, start_str: &str, gpi: &mut Vec<String>) -> Stri
 
             writeln!(
                 out_str,
-                "
-///
+                "///
 /// Property type: `{}`
-pub const {const_name}: u16 = {id};",
+pub const {const_name}: u16 = {id};
+",
                 &prop_type[..prop_type.len() - 2]
             )
             .unwrap();
@@ -94,8 +93,8 @@ fn get_map_from_line_untyped(file: &str, start_str: &str) -> String {
 
             writeln!(
                 out_str,
-                "
-pub const {const_name}: i32 = {id};"
+                "pub const {const_name}: i32 = {id};
+"
             )
             .unwrap();
         } else if line.starts_with(start_str) {
