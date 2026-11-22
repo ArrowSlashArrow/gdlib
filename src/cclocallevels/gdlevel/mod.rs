@@ -34,7 +34,7 @@
 //!
 //! [`GDLevel`] splits a level's properties into groups: [`identity`](GDLevel::identity), [`content`](GDLevel::content), [`ratings`](GDLevel::ratings), [`coins`](GDLevel::coins), [`player_stats`](GDLevel::player_stats), [`flags`](GDLevel::flags), [`editor_state`](GDLevel::editor_state), [`meta`](GDLevel::meta), [`integrity`](GDLevel::integrity) and [`unknowns`](GDLevel::unknowns).
 //!
-//! Most field docs name the key they're stored under (such as `k2`). Keys that gdlib doesn't recognise are kept in [`GDLevelUnknowns::other`] and written back unchanged, so they survive a round trip.
+//! Most field docs name the key they're stored under (such as `k2`). Keys that gdlib doesn't recognise are kept in `GDLevel.unknowns` and written back unchanged, so they survive a round trip.
 //!
 //! # Common pitfalls
 //!

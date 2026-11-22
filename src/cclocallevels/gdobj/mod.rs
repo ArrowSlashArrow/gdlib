@@ -69,10 +69,10 @@ pub mod defaults;
 pub mod ids {
     //! Generated constants for object IDs and property IDs.
     //!
-    //! - [`objects`](crate::cclocallevels::gdobj::ids::objects): object IDs, for [`GDObject::id`](crate::cclocallevels::gdobj::GDObject::id).
-    //! - [`properties`](crate::cclocallevels::gdobj::ids::properties): object property IDs, for [`GDObject::get_property`](crate::cclocallevels::gdobj::GDObject::get_property) and [`GDObject::set_property`](crate::cclocallevels::gdobj::GDObject::set_property).
-    //! - [`level_header`](crate::cclocallevels::gdobj::ids::level_header): level header property IDs.
-    //! - [`metadata`](crate::cclocallevels::gdobj::ids::metadata): lists of properties that share a trait, such as holding groups.
+    //! - [`objects`]: object IDs, for [`GDObject::id`](crate::cclocallevels::gdobj::GDObject::id).
+    //! - [`properties`]: object property IDs, for [`GDObject::get_property`](crate::cclocallevels::gdobj::GDObject::get_property) and [`GDObject::set_property`](crate::cclocallevels::gdobj::GDObject::set_property).
+    //! - [`level_header`]: level header property IDs.
+    //! - [`metadata`]: lists of properties that share a trait, such as holding groups.
     //!
     //! The build script generates this module from the tables in [`cclocallevels::properties`](crate::cclocallevels::properties), so change those tables rather than this module.
     #![allow(missing_docs)]
