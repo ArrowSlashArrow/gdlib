@@ -1,6 +1,6 @@
 //! Reads the player's profile from CCGameManager.dat and prints a summary.
 //!
-//! Shows how to:
+//! Showcased items:
 //! - load the game manager savefile with `CCGameManager::from_local`
 //! - read player info, settings and statistics
 //! - check achievement progress with `GDAchievement`
