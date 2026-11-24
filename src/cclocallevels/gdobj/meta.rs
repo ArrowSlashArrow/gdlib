@@ -45,8 +45,12 @@ pub struct GDObjConfig {
     /// Angle of rotation
     pub angle: f32,
     /// Groups of this object. This field does not contain information about which groups are pink groups.
+    ///
+    /// Note that only the first ten groups are serialised by GD, and more groups cannot be assigned without potentially crashing the game.
     pub groups: Vec<i16>,
     /// Pink groups (groups that are coloured pink in the editor). Under normal conditions, all groups here are also present in `groups`, though this is not a guarantee.
+    ///
+    /// Note that only the first ten groups are serialised by GD, and more groups cannot be assigned without potentially crashing the game.
     pub pink_groups: Vec<i16>,
     /// Trigger activation config
     pub trigger_cfg: TriggerConfig,

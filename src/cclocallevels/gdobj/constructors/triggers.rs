@@ -991,7 +991,7 @@ impl ObjectProperties for CounterLabel {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-/// Performs an atomic operation to mutates an item's value.
+/// Performs an atomic operation to mutate an item's value.
 ///
 /// The value that is set to the target item is evaluated like so:
 /// 1. The value of each specified operand is fetched and an intermediate result (referred to as the operand result in the struct's remaining documentation) is computed.

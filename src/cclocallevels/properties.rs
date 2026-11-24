@@ -341,7 +341,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     10035u16 => ("Startpos Reset camera", GDObjPropType::Bool),
     // This property does not naturally occur and will only be parsed if there is an error
     // while doing so - usually if a property key is unusually high.
-    65535u16 => ("Parsing error - this property does not exit", GDObjPropType::Unknown)
+    65535u16 => ("Parsing error - this property does not exist", GDObjPropType::Unknown)
 };
 
 /// A map of level header property IDs to their identifier and type. kAxx properties retain their normal index,
