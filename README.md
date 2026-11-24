@@ -43,7 +43,7 @@ fn main() -> Result<(), GDError> {
     // Load level from .gmd file
     let mut level = GDLevel::from_gmd("test_gmds/level.gmd")?;
 
-    // Get level data, which is None only if it hasn't been initialized.
+    // Get level data, which is None if it hasn't been initialized.
     if let Some(data) = level.get_decrypted_data_ref() {
         // Add group 42 to all objects
         for obj in data.objects.iter_mut() {
