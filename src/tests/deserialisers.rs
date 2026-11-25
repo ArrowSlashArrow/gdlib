@@ -1200,7 +1200,7 @@ fn list_fields() {
 fn list_unknown_keys_are_kept() {
     let d = level_dict(&[("k500", Value::from(5)), ("other", Value::from("x"))]);
     let list = GDList::from_dictionary(&d).unwrap();
-    assert_eq!(list.other_properties.len(), 2);
+    assert_eq!(list.other.len(), 2);
 }
 
 #[test]
@@ -1208,10 +1208,7 @@ fn list_keys_without_k_prefix_are_not_parsed_as_known_keys() {
     let d = level_dict(&[("x2", Value::from("not the name"))]);
     let list = GDList::from_dictionary(&d).unwrap();
     assert_eq!(list.name, "");
-    assert_eq!(
-        list.other_properties.get("x2"),
-        Some(&Value::from("not the name"))
-    );
+    assert_eq!(list.other.get("x2"), Some(&Value::from("not the name")));
 }
 
 #[test]
@@ -1291,7 +1288,7 @@ fn gamemanager_string(body: &str) -> String {
 #[test]
 fn gamemanager_empty() {
     let gm = CCGameManager::from_raw_string(gamemanager_string("")).unwrap();
-    assert!(gm.other_properties.is_empty());
+    assert!(gm.unknown.is_empty());
 }
 
 #[test]
@@ -1346,7 +1343,7 @@ fn gamemanager_player_and_config_fields() {
     assert_eq!(gm.account.account_id, 71);
     assert_eq!(gm.temp_state.current_daily_level, 1234);
     assert_eq!(gm.config.secret_number, 42);
-    assert!(gm.other_properties.is_empty(), "{:?}", gm.other_properties);
+    assert!(gm.unknown.is_empty(), "{:?}", gm.unknown);
 }
 
 #[test]
@@ -1379,7 +1376,7 @@ fn gamemanager_dpads() {
     assert!(d.split);
     assert_eq!(gm.config.dpad_layout.as_ref().unwrap().opacity, 255);
     // dpad_layout is parsed, so it must not also end up in the unknown properties
-    assert!(!gm.other_properties.contains_key("dpad_layout"));
+    assert!(!gm.unknown.contains_key("dpad_layout"));
 }
 
 #[test]
@@ -1488,11 +1485,8 @@ fn gamemanager_unknown_keys_are_kept() {
         "<k>someUnknownKey</k><i>5</i><k>GLM_20</k><d />",
     ))
     .unwrap();
-    assert_eq!(
-        gm.other_properties.get("someUnknownKey"),
-        Some(&Value::from(5))
-    );
-    assert!(gm.other_properties.contains_key("GLM_20"));
+    assert_eq!(gm.unknown.get("someUnknownKey"), Some(&Value::from(5)));
+    assert!(gm.unknown.contains_key("GLM_20"));
 }
 
 macro_rules! gamemanager_no_panic_tests {

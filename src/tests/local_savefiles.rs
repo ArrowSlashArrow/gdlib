@@ -62,7 +62,7 @@ fn print_list_info() {
 fn cc_game_manager_parse() {
     let gm = CCGameManager::from_local().unwrap();
     fs::write("ccgamemanager dump 2", format!("{gm:#?}")).unwrap();
-    for (k, v) in gm.other_properties {
+    for (k, v) in gm.unknown {
         println!(
             "{k}: {:?}",
             match v {

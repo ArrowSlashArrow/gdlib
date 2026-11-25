@@ -24,13 +24,11 @@
 use std::collections::HashMap;
 
 use bitflags::bitflags;
+use nohash_hasher::IntMap;
 use plist::{Dictionary, Value};
 
 use crate::{
-    ccgamemanager::{
-        IntMap,
-        achievements::{GDAchievement, MAX_ACHIEVEMENT_INDEX},
-    },
+    ccgamemanager::achievements::{GDAchievement, MAX_ACHIEVEMENT_INDEX},
     cclocallevels::{gdlevel::GDLevel, gdlist::GDList, gdobj::GDObject},
     repr_t,
 };
@@ -125,7 +123,7 @@ pub struct GDStatistics {
     /// All completed dailies in the form `{timely id: level}`
     ///
     /// Internal keys: `GLM_10`
-    pub completed_dailies: IntMap<GDLevel>,
+    pub completed_dailies: IntMap<i32, GDLevel>,
     /// Progress of all vanilla achievements, indexed by the achievement's repr value minus 1. See [`AchievementProgress`] for the value format.
     /// Use [`GDStatistics::get_vanilla_achievement`] to get an achievement's progress when using the [`GDAchievement`] enum.
     ///

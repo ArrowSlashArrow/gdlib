@@ -120,6 +120,7 @@ repr_t!(
 repr_t!(
     /// All official songs used in GD, including in spin-off games.
     OfficialSong: i32 {
+        /// The practice mode song. This song does not have a client ID
         StayInsideMe = -1,
         StereoMadness = 0,
         BackOnTrack = 1,
@@ -147,6 +148,7 @@ repr_t!(
         TheSevenSeas = 23,
         VikingArena = 24,
         AirborneRobots = 25,
+        /// Secret challenge song
         Secret = 26,
         Payload = 27,
         BeastMode = 28,

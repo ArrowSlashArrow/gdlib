@@ -308,7 +308,7 @@ fn sample_list() -> GDList {
         update_time: Some(1_700_000_500),
         diamond_reward: 50,
         required_levels: 2,
-        other_properties: HashMap::from([("k500".to_string(), Value::Integer(5.into()))]),
+        other: HashMap::from([("k500".to_string(), Value::Integer(5.into()))]),
         ..Default::default()
     }
 }
@@ -391,7 +391,7 @@ fn assert_lists_eq(actual: &GDList, expected: &GDList) {
         diamond_reward,
         required_levels,
         kcek,
-        other_properties
+        other
     );
     assert_eq!(
         actual.levels.len(),

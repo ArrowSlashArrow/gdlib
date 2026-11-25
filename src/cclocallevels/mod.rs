@@ -54,6 +54,9 @@ pub mod consts {
     //! - [`SPAWN_ORDER`]: how many units per second a spawn trigger moves.
     //!
     //! Reference: <https://github.com/UHDanke/gmdkit/blob/main/src/gmdkit/constants/game/speed/__init__.py>
+    //!
+    //! ### Trivia
+    //! The value of each speed closely follows the function f(x) = 206.84059 * 1.22756^x. If we ever got a 5x speed, it would likly be 707.77 units/second.
 
     /// Units per second of movement at 0.5x speed
     pub const SPEED_05X: f32 = 0.7 * 5.980_002 * 60.0;
@@ -65,7 +68,7 @@ pub mod consts {
     pub const SPEED_3X: f32 = 1.3 * 6.000002 * 60.0;
     /// Units per second of movement at 4x speed
     pub const SPEED_4X: f32 = 1.6 * 6.000002 * 60.0;
-    /// The rate of activation of a spawn trigger with "Spawn ordered" enabled.
+    /// The rate of activation of a spawn trigger with "Spawn ordered" enabled. This value exactly equals [`SPEED_1X`].
     ///
     /// See [`crate::cclocallevels::gdobj::SpawnTrigger`].
     pub const SPAWN_ORDER: f32 = 311.580_1;

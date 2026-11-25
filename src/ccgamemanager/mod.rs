@@ -11,7 +11,7 @@
 //! | [`keybinds`](CCGameManager::keybinds) | Keybinding data, left as raw dictionaries |
 //! | [`temp_state`](CCGameManager::temp_state) | Temporary values the game overwrites |
 //! | [`song_config`](CCGameManager::song_config) | Song settings |
-//! | [`other_properties`](CCGameManager::other_properties) | Keys gdlib doesn't parse yet |
+//! | [`unknown`](CCGameManager::unknown) | Keys gdlib doesn't parse yet |
 //!
 //! **Note:** This struct is unfinished and may include more subdivisions in the future.
 //!
@@ -33,9 +33,8 @@
 //! - **This module can only read.** There's currently no way to write a [`CCGameManager`] back to a file.
 //! - **Malformed files can panic.** [`CCGameManager::from_raw_string`] returns errors for some problems, but it panics on others, such as mistyped values.
 //! - **This data is sensitive.** [`account`](CCGameManager::account) can hold the player's password in plaintext and in hashed form in savefiles from GD older than 2.0, and [`CCGameManager`]'s `Debug` output prints both. Don't log it or share it.
-use std::{collections::HashMap, hash::BuildHasherDefault, io::Cursor};
+use std::{collections::HashMap, io::Cursor};
 
-use nohash_hasher::NoHashHasher;
 use plist::{Dictionary, Value};
 
 use crate::{
@@ -49,9 +48,6 @@ use crate::{
 
 pub mod achievements;
 pub mod structs;
-
-type IntMap<V> = HashMap<i32, V, BuildHasherDefault<NoHashHasher<i32>>>;
-
 /// Container struct for the CCGameManager.dat file
 #[derive(Debug, Default, Clone)]
 pub struct CCGameManager {
@@ -73,7 +69,7 @@ pub struct CCGameManager {
     pub song_config: GDSongConfig,
 
     /// Unaccounted-for properties
-    pub other_properties: HashMap<String, Value>,
+    pub unknown: HashMap<String, Value>,
 }
 
 impl CCGameManager {
@@ -366,7 +362,7 @@ impl CCGameManager {
         // MDLM_003: Unknown dictionary
         // GLM_09: Has something to do with filters for online levels, but it appears unused
 
-        self.other_properties = d.into_iter().collect();
+        self.unknown = d.into_iter().collect();
 
         Some(())
     }

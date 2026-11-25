@@ -30,7 +30,10 @@ use std::{f32::consts::PI, fmt::Display, str::FromStr};
 use smallvec::SmallVec;
 
 use crate::{
-    cclocallevels::gdobj::{GDObject, ids::properties::*},
+    cclocallevels::{
+        consts::{SPEED_1X, SPEED_2X, SPEED_3X, SPEED_4X, SPEED_05X},
+        gdobj::{GDObject, ids::properties::*},
+    },
     repr_t,
 };
 
@@ -1244,14 +1247,32 @@ repr_t!(
     /// Enum for starting speed in a startpos
     #[allow(missing_docs)]
     strict Speed: i32 {
+        /// Yellow portal
         X0Point5 = 1,
+        /// Blue portal
         X1 = 0,
+        /// Green portal
         X2 = 2,
+        /// Pink portal
         X3 = 3,
+        /// Red portal
         X4 = 4,
     }
     default X1
 );
+
+impl Speed {
+    /// Returns the speed of movement that this speed portal allows.
+    pub fn units_per_second(&self) -> f32 {
+        match self {
+            Self::X0Point5 => SPEED_05X,
+            Self::X1 => SPEED_1X,
+            Self::X2 => SPEED_2X,
+            Self::X3 => SPEED_3X,
+            Self::X4 => SPEED_4X,
+        }
+    }
+}
 
 /// Config struct for HSV colour settings
 #[derive(Debug, Clone, PartialEq)]

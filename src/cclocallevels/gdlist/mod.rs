@@ -155,7 +155,7 @@ pub struct GDList {
     pub kcek: KCEKValue,
 
     /// Residual properties that are unused or unaccounted for.
-    pub other_properties: HashMap<String, Value>,
+    pub other: HashMap<String, Value>,
 }
 
 impl Default for GDList {
@@ -187,7 +187,7 @@ impl Default for GDList {
             update_time: None,
             diamond_reward: 0,
             required_levels: 0,
-            other_properties: HashMap::new(),
+            other: HashMap::new(),
         }
     }
 }
@@ -211,14 +211,14 @@ impl GDList {
             }
 
             if k.len() < 2 || !k.starts_with('k') {
-                list.other_properties.insert(k.clone(), v.clone());
+                list.other.insert(k.clone(), v.clone());
                 continue;
             }
 
             let key_id = match k[1..].parse::<i32>() {
                 Ok(n) => n,
                 Err(_) => {
-                    list.other_properties.insert(k.clone(), v.clone());
+                    list.other.insert(k.clone(), v.clone());
                     continue;
                 }
             };
@@ -272,7 +272,7 @@ impl GDList {
                 114 => list.required_levels = v.as_signed_integer()? as i32,
 
                 _ => {
-                    list.other_properties.insert(k.clone(), v.clone());
+                    list.other.insert(k.clone(), v.clone());
                 }
             }
         }
@@ -360,7 +360,7 @@ impl GDList {
         );
 
         d.insert("kCEK".into(), Value::from(self.kcek.to_num()));
-        d.extend(self.other_properties.clone());
+        d.extend(self.other.clone());
 
         d
     }
