@@ -1412,7 +1412,7 @@ object_descriptor!(
         /// Prevents the trigger's resulting spawns from being rendered in editor preview
         preview_disable: bool => Bool DISABLE_PREVIEW,
         /// List of ID remaps: (old, new). When a group is triggered with remaps, it will use new IDs
-        spawn_remaps: Vec<(i32, i32)> => Remaps SPAWN_ID_REMAPS
+        spawn_remaps: Vec<(i32, i32)> => IntPairList SPAWN_ID_REMAPS
     }
 );
 
@@ -1805,7 +1805,7 @@ object_descriptor!(
         /// Chances are considered relative to each other, meaning that they are not
         /// precentage-based. Two groups with the same relative chance will have the same
         /// (50-50) chance to be triggered
-        probabilities: Vec<(i16, i32)> => ProbabilitiesList RANDOM_PROBABILITIES_LIST
+        probabilities: Vec<(i32, i32)> => IntPairList RANDOM_PROBABILITIES_LIST
     }
 );
 
@@ -1813,7 +1813,7 @@ impl AdvancedRandomTrigger {
     /// Returns what group will be called when this trigger is spawned, given a seed.
     ///
     /// This function uses [`check_seed_advanced_random`] internally.
-    pub fn determine_spawn_from_seed(&self, seed: u64) -> Option<i16> {
+    pub fn determine_spawn_from_seed(&self, seed: u64) -> Option<i32> {
         check_seed_advanced_random(seed, &self.probabilities)
     }
 }
@@ -2293,8 +2293,28 @@ impl ObjectProperties for TeleportTrigger {
     }
 }
 
+object_descriptor!(
+    /// Spawns groups in some sequence each time it is activated.
+    SequenceTrigger: SEQUENCE_TRIGGER => {
+        /// Sequence of groups that will be spawned - `(group ID, spawn count)`. The sequence is iterated through once every time this trigger is activated. The sequence `g2 x3, g5 x2` will need 5 activations to be completed.
+        sequence: Vec<(i32, i32)> => IntPairList TRIGGER_SEQUENCE,
+        /// Minimum interval between activations of sequence groups.
+        minimum_interval: f32 => Float SEQUENCE_TRIGGER_MINIMUM_INTERVAL,
+        /// Resets the sequence if activations do not happen with this amount of seconds of each other. See `SequenceTrigger.reset_step`
+        reset_interval: f32 => Float SEQUENCE_TRIGGER_RESET_INTERVAL,
+        /// What the trigger does once the sequence is over. See [`SequenceMode`].
+        mode: SequenceMode => SequenceMode SEQUENCE_TRIGGER_MODE,
+        /// If true, reset back to the previous step when the reset interval is not hit. This continues until either the trigger is activated again or it reaches the very first step.
+        ///
+        /// If false, the whole sequence is restarted.
+        reset_step: bool => Bool SEQUENCE_TRIGGER_RESET_FULLSTEP,
+        /// With this option enabled, all remapped IDs have a unique sequence they follow and will not be influenced by other IDs activating it.
+        unique_remap: bool => Bool SEQUENCE_TRIGGER_UNIQUE_REMAP,
+    }
+);
+
 // object_descriptor!(
-//     /// This thing
+//     /// This thing should go to
 //     Checkpoint: CHECKPOINT {
 //         spawn_id: i16 => Group TARGET_ITEM
 //         target_pos: i16 => Group TARGET_ITEM_2
@@ -2357,7 +2377,6 @@ pub(crate) use get_property;
  *
  * Player triggers
  * options
- * teleport trigger
  *
  * Shaders
  * shader setup

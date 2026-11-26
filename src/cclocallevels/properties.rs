@@ -156,7 +156,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     149u16 => ("Force magnitude", GDObjPropType::Float),
     150u16 => ("New X Scale", GDObjPropType::Float),
     151u16 => ("New Y Scale", GDObjPropType::Float),
-    152u16 => ("Random probabilities list", GDObjPropType::ProbabilitiesList),
+    152u16 => ("Random probabilities list", GDObjPropType::IntPairList),
     153u16 => ("Div by value X", GDObjPropType::Bool),
     154u16 => ("Div by value Y", GDObjPropType::Bool),
     /*  developer's note: property 155 has eluded me for close to a year */
@@ -229,8 +229,17 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     413u16 => ("Loop song", GDObjPropType::Bool),
     430u16 => ("Event listeners", GDObjPropType::EventsList),
     432u16 => ("Song channel", GDObjPropType::Int),
+    435u16 => ("Trigger sequence", GDObjPropType::IntPairList),
+    436u16 => ("Sequence trigger mode", GDObjPropType::SequenceMode), /* todo */
+    437u16 => ("Sequence trigger minimum interval", GDObjPropType::Float),
+    // If this much time passes between activations, the sequence trigger resets according to [`SEQUENCE_TRIGGER_RESET_FULL_STEP`] unless set to 0.
+    438u16 => ("Sequence trigger reset interval", GDObjPropType::Float),
+    // Goes back a step in the sequence if the activation does not happen in time.
+    // * If `true`, this option resets the current step in the sequence
+    // * If `false`, this option resets the whole sequence. (default behaviour)
+    439u16 => ("Sequence trigger reset full/step", GDObjPropType::Bool),
     441u16 => ("Spawn ordered", GDObjPropType::Bool),
-    442u16 => ("Spawn ID remaps", GDObjPropType::SpawnRemapsList),
+    442u16 => ("Spawn ID remaps", GDObjPropType::IntPairList),
     443u16 => ("Teleport static force is additive", GDObjPropType::Bool),
     // Special "no multi-activate" option for platformer mode mainly on orbs, pads and portals
     444u16 => ("No multiactivate platformer", GDObjPropType::Bool),
@@ -278,6 +287,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     500u16 => ("BPM guide disabled", GDObjPropType::Bool),
     501u16 => ("Beats per bar", GDObjPropType::Int),
     504u16 => ("Spawn only", GDObjPropType::Bool),
+    505u16 => ("Sequence trigger unique remap", GDObjPropType::Bool),
     506u16 => ("Camera guide preview opacity", GDObjPropType::Float),
     507u16 => ("No particles", GDObjPropType::Bool),
     509u16 => ("Don't boost X", GDObjPropType::Bool),

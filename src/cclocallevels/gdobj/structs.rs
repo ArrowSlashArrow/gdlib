@@ -261,8 +261,7 @@ pub enum GDObjPropType {
     Easing,
     EventsList,
     ColourChannel,
-    ProbabilitiesList,
-    SpawnRemapsList,
+    IntPairList,
     /// Like a boolean, except it can also be `Unset`. Used in the option trigger.
     Toggle,
     ZLayer,
@@ -287,6 +286,7 @@ pub enum GDObjPropType {
     MiddleGround,
     TeleportGravity,
     ExtraID2,
+    SequenceMode,
     Unknown,
 }
 
@@ -544,10 +544,13 @@ pub enum GDValue {
     ///
     /// All groups in this vector are treated as normal groups. Keep this in mind when the distiction between regular and parent groups is important.
     GroupList(smallvec::SmallVec<[i16; LIST_ALLOCSIZE]>),
-    /// A list of probability pairs: (group id, relative chance). Used in the advanced random trigger.
-    ProbabilitiesList(smallvec::SmallVec<[(i16, i32); LIST_ALLOCSIZE]>),
-    /// A list of spawn remap pairs: (old id, new id). Used in the spawn trigger.
-    SpawnRemapsList(smallvec::SmallVec<[(i32, i32); LIST_ALLOCSIZE]>),
+    /// A list of integer pairs.
+    ///
+    /// Used by:
+    /// * `AdvancedRandomTrigger.probabilities` - (GroupID, spawn chance)
+    /// * `SpawnTrigger.remaps` - (old ID, new ID)
+    /// * `SequenceTrigger.sequence` - (GroupID, activation count)
+    IntPairList(smallvec::SmallVec<[(i32, i32); LIST_ALLOCSIZE]>),
     /// A [`MoveEasing`]. This is only the easing type of a move easing and does not include the easing rate. See [`Easing`] for the type and rate together.
     Easing(MoveEasing),
     /// A [`ColourChannel`]. It may be any of the built in ones, or one with an ID in the range of \[1, 999]
@@ -596,7 +599,8 @@ pub enum GDValue {
     ItemAlign(ItemAlign),
     /// Wrapper for [`TeleportGravity`],
     TeleportGravity(TeleportGravity),
-
+    /// Wrapper for [`SequenceMode`]
+    SequenceMode(SequenceMode),
     /// A UTF-8 string. The fallback for any value that did not fit any of the aforementioned criteria. Any properties marked with [`GDObjPropType::Unknown`] are parsed to a String.
     String(String), // fallback
 }
@@ -629,13 +633,9 @@ impl GDValue {
                     .map(|i| Event::from(parse!(i => i32)))
                     .collect()
             }),
-            GDObjPropType::ProbabilitiesList => {
-                let tuples = parse_sibling_items::<i16, i32>(s);
-                Self::ProbabilitiesList(SmallVec::from_vec(tuples))
-            }
-            GDObjPropType::SpawnRemapsList => {
+            GDObjPropType::IntPairList => {
                 let tuples = parse_sibling_items::<i32, i32>(s);
-                Self::SpawnRemapsList(SmallVec::from_vec(tuples))
+                Self::IntPairList(SmallVec::from_vec(tuples))
             }
             GDObjPropType::Group => Self::Group(parse!(s => i16)),
             GDObjPropType::GroupList => Self::GroupList(if s.trim().is_empty() {
@@ -676,6 +676,7 @@ impl GDValue {
             GDObjPropType::ItemAlign => Self::ItemAlign(parse!(s => i32 => ItemAlign)),
             GDObjPropType::MiddleGround => Self::MiddleGround(parse!(s => i32 => MiddleGround)),
             GDObjPropType::ExtraID2 => Self::ExtraID2(parse!(s => i32 => ExtraID2)),
+            GDObjPropType::SequenceMode => Self::SequenceMode(parse!(s => i32 => SequenceMode)),
             GDObjPropType::TeleportGravity => {
                 Self::TeleportGravity(parse!(s => i32 => TeleportGravity))
             }
@@ -693,15 +694,9 @@ impl GDValue {
     }
 
     #[inline]
-    /// Converts a probabilities list to a [`GDValue`].
-    pub fn from_prob_list(g: Vec<(i16, i32)>) -> Self {
-        Self::ProbabilitiesList(SmallVec::from_vec(g))
-    }
-
-    #[inline]
-    /// Converts a spawn remaps list to a [`GDValue`].
-    pub fn from_spawn_remaps(g: Vec<(i32, i32)>) -> Self {
-        Self::SpawnRemapsList(SmallVec::from_vec(g))
+    /// Converts a list of integer pairs to a [`GDValue::IntPairList`].
+    pub fn from_int_pair_list(g: Vec<(i32, i32)>) -> Self {
+        Self::IntPairList(SmallVec::from_vec(g))
     }
 
     #[inline]
@@ -797,8 +792,7 @@ impl Display for GDValue {
                 write!(f, "{}", i_buf.format(*v))
             }
             GDValue::GroupList(v) => write!(f, "{}", fmt_intlist!(v, i_buf)),
-            GDValue::ProbabilitiesList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
-            GDValue::SpawnRemapsList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
+            GDValue::IntPairList(v) => write!(f, "{}", fmt_inttuples!(v, i_buf)),
             GDValue::Int(v) => write!(f, "{}", i_buf.format(*v)),
             GDValue::String(v) => write!(f, "{v}"),
             GDValue::ZLayer(v) => write!(f, "{}", i_buf.format(v.to_num())),
@@ -821,6 +815,7 @@ impl Display for GDValue {
             GDValue::StopMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ExtraID2(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::ItemAlign(v) => write!(f, "{}", i_buf.format(*v as i32)),
+            GDValue::SequenceMode(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::TeleportGravity(v) => write!(f, "{}", i_buf.format(*v as i32)),
             GDValue::MiddleGround(v) => write!(f, "{}", i_buf.format(v.to_num())),
         }
@@ -1831,4 +1826,16 @@ repr_t!(
         /// Gives the player the opposite gravity after the teleport.
         Toggle = 3
     } default Unset
+);
+
+repr_t!(
+    /// Sequence trigger activation mode
+    strict SequenceMode: i32 {
+        /// Stops the sequence at the end
+        Stop = 0,
+        /// Restarts the sequence after ending
+        Loop = 1,
+        /// Spawns the last group at the end
+        Last = 2,
+    } default Stop
 );

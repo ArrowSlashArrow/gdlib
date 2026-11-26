@@ -101,15 +101,15 @@ fn gdvalue_lists() {
     );
 
     assert_eq!(
-        GDValue::ProbabilitiesList(smallvec![(1, 10), (2, 20), (3, 30)]).to_string(),
+        GDValue::IntPairList(smallvec![(1, 10), (2, 20), (3, 30)]).to_string(),
         "1.10.2.20.3.30"
     );
-    assert_eq!(GDValue::ProbabilitiesList(smallvec![]).to_string(), "");
+    assert_eq!(GDValue::IntPairList(smallvec![]).to_string(), "");
     assert_eq!(
-        GDValue::SpawnRemapsList(smallvec![(1, 2), (-3, 40000)]).to_string(),
+        GDValue::IntPairList(smallvec![(1, 2), (-3, 40000)]).to_string(),
         "1.2.-3.40000"
     );
-    assert_eq!(GDValue::SpawnRemapsList(smallvec![]).to_string(), "");
+    assert_eq!(GDValue::IntPairList(smallvec![]).to_string(), "");
 
     assert_eq!(
         GDValue::Events(vec![Event::BallSwitch, Event::FallSpeedLow]).to_string(),

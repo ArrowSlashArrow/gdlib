@@ -381,7 +381,7 @@ fn advanced_random_huge_chances_do_not_panic() {
 #[test]
 fn advanced_random_predict() {
     // tuple: (object, seed, expected group)
-    let tests: &[(&str, u64, i16)] = &[
+    let tests: &[(&str, u64, i32)] = &[
         (
             "1,2068,2,75,3,75,155,2,11,1,87,1,36,1,152,2.50.3.50;",
             5006,

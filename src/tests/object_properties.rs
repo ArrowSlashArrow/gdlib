@@ -1387,6 +1387,29 @@ object_properties_suite!(spinning_object_config: SpinningObjectConfig {
     compare: direct,
 });
 
+object_properties_suite!(sequence_trigger_config: SequenceTrigger {
+    ids: [SEQUENCE_TRIGGER],
+    samples: vec![
+        SequenceTrigger {
+            minimum_interval: 6.7,
+            mode: SequenceMode::Stop,
+            reset_interval: 0.055051,
+            sequence: vec![(1, 2), (3, 4), (5, 6), (7, 88888888)],
+            reset_step: true,
+            unique_remap: true,
+        },
+        SequenceTrigger {
+            minimum_interval: 6.7,
+            mode: SequenceMode::Last,
+            reset_interval: 4938.3494,
+            sequence: vec![(6, 4), (123, 4534), (5, 6), (7, 88888888)],
+            reset_step: false,
+            unique_remap: true,
+        },
+    ],
+    compare: direct,
+});
+
 // ---------------- implementor-specific behaviour ----------------
 
 /// `object_descriptor!` structs derive `Default`, so an object without any properties must parse to `Default::default()`.
@@ -1439,6 +1462,7 @@ bare_object_is_default! {
     bare_rotate_gameplay_trigger: RotateGameplayTrigger,
     bare_pickup_trigger: PickupTrigger,
     bare_instant_count_trigger: InstantCountTrigger,
+    bare_sequence_trigger: SequenceTrigger,
 }
 
 #[test]

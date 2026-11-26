@@ -32,6 +32,7 @@ Pick the file by what the test **mainly** checks, not by which struct it uses:
 | `enum_conversions.rs` | number ↔ enum, `GDVersion`, `ColourChannel`, `Item`, achievements, object-type enums. |
 | `accessors.rs` | getters, setters, builders (`with_*`, `set_*`, `add_*`), `get_property` / `has_property`, group helpers. |
 | `game_logic.rs` | maths that copies GD's behaviour: item edit/compare, RNG, seeds, rotation. |
+| `gd_object_strings.rs` | gdlib's object strings against strings saved by GD itself. Build an object, compare it to a real sample with `assert_matches_gd`. |
 | `files.rs` | reading or writing real files (`test_gmds/*`, `export_to_*`, `from_gmd`, `decrypt_file`, …). |
 | `local_savefiles.rs` | anything that needs the user's own GD install (`from_local`). |
 | `benchmarks.rs` | timing only. Use the `benchmark` helper. Should not assert on speed. |

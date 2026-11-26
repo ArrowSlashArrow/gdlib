@@ -42,7 +42,7 @@ fn main() {
     println!("got seed: {seed}");
 }
 
-fn crack_seed(seed: u64, expected: &[i16], objects: &[AdvancedRandomTrigger]) -> bool {
+fn crack_seed(seed: u64, expected: &[i32], objects: &[AdvancedRandomTrigger]) -> bool {
     let mut seed_clone = seed;
 
     for (idx, obj) in objects.iter().enumerate() {
@@ -63,7 +63,7 @@ fn crack_seed(seed: u64, expected: &[i16], objects: &[AdvancedRandomTrigger]) ->
     true
 }
 
-fn check_object(seed: u64, object: &AdvancedRandomTrigger, expected_group: i16) -> bool {
+fn check_object(seed: u64, object: &AdvancedRandomTrigger, expected_group: i32) -> bool {
     match object.determine_spawn_from_seed(seed) {
         Some(g) => g == expected_group,
         _ => false, // this should never be hit since all of the triggers have set groups

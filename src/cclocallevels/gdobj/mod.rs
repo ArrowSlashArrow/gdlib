@@ -756,11 +756,8 @@ macro_rules! prop_value {
     (Events, $field:expr) => {
         GDValue::Events($field.clone())
     };
-    (ProbabilitiesList, $field:expr) => {
-        GDValue::from_prob_list($field.clone())
-    };
-    (Remaps, $field:expr) => {
-        GDValue::from_spawn_remaps($field.clone())
+    (IntPairList, $field:expr) => {
+        GDValue::from_int_pair_list($field.clone())
     };
     ($opt:literal $t:ident, $field:expr) => {
         GDValue::$t($field.unwrap_or_default())
@@ -785,11 +782,8 @@ macro_rules! object_field_match {
     (Events, $field_type:ty, $obj:expr, $prop:expr) => {
         crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => Events => $field_type)
     };
-    (ProbabilitiesList, $field_type:ty, $obj:expr, $prop:expr) => {
-        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => ProbabilitiesList => vec $field_type)
-    };
-    (Remaps, $field_type:ty, $obj:expr, $prop:expr) => {
-        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => SpawnRemapsList => vec $field_type)
+    (IntPairList, $field_type:ty, $obj:expr, $prop:expr) => {
+        crate::cclocallevels::gdobj::constructors::triggers::get_property!($obj, $prop => IntPairList => vec $field_type)
     };
     // field_type is optional
     ($gd_type:ident, $opt:literal $field_type:ty , $obj:expr, $prop:expr) => {

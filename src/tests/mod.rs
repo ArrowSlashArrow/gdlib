@@ -8,6 +8,7 @@
 //! * [`enum_conversions`]: numeric <-> enum conversions of all `repr_t!` and similar enums
 //! * [`accessors`]: getters, setters and builder methods on objects, configs and levels
 //! * [`game_logic`]: evaluation of in-game behaviour (items, RNG, seeds, ...)
+//! * [`gd_object_strings`]: object strings written by gdlib vs. object strings saved by GD
 //! * [`files`]: reading and writing the level/list files in `test_gmds/`
 //! * [`local_savefiles`]: tests that need a local GD installation
 //! * [`benchmarks`]: timing tests
@@ -37,6 +38,7 @@ mod deserialisers;
 mod enum_conversions;
 mod files;
 mod game_logic;
+mod gd_object_strings;
 mod local_savefiles;
 mod object_properties;
 mod roundtrips;

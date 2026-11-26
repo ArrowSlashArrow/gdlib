@@ -477,7 +477,7 @@ pub struct GDLevelContents {
     pub enable_platformer_save: bool,
     /// Interal key: `k130`
     pub platformer_save_level_version: i32,
-    // TODO: parse replay string (same as k34)
+    // TODO: parse replay string (same as `k34`)
     /// Note that, while this data is stored as a raw byte array, it must be a valid UTF-8 string to be properly serialized and deserialized.
     ///
     /// Interal key: `k131`

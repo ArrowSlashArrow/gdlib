@@ -76,12 +76,12 @@ fn gdvalue_from_lists() {
         GDValue::GroupList(smallvec![1, 2, 3])
     );
     assert_eq!(
-        GDValue::from(GDObjPropType::ProbabilitiesList, "1.10.2.20"),
-        GDValue::ProbabilitiesList(smallvec![(1, 10), (2, 20)])
+        GDValue::from(GDObjPropType::IntPairList, "1.10.2.20"),
+        GDValue::IntPairList(smallvec![(1, 10), (2, 20)])
     );
     assert_eq!(
-        GDValue::from(GDObjPropType::SpawnRemapsList, "5.6.-7.8"),
-        GDValue::SpawnRemapsList(smallvec![(5, 6), (-7, 8)])
+        GDValue::from(GDObjPropType::IntPairList, "5.6.-7.8"),
+        GDValue::IntPairList(smallvec![(5, 6), (-7, 8)])
     );
     assert_eq!(
         GDValue::from(GDObjPropType::EventsList, "19.76.64"),
@@ -104,20 +104,20 @@ fn gdvalue_from_empty_lists() {
         GDValue::Events(vec![])
     );
     assert_eq!(
-        GDValue::from(GDObjPropType::ProbabilitiesList, ""),
-        GDValue::ProbabilitiesList(SmallVec::new())
+        GDValue::from(GDObjPropType::IntPairList, ""),
+        GDValue::IntPairList(SmallVec::new())
     );
     assert_eq!(
-        GDValue::from(GDObjPropType::SpawnRemapsList, ""),
-        GDValue::SpawnRemapsList(SmallVec::new())
+        GDValue::from(GDObjPropType::IntPairList, ""),
+        GDValue::IntPairList(SmallVec::new())
     );
 }
 
 #[test]
 fn gdvalue_from_pair_list_with_odd_length_drops_last_item() {
     assert_eq!(
-        GDValue::from(GDObjPropType::ProbabilitiesList, "1.10.2"),
-        GDValue::ProbabilitiesList(smallvec![(1, 10)])
+        GDValue::from(GDObjPropType::IntPairList, "1.10.2"),
+        GDValue::IntPairList(smallvec![(1, 10)])
     );
 }
 
@@ -262,8 +262,8 @@ fn gdvalue_from_malformed_input_uses_defaults() {
 #[test]
 fn gdvalue_from_malformed_list_items_do_not_panic() {
     let _ = GDValue::from(GDObjPropType::GroupList, "1..2.abc.");
-    let _ = GDValue::from(GDObjPropType::ProbabilitiesList, "a.b.c.d");
-    let _ = GDValue::from(GDObjPropType::SpawnRemapsList, "....");
+    let _ = GDValue::from(GDObjPropType::IntPairList, "a.b.c.d");
+    let _ = GDValue::from(GDObjPropType::IntPairList, "....");
     let _ = GDValue::from(GDObjPropType::EventsList, "x.y");
 }
 
@@ -293,12 +293,12 @@ fn gdvalue_helper_constructors() {
         GDValue::GroupList(smallvec![3, 4])
     );
     assert_eq!(
-        GDValue::from_prob_list(vec![(1, 2)]),
-        GDValue::ProbabilitiesList(smallvec![(1, 2)])
+        GDValue::from_int_pair_list(vec![(1, 2)]),
+        GDValue::IntPairList(smallvec![(1, 2)])
     );
     assert_eq!(
-        GDValue::from_spawn_remaps(vec![(1, 2)]),
-        GDValue::SpawnRemapsList(smallvec![(1, 2)])
+        GDValue::from_int_pair_list(vec![(1, 2)]),
+        GDValue::IntPairList(smallvec![(1, 2)])
     );
 }
 
