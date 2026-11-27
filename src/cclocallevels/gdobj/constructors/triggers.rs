@@ -2328,7 +2328,7 @@ object_descriptor!(
 );
 
 object_descriptor!(
-    /// Set level configuration at runtime
+    /// Sets level configuration options at runtime
     OptionsTrigger: OPTIONS_TRIGGER => {
         streak_additive: Toggle => Toggle OPTION_STREAK_ADDITIVE,
         hide_ground: Toggle => Toggle OPTION_HIDE_GROUND,
@@ -2344,6 +2344,26 @@ object_descriptor!(
         edit_respawn_time: Toggle => Toggle OPTION_EDIT_RESPAWN_TIME,
         boost_slide: Toggle => Toggle OPTION_BOOST_SLIDE,
         respawn_time: f32 => Float OPTION_RESPAWN_TIME,
+    }
+);
+
+// percent trigger
+// 1,3663,2,435,3,165,36,1                               ;  base percent trigger
+// 1,3663,2,435,3,165,36,1,602,47                        ;  + [602] percent: 47
+// 1,3663,2,435,3,165,36,1,602,47,      605,1            ;  + [605] input: true
+// 1,3663,2,435,3,165,36,1,602,47,603,1,605,1            ;  + [603] add: true
+// 1,3663,2,435,3,165,36,1,602,47,603,1,605,1,      95,11;  + [95]  item_id: 11
+// 1,3663,2,435,3,165,36,1,602,47,603,1,605,1,80,36,95,11;  + [80]  target item id: 36
+
+object_descriptor!(
+    /// Sets progress percentage on platformer levels. This trigger is ignored if it attempts to set a lower progress value than the player currently has.
+    PercentTrigger: PERCENT_TRIGGER => {
+        percent: i32 => Int PERCENT_TRIGGER_PERCENT,
+        use_input: bool => Bool PERCENT_TRIGGER_INPUT,
+        /// Increase the current progress amount by `percent`.
+        add_mode: bool => Bool PERCENT_TRIGGER_ADD,
+        input_item_id: i16 => Item INPUT_ITEM_2,
+        target_item_id: i16 => Item INPUT_ITEM_1
     }
 );
 
