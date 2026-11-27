@@ -2327,6 +2327,26 @@ object_descriptor!(
     }
 );
 
+object_descriptor!(
+    /// Set level configuration at runtime
+    OptionsTrigger: OPTIONS_TRIGGER => {
+        streak_additive: Toggle => Toggle OPTION_STREAK_ADDITIVE,
+        hide_ground: Toggle => Toggle OPTION_HIDE_GROUND,
+        hide_mg: Toggle => Toggle OPTION_HIDE_MG,
+        hide_p1: Toggle => Toggle OPTION_HIDE_P1,
+        hide_p2: Toggle => Toggle OPTION_HIDE_P2,
+        disable_p1_controls: Toggle => Toggle OPTION_DISABLE_P1_CONTROLS,
+        disable_p2_controls: Toggle => Toggle OPTION_DISABLE_P2_CONTROLS,
+        unlink_dual_gravity: Toggle => Toggle OPTION_UNLINK_DUAL_GRAVITY,
+        hide_attempts: Toggle => Toggle OPTION_HIDE_ATTEMPTS,
+        audio_on_death: Toggle => Toggle OPTION_AUDIO_ON_DEATH,
+        no_death_sfx: Toggle => Toggle OPTION_NO_DEATH_SFX,
+        edit_respawn_time: Toggle => Toggle OPTION_EDIT_RESPAWN_TIME,
+        boost_slide: Toggle => Toggle OPTION_BOOST_SLIDE,
+        respawn_time: f32 => Float OPTION_RESPAWN_TIME,
+    }
+);
+
 pub(crate) use get_property;
 
 /* TODO: trigger constructors
@@ -2371,9 +2391,6 @@ pub(crate) use get_property;
  *
  * Misc.
  * gradient
- *
- * Player triggers
- * options
  *
  * Shaders
  * shader setup
