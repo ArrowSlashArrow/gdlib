@@ -2320,6 +2320,13 @@ object_descriptor!(
     }
 );
 
+object_descriptor!(
+    /// Changes the ground of a level. This trigger applies to both G1 and G2.
+    ChangeGroundTrigger: CHANGE_GROUND_TRIGGER => {
+        ground: Ground => to_i32 NEW_BACK_MIDDLE_GROUND,
+    }
+);
+
 pub(crate) use get_property;
 
 /* TODO: trigger constructors
@@ -2347,9 +2354,6 @@ pub(crate) use get_property;
  * enter area fade
  * enter area tint
  * enter area stop
- *
- * Background triggers
- * sdwitch ground
  *
  * Camera
  * static camera

@@ -1841,7 +1841,9 @@ repr_t!(
 );
 
 repr_t!(
-    /// The various backgrounds of GD. Most of these I could come up with a name for;
+    /// The various backgrounds of GD.
+    ///
+    /// Most of these I could come up with a name for;
     /// the ones I couldn't are labelled `BackgroundXX`, where XX is the background's internal ID.
     Background: i32 {
         DefaultSquares = 1,
@@ -1907,4 +1909,36 @@ repr_t!(
         RoofTiles = 58,
         WoodenWallWithSupports = 59
     } default DefaultSquares
+);
+
+repr_t!(
+    /// The various grounds of GD.
+    ///
+    /// Most of these I could come up with a name for;
+    /// the ones I couldn't are labelled `GroundXX`, where XX is the ground's internal ID.
+    Ground: i32 {
+        DefaultSquare = 1,
+        CircularScales = 2,
+        Bricks = 3,
+        ZigZagTiles = 4,
+        HexagonTiles = 5,
+        // Looks like the default cube icon
+        IconTiles = 6,
+        TriangleTiles = 7,
+        CliffEdge = 8,
+        Dirt = 9,
+        CheckeredTiles = 10,
+        BrickWall = 11,
+        CliffFace = 12,
+        Ground13 = 13,
+        Ground14 = 14,
+        Ground15 = 15,
+        WoodenWall = 16,
+        Ground16 = 17,
+        FlatColour = 18,
+        StoneWall = 19,
+        PixelatedGround20 = 20,
+        PixelatedGround21 = 21,
+        Ground22 = 22,
+    } default DefaultSquare
 );
