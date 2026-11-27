@@ -2358,11 +2358,15 @@ object_descriptor!(
 object_descriptor!(
     /// Sets progress percentage on platformer levels. This trigger is ignored if it attempts to set a lower progress value than the player currently has.
     PercentTrigger: PERCENT_TRIGGER => {
+        /// The value that the progress is set to.
         percent: i32 => Int PERCENT_TRIGGER_PERCENT,
+        /// Sets progress from `input_item_id` instead of `percent`.
         use_input: bool => Bool PERCENT_TRIGGER_INPUT,
         /// Increase the current progress amount by `percent`.
         add_mode: bool => Bool PERCENT_TRIGGER_ADD,
+        /// If `use_input` is enabled, the player's progress is set to the value in stored in this item (counter).
         input_item_id: i16 => Item INPUT_ITEM_2,
+        /// Progress is also written to this item.
         target_item_id: i16 => Item INPUT_ITEM_1
     }
 );
