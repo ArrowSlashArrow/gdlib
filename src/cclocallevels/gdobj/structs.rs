@@ -1801,7 +1801,7 @@ pub enum TeleportForce {
     None,
     /// force applied to player after teleport
     Static {
-        /// @nodoc
+        /// @nodoc  
         force: f32,
         /// @nodoc
         is_additive: bool,
@@ -1838,4 +1838,73 @@ repr_t!(
         /// Spawns the last group at the end
         Last = 2,
     } default Stop
+);
+
+repr_t!(
+    /// The various backgrounds of GD. Most of these I could come up with a name for;
+    /// the ones I couldn't are labelled `BackgroundXX`, where XX is the background's internal ID.
+    Background: i32 {
+        DefaultSquares = 1,
+        Bubbles = 2,
+        CheckeredTiles = 3,
+        ZigZagTiles = 4,
+        HexagonTiles = 5,
+        Bricks = 6,
+        HorizonPerspective = 7,
+        RoundTowers = 8,
+        RockWall = 9,
+        FlatColourGradient = 10,
+        Background11 = 11,
+        IrregularRectangularTiles = 12,
+        FlatColour = 13,
+        Cave = 14,
+        DesertWithStructures = 15,
+        Graveyard = 16,
+        AlienMountainLandscape = 17,
+        AlienForest = 18,
+        ForestWithCreek = 19,
+        NeonLights = 20,
+        DesertWithCacti = 21,
+        Cityscape = 22,
+        LoomingForest = 23,
+        IndustrialFactory = 24,
+        SeasweptMountains = 25,
+        ForestWithCanopy = 26,
+        NatureLandscape = 27,
+        AlienDesert = 28,
+        TallPointyMountains = 29,
+        PixelatedForest = 30,
+        HauntedForest = 31,
+        CloudyNightSky = 32,
+        IndustrialCityscapeSilhouette = 33,
+        /// These are also slightly cracked
+        PixelatedBricks = 34,
+        TempleInterior = 35,
+        PixelatedNatureLandscape = 36,
+        Background37 = 37,
+        EvilThornyWhoKnowsWhat = 38,
+        /// Looks like high life (kinda)
+        PixelatedCityscape = 39,
+        MysteriousDungeon = 40,
+        MysteriousDungeon2 = 41,
+        Background42 = 42,
+        BoilerRoom = 43,
+        Background44 = 44,
+        TechnologyRoom = 45,
+        BrickLookingTiles = 46,
+        ServerRoom = 47,
+        PlatformWithBrickWall = 48,
+        BoxesOfVaryingSizes = 49,
+        Background49 = 50,
+        Background50 = 51,
+        Village = 52,
+        UnevenBrickWall = 53,
+        SmallerUnevenBrickWall = 54,
+        WoodenScaffolding = 55,
+        /// Something wooden, I don't know what
+        Background55 = 56,
+        HolesInTheGround = 57,
+        RoofTiles = 58,
+        WoodenWallWithSupports = 59
+    } default DefaultSquares
 );

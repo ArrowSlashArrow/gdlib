@@ -303,7 +303,8 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     528u16 => ("Relative force", GDObjPropType::Bool),
     529u16 => ("Force range mode", GDObjPropType::Bool),
     530u16 => ("Force ID", GDObjPropType::Int),
-    533u16 => ("Middleground", GDObjPropType::MiddleGround),
+    // This property is used in the ChangeBackground, ChangeMiddleground, and ChangeGround triggers to specify the new bg/mg/ground.
+    533u16 => ("New Back / Middle / ground", GDObjPropType::Int),
     534u16 => ("Material control ID", GDObjPropType::Int),
     535u16 => ("Use control ID", GDObjPropType::Bool),
     540u16 => ("Stop player jump", GDObjPropType::Bool),

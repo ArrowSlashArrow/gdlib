@@ -2168,7 +2168,7 @@ object_descriptor!(
     /// Changes the middle ground
     MiddleGroundTrigger: CHANGE_MIDDLEGROUND_TRIGGER => {
         /// Change to this middleground
-        middleground: MiddleGround => MiddleGround MIDDLEGROUND
+        middleground: MiddleGround => to_i32 NEW_BACK_MIDDLE_GROUND
     }
 );
 
@@ -2313,15 +2313,12 @@ object_descriptor!(
     }
 );
 
-// object_descriptor!(
-//     /// This thing should go to
-//     Checkpoint: CHECKPOINT {
-//         spawn_id: i16 => Group TARGET_ITEM
-//         target_pos: i16 => Group TARGET_ITEM_2
-//     }
-// );
-
-// 1,2063,2,2145,3,345,107,1,11,1,87,1,36,1,51,3,71,4,448,6;
+object_descriptor!(
+    /// Changes the background of a level.
+    ChangeBackgroundTrigger: CHANGE_BACKGROUND_TRIGGER => {
+        background: Background => to_i32 NEW_BACK_MIDDLE_GROUND,
+    }
+);
 
 pub(crate) use get_property;
 
@@ -2352,11 +2349,7 @@ pub(crate) use get_property;
  * enter area stop
  *
  * Background triggers
- * switch bg
  * sdwitch ground
- *
- * Spawner triggers
- * sequence
  *
  * Camera
  * static camera
