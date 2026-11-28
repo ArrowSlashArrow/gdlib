@@ -641,3 +641,222 @@ impl ObjectProperties for Checkpoint {
         })
     }
 }
+
+repr_t!(
+    /// All collectible objects in GD - objects that do something when you "collect" them.
+    GDCollectible: i32 {
+        Key = KEY_COLLECTABLE,
+        Heart = HEART_COLLECTABLE,
+        Potion = POTION_COLLECTABLE,
+        Skull = SKULL_COLLECTABLE,
+        SmallCoin = SMALL_COIN_COLLECTABLE,
+        Clock = CLOCK_COLLECTABLE,
+        SmallPotionPixel = SMALL_POTION_PIXEL_COLLECTABLE,
+        MediumPotionPixel = MEDIUM_POTION_PIXEL_COLLECTABLE,
+        LargePotionPixel = LARGE_POTION_PIXEL_COLLECTABLE,
+        DiagonalKeyPixel = DIAGONAL_KEY_PIXEL_COLLECTABLE,
+        RoundKeyPixel = ROUND_KEY_PIXEL_COLLECTABLE,
+        FlatKeyPixel = FLAT_KEY_PIXEL_COLLECTABLE,
+        CoinPixel = COIN_PIXEL_COLLECTABLE,
+        SmallCoinStackPixel = SMALL_COIN_STACK_PIXEL_COLLECTABLE,
+        LargeCoinStackPixel = LARGE_COIN_STACK_PIXEL_COLLECTABLE,
+        CandyPixel = CANDY_PIXEL_COLLECTABLE,
+        MushroomPixel = MUSHROOM_PIXEL_COLLECTABLE,
+        BonePixel = BONE_PIXEL_COLLECTABLE,
+        SpherePixel = SPHERE_PIXEL_COLLECTABLE,
+        IngotPixel = INGOT_PIXEL_COLLECTABLE,
+        SquareGemPixel = SQUARE_GEM_PIXEL_COLLECTABLE,
+        HexagonGemPixel = HEXAGON_GEM_PIXEL_COLLECTABLE,
+        OctagonGemPixel = OCTAGON_GEM_PIXEL_COLLECTABLE,
+        RectangleGemPixel = RECTANGLE_GEM_PIXEL_COLLECTABLE,
+        PointyGemPixel = POINTY_GEM_PIXEL_COLLECTABLE,
+        DiamondPixel = DIAMOND_PIXEL_COLLECTABLE,
+        FishPixel = FISH_PIXEL_COLLECTABLE,
+        RocksPixel = ROCKS_PIXEL_COLLECTABLE,
+        WoodPixel = WOOD_PIXEL_COLLECTABLE,
+        EggPixel = EGG_PIXEL_COLLECTABLE,
+        LargeHeartPixel = LARGE_HEART_PIXEL_COLLECTABLE,
+        SmallHeartPixel = SMALL_HEART_PIXEL_COLLECTABLE,
+        MapPixel = MAP_PIXEL_COLLECTABLE,
+        BookPixel = BOOK_PIXEL_COLLECTABLE,
+        DevicePixel = DEVICE_PIXEL_COLLECTABLE,
+        ComputerPixel = COMPUTER_PIXEL_COLLECTABLE,
+        LargeSkullPixel = LARGE_SKULL_PIXEL_COLLECTABLE,
+        SmallSkullPixel = SMALL_SKULL_PIXEL_COLLECTABLE,
+        SpeechBubblePixel = SPEECH_BUBBLE_PIXEL_COLLECTABLE,
+        BranchPixel = BRANCH_PIXEL_COLLECTABLE,
+        ShardGemPixel = SHARD_GEM_PIXEL_COLLECTABLE,
+        EyePixel = EYE_PIXEL_COLLECTABLE,
+        EyeballPixel = EYEBALL_PIXEL_COLLECTABLE,
+        UpArrowPixel = UP_ARROW_PIXEL_COLLECTABLE,
+        DownArrowPixel = DOWN_ARROW_PIXEL_COLLECTABLE,
+        LightningPixel = LIGHTNING_PIXEL_COLLECTABLE,
+        NoSymbolPixel = NO_SYMBOL_PIXEL_COLLECTABLE,
+        GearPixel = GEAR_PIXEL_COLLECTABLE,
+        PlusPixel = PLUS_PIXEL_COLLECTABLE,
+        PlusSymbolsPixel = PLUS_SYMBOLS_PIXEL_COLLECTABLE,
+        PebblesPixel = PEBBLES_PIXEL_COLLECTABLE,
+        PresentPixel = PRESENT_PIXEL_COLLECTABLE,
+        ChestPixel = CHEST_PIXEL_COLLECTABLE,
+        BagPixel = BAG_PIXEL_COLLECTABLE,
+        BackpackPixel = BACKPACK_PIXEL_COLLECTABLE,
+        BundlePixel = BUNDLE_PIXEL_COLLECTABLE,
+        RingPixel = RING_PIXEL_COLLECTABLE,
+        PatternedRingPixel = PATTERNED_RING_PIXEL_COLLECTABLE,
+        GemRingPixel = GEM_RING_PIXEL_COLLECTABLE,
+        LargeNecklacePixel = LARGE_NECKLACE_PIXEL_COLLECTABLE,
+        SmallNecklacePixel = SMALL_NECKLACE_PIXEL_COLLECTABLE,
+        ShoePixel = SHOE_PIXEL_COLLECTABLE,
+        BootPixel = BOOT_PIXEL_COLLECTABLE,
+        PointyBootPixel = POINTY_BOOT_PIXEL_COLLECTABLE,
+        HatPixel = HAT_PIXEL_COLLECTABLE,
+        PointyHatPixel = POINTY_HAT_PIXEL_COLLECTABLE,
+        CurlyHatPixel = CURLY_HAT_PIXEL_COLLECTABLE,
+        Helmet1Pixel = HELMET_1_PIXEL_COLLECTABLE,
+        Helmet2Pixel = HELMET_2_PIXEL_COLLECTABLE,
+        Helmet3Pixel = HELMET_3_PIXEL_COLLECTABLE,
+        Mask1Pixel = MASK_1_PIXEL_COLLECTABLE,
+        Mask2Pixel = MASK_2_PIXEL_COLLECTABLE,
+        Mask3Pixel = MASK_3_PIXEL_COLLECTABLE,
+        RoundMaskPixel = ROUND_MASK_PIXEL_COLLECTABLE,
+        HornedRoundMaskPixel = HORNED_ROUND_MASK_PIXEL_COLLECTABLE,
+        SmallLabCoatPixel = SMALL_LAB_COAT_PIXEL_COLLECTABLE,
+        LargeLabCoatPixel = LARGE_LAB_COAT_PIXEL_COLLECTABLE,
+        Armor1Pixel = ARMOR_1_PIXEL_COLLECTABLE,
+        Armor2Pixel = ARMOR_2_PIXEL_COLLECTABLE,
+        Armor3Pixel = ARMOR_3_PIXEL_COLLECTABLE,
+        Armor4Pixel = ARMOR_4_PIXEL_COLLECTABLE,
+        Armor5Pixel = ARMOR_5_PIXEL_COLLECTABLE,
+        Armor6Pixel = ARMOR_6_PIXEL_COLLECTABLE,
+        Shield1Pixel = SHIELD_1_PIXEL_COLLECTABLE,
+        Shield2Pixel = SHIELD_2_PIXEL_COLLECTABLE,
+        Shield3Pixel = SHIELD_3_PIXEL_COLLECTABLE,
+        Shield4Pixel = SHIELD_4_PIXEL_COLLECTABLE,
+        Shield5Pixel = SHIELD_5_PIXEL_COLLECTABLE,
+        Shield6Pixel = SHIELD_6_PIXEL_COLLECTABLE,
+        Shield7Pixel = SHIELD_7_PIXEL_COLLECTABLE,
+        Shield8Pixel = SHIELD_8_PIXEL_COLLECTABLE,
+        Shield9Pixel = SHIELD_9_PIXEL_COLLECTABLE,
+        SwordPixel = SWORD_PIXEL_COLLECTABLE,
+        BowPixel = BOW_PIXEL_COLLECTABLE,
+        AxePixel = AXE_PIXEL_COLLECTABLE,
+        SpearPixel = SPEAR_PIXEL_COLLECTABLE,
+        LargeStaffPixel = LARGE_STAFF_PIXEL_COLLECTABLE,
+        ShovelPixel = SHOVEL_PIXEL_COLLECTABLE,
+        PickaxePixel = PICKAXE_PIXEL_COLLECTABLE,
+        HammerPixel = HAMMER_PIXEL_COLLECTABLE,
+        HoePixel = HOE_PIXEL_COLLECTABLE,
+        SmallStaffPixel = SMALL_STAFF_PIXEL_COLLECTABLE,
+        HookPixel = HOOK_PIXEL_COLLECTABLE,
+        ExclamationPointPixel = EXCLAMATION_POINT_PIXEL_COLLECTABLE,
+        QuestionMarkPixel = QUESTION_MARK_PIXEL_COLLECTABLE,
+        PlusSignPixel = PLUS_SIGN_PIXEL_COLLECTABLE,
+        MinusSignPixel = MINUS_SIGN_PIXEL_COLLECTABLE,
+        EqualsSignPixel = EQUALS_SIGN_PIXEL_COLLECTABLE,
+        TimesSignPixel = TIMES_SIGN_PIXEL_COLLECTABLE,
+        DivisionSignPixel = DIVISION_SIGN_PIXEL_COLLECTABLE,
+        Numeral0Pixel = NUMERAL_0_PIXEL_COLLECTABLE,
+        Numeral1Pixel = NUMERAL_1_PIXEL_COLLECTABLE,
+        Numeral2Pixel = NUMERAL_2_PIXEL_COLLECTABLE,
+        Numeral3Pixel = NUMERAL_3_PIXEL_COLLECTABLE,
+        Numeral4Pixel = NUMERAL_4_PIXEL_COLLECTABLE,
+        Numeral5Pixel = NUMERAL_5_PIXEL_COLLECTABLE,
+        Numeral6Pixel = NUMERAL_6_PIXEL_COLLECTABLE,
+        Numeral7Pixel = NUMERAL_7_PIXEL_COLLECTABLE,
+        Numeral8Pixel = NUMERAL_8_PIXEL_COLLECTABLE,
+        Numeral9Pixel = NUMERAL_9_PIXEL_COLLECTABLE,
+        AnimalSkullPixel = ANIMAL_SKULL_PIXEL_COLLECTABLE,
+        CrackedSkullPixel = CRACKED_SKULL_PIXEL_COLLECTABLE,
+        SmallBonePixel = SMALL_BONE_PIXEL_COLLECTABLE,
+        LargeKeyPixel = LARGE_KEY_PIXEL_COLLECTABLE,
+        KeyholeChestPixel = KEYHOLE_CHEST_PIXEL_COLLECTABLE,
+        BreadPixel = BREAD_PIXEL_COLLECTABLE,
+        SmallDiamondPixel = SMALL_DIAMOND_PIXEL_COLLECTABLE,
+        CloakPixel = CLOAK_PIXEL_COLLECTABLE,
+        ScrollPixel = SCROLL_PIXEL_COLLECTABLE,
+        BannerPixel = BANNER_PIXEL_COLLECTABLE,
+        BombPixel = BOMB_PIXEL_COLLECTABLE,
+        MetalNuggetPixel = METAL_NUGGET_PIXEL_COLLECTABLE,
+        SmallArrowPixel = SMALL_ARROW_PIXEL_COLLECTABLE,
+        LargeArrowPixel = LARGE_ARROW_PIXEL_COLLECTABLE,
+        CheesePixel = CHEESE_PIXEL_COLLECTABLE,
+        ApplePixel = APPLE_PIXEL_COLLECTABLE,
+        CarrotPixel = CARROT_PIXEL_COLLECTABLE,
+        SteakPixel = STEAK_PIXEL_COLLECTABLE,
+        FirePixel = FIRE_PIXEL_COLLECTABLE,
+        WavePixel = WAVE_PIXEL_COLLECTABLE,
+        SpikePixel = SPIKE_PIXEL_COLLECTABLE,
+        CauldronPixel = CAULDRON_PIXEL_COLLECTABLE,
+        FishingRodPixel = FISHING_ROD_PIXEL_COLLECTABLE,
+        PointyBowPixel = POINTY_BOW_PIXEL_COLLECTABLE,
+        FloppyDiskPixel = FLOPPY_DISK_PIXEL_COLLECTABLE,
+    }
+);
+
+/// Object that does something when it is collected.
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub struct CollectibleObject {
+    pub object: GDCollectible,
+    /// Particle group that is spawned when the item is collected
+    pub particle: i32,
+    pub points: i32,
+    /// Corresponds to the "Toggle trigger" option in a collectible.
+    pub spawn_group: bool,
+    pub group_id: i16,
+    /// Toggles/spawns the spawn_group instead of toggling it off
+    pub enable_group: bool,
+    /// Sets this object to be a pickup item - a collectible that adds `self.points` to `self.item_id` when collected.
+    pub pickup_item: bool,
+    pub item_id: i16,
+    /// Subtracts from `item_id` instead of adding to it (see `pickup_item`)
+    pub subtract_count: bool,
+    /// Disables collection animation
+    pub no_animation: bool,
+}
+
+impl ObjectProperties for CollectibleObject {
+    fn object_id(&self) -> i32 {
+        self.object.to_num()
+    }
+
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        vec![
+            (COLLECTIBLE_PARTICLE_GROUP, GDValue::Int(self.particle)),
+            (COLLECTIBLE_POINTS, GDValue::Int(self.points)),
+            (COLLECTIBLE_TOGGLE_TRIGGER, GDValue::Bool(self.spawn_group)),
+            (TARGET_ITEM, GDValue::Group(self.group_id)),
+            (ACTIVATE_GROUP, GDValue::Bool(self.enable_group)),
+            (COLLECTIBLE_PICKUP_ITEM, GDValue::Bool(self.pickup_item)),
+            (INPUT_ITEM_1, GDValue::Item(self.item_id)),
+            (
+                COLLECTIBLE_SUBTRACT_COUNT,
+                GDValue::Bool(self.subtract_count),
+            ),
+            (COLLECTIBLE_NO_ANIMATION, GDValue::Bool(self.no_animation)),
+        ]
+    }
+
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        let object = match GDCollectible::from(obj.id) {
+            GDCollectible::Unrecognized(_) => return None,
+            c => c,
+        };
+
+        Some(Self {
+            object,
+            particle: int(obj, COLLECTIBLE_PARTICLE_GROUP),
+            points: int(obj, COLLECTIBLE_POINTS),
+            spawn_group: flag(obj, COLLECTIBLE_TOGGLE_TRIGGER),
+            group_id: int(obj, TARGET_ITEM) as i16,
+            enable_group: flag(obj, ACTIVATE_GROUP),
+            pickup_item: flag(obj, COLLECTIBLE_PICKUP_ITEM),
+            item_id: int(obj, INPUT_ITEM_1) as i16,
+            subtract_count: flag(obj, COLLECTIBLE_SUBTRACT_COUNT),
+            no_animation: flag(obj, COLLECTIBLE_NO_ANIMATION),
+        })
+    }
+}

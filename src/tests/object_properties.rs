@@ -1380,6 +1380,25 @@ object_properties_suite!(checkpoint: Checkpoint {
     compare: direct,
 });
 
+object_properties_suite!(collectible_object: CollectibleObject {
+    ids: [KEY_COLLECTABLE, SMALL_COIN_COLLECTABLE, FLOPPY_DISK_PIXEL_COLLECTABLE],
+    samples: vec![
+        CollectibleObject {
+            object: GDCollectible::Key, particle: 12, points: 5, spawn_group: true, group_id: 34,
+            enable_group: true, pickup_item: true, item_id: 56, subtract_count: true, no_animation: true,
+        },
+        CollectibleObject {
+            object: GDCollectible::SmallCoin, particle: 0, points: -3, spawn_group: false, group_id: 0,
+            enable_group: false, pickup_item: true, item_id: 9999, subtract_count: false, no_animation: false,
+        },
+        CollectibleObject {
+            object: GDCollectible::FloppyDiskPixel, particle: 1, points: 0, spawn_group: true, group_id: 7,
+            enable_group: false, pickup_item: false, item_id: 0, subtract_count: true, no_animation: false,
+        },
+    ],
+    compare: direct,
+});
+
 object_properties_suite!(spinning_object_config: SpinningObjectConfig {
     ids: [
         SpinningObject::LargeSawBlade as i32,
@@ -1783,5 +1802,36 @@ fn checkpoint_from_object() {
     assert_eq!(
         parse("1,2063,2,285,3,75,107,1,11,1,36,1,51,456,71,1122,448,789,604,123,138,1;"),
         Checkpoint { pre_spawn_id: 123, spawn_id: 456, respawn_id: 789, target_pos: 1122, player_pos: true }
+    );
+}
+
+#[test]
+fn every_collectible_has_its_object_id() {
+    // `GDCollectible` is lenient, so check every ID it knows maps back to itself and every other ID is rejected.
+    for id in -1..5000 {
+        let obj = GDObject::new(id, &GDObjConfig::default(), vec![]);
+        match GDCollectible::from(id) {
+            GDCollectible::Unrecognized(_) => {
+                assert_eq!(CollectibleObject::from_object(&obj), None, "object {id}")
+            }
+            c => {
+                let parsed = CollectibleObject::from_object(&obj).unwrap_or_else(|| panic!("object {id}"));
+                assert_eq!(parsed.object, c);
+                assert_eq!(parsed.object_id(), id);
+            }
+        }
+    }
+}
+
+#[test]
+fn collectible_object_from_object() {
+    // key placed in the editor, from `test_gmds/All Object IDs.gmd`
+    let obj = GDObject::parse_str("1,1275,2,23145,3,825,155,20,156,14,36,1,383,1;");
+    assert_eq!(
+        CollectibleObject::from_object(&obj),
+        Some(CollectibleObject {
+            object: GDCollectible::Key, particle: 0, points: 1, spawn_group: false, group_id: 0,
+            enable_group: false, pickup_item: false, item_id: 0, subtract_count: false, no_animation: false,
+        })
     );
 }
