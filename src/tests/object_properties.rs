@@ -1371,6 +1371,15 @@ object_properties_suite!(gameplay_portal_config: GameplayPortalConfig {
     compare: direct,
 });
 
+object_properties_suite!(checkpoint: Checkpoint {
+    ids: [CHECKPOINT],
+    samples: vec![
+        Checkpoint { pre_spawn_id: 123, spawn_id: 456, respawn_id: 789, target_pos: 1122, player_pos: true },
+        Checkpoint { pre_spawn_id: 0, spawn_id: 7, respawn_id: 0, target_pos: 0, player_pos: false },
+    ],
+    compare: direct,
+});
+
 object_properties_suite!(spinning_object_config: SpinningObjectConfig {
     ids: [
         SpinningObject::LargeSawBlade as i32,
@@ -1463,6 +1472,7 @@ bare_object_is_default! {
     bare_pickup_trigger: PickupTrigger,
     bare_instant_count_trigger: InstantCountTrigger,
     bare_sequence_trigger: SequenceTrigger,
+    bare_checkpoint: Checkpoint,
 }
 
 #[test]
@@ -1758,5 +1768,20 @@ fn pad_ignores_wrongly_typed_properties() {
     assert_eq!(
         GDPad::from_object(&obj),
         Some(GDPad::new(GDPadType::Yellow))
+    );
+}
+
+#[test]
+fn checkpoint_from_object() {
+    // strings saved by GD, from the comment above `Checkpoint` in constructors/gameplay.rs
+    let parse = |s: &str| Checkpoint::from_object(&GDObject::parse_str(s)).unwrap();
+    assert_eq!(parse("1,2063,2,285,3,75,107,1,11,1,36,1;"), Checkpoint::default());
+    assert_eq!(
+        parse("1,2063,2,285,3,75,107,1,11,1,36,1,138,1;"),
+        Checkpoint { player_pos: true, ..Default::default() }
+    );
+    assert_eq!(
+        parse("1,2063,2,285,3,75,107,1,11,1,36,1,51,456,71,1122,448,789,604,123,138,1;"),
+        Checkpoint { pre_spawn_id: 123, spawn_id: 456, respawn_id: 789, target_pos: 1122, player_pos: true }
     );
 }

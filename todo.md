@@ -8,11 +8,9 @@
     - add accessor method for GDLevel that allows you to access a property with its string key (e.g. "k50")
     - checkpoint gamesaves for plat levels
 - objects
-    - constructors for all of the following (when we get geode for 2.2091):
-        - triggers + percentage trigger
-        - checkpoint
+    - constructors for all of the following:
+        - triggers
         - collectibles
-        - monsters
         - particle object
     - cover all gd obj properties
     - implement sha-256 hashing (feature: "hashing")

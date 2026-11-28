@@ -74,6 +74,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     // - In the spawn particle trigger, it refers to the group with the particles
     // - In the instant collision trigger, it refers to the group that will be activate if the two colliders are colliding at the time the trigger is called.
     // - In shader triggers with the parameter, it refers to the group around which the effect is centered.
+    // - In the checkpoint object, it refers to the group that is spawned once the checkpoint is hit by the player.
     51u16 => ("Target item", GDObjPropType::Group),
     52u16 => ("Pulse group?", GDObjPropType::Bool),
     54u16 => ("Linked orange teleportal y-offset", GDObjPropType::Float),
@@ -130,6 +131,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     103u16 => ("Is high detail?", GDObjPropType::Bool),
     104u16 => ("count trigger Multi activate", GDObjPropType::Bool),
     105u16 => ("Max follow speed", GDObjPropType::Float),
+    107u16 => ("Checkpoint unknown 107", GDObjPropType::Int),
     111u16 => ("Portal free mode", GDObjPropType::Bool),
     112u16 => ("Portal edit camera settings", GDObjPropType::Bool),
     113u16 => ("Portal camera easing", GDObjPropType::Int),
@@ -255,7 +257,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     445u16 => ("Claim touch?", GDObjPropType::Bool),
     446u16 => ("Object material", GDObjPropType::Short),
     447u16 => ("Event extra ID", GDObjPropType::Group),
-    448u16 => ("Checkpoint respawn ID", GDObjPropType::Group),
+    448u16 => ("Checkpoint respawn ID", GDObjPropType::Int),
     449u16 => ("Pickup modifier", GDObjPropType::Float),
     452u16 => ("Relative rotation", GDObjPropType::Bool),
     460u16 => ("No end effects?", GDObjPropType::Bool),
@@ -355,6 +357,7 @@ pub static PROPERTY_TABLE: Map<u16, (&'static str, GDObjPropType)> = phf_map! {
     595u16 => ("Don't stop song on death", GDObjPropType::Bool),
     602u16 => ("Percent trigger percent", GDObjPropType::Int),
     603u16 => ("Percent trigger add", GDObjPropType::Bool),
+    604u16 => ("Checkpoint pre spawn ID", GDObjPropType::Int),
     605u16 => ("Percent trigger input", GDObjPropType::Bool),
     10002u16 => ("Startpos gamemode", GDObjPropType::Gamemode),
     10003u16 => ("Startpos mini mode", GDObjPropType::Bool),

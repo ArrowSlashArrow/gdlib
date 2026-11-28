@@ -580,3 +580,64 @@ impl ObjectProperties for GameplayPortalConfig {
         })
     }
 }
+
+// checkpoint object (extra properties: 107, 11, 36, all 1)
+// 1,2063,2,285,3,75,107,1,11,1,36,1                                     ;  base checkpoint
+// 1,2063,2,285,3,75,107,1,11,1,36,1,                               138,1;  + player pos
+// 1,2063,2,285,3,75,107,1,11,1,36,1,                       604,123,138,1;  + pre spawn id
+// 1,2063,2,285,3,75,107,1,11,1,36,1,51,456,                604,123,138,1;  + spawn id
+// 1,2063,2,285,3,75,107,1,11,1,36,1,51,456,        448,789,604,123,138,1;  + respawn id
+// 1,2063,2,285,3,75,107,1,11,1,36,1,51,456,71,1122,448,789,604,123,138,1;  + target pos
+
+/// Saves level state in platformer mode. Note that this object is touch-triggerable by default in the editor.
+#[derive(Debug, Default, PartialEq, Clone, Copy)]
+pub struct Checkpoint {
+    /// Group spawned before this checkpoint is saved.
+    ///
+    /// Note: While this field is an integer, it is parsed as a float before being cast to an integer. This means that large precise values like 123456789 don't actually get parsed as they are, they are rounded slightly.
+    pub pre_spawn_id: i32, // 604
+    /// Group spawned once the checkpoint is saved
+    pub spawn_id: i16, // 51
+    /// Group spawned once the player respawns at this checkpoint.
+    ///
+    /// Note: While this field is an integer, it is parsed as a float before being cast to an integer. This means that large precise values like 123456789 don't actually get parsed as they are, they are rounded slightly.
+    pub respawn_id: i32, // 448
+    /// If not 0, the player respawns at this group ID. This group should only have one object; if it doesn't the player respawns at the location of the checkpoint instead.
+    pub target_pos: i16, // 71
+    /// Respawns where the player was when the checkpoint was touched. Overrides `target_pos`.
+    pub player_pos: bool, // 138
+}
+
+impl ObjectProperties for Checkpoint {
+    fn object_id(&self) -> i32 {
+        CHECKPOINT
+    }
+    fn serialise(&self) -> Vec<(u16, GDValue)> {
+        vec![
+            (CHECKPOINT_UNKNOWN_107, GDValue::Int(1)),
+            (IS_INTERACTABLE, GDValue::Bool(true)),
+            (CONTROLLING_PLAYER_1, GDValue::Bool(self.player_pos)),
+            (CHECKPOINT_RESPAWN_ID, GDValue::Int(self.respawn_id)),
+            (CHECKPOINT_PRE_SPAWN_ID, GDValue::Int(self.pre_spawn_id)),
+            (TARGET_ITEM, GDValue::Group(self.spawn_id)),
+            (TARGET_ITEM_2, GDValue::Group(self.target_pos)),
+        ]
+    }
+    fn from_object(obj: &GDObject) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if obj.id != CHECKPOINT {
+            return None;
+        }
+
+        // 107 and 36 are always 1 and carry no information, so they aren't read back.
+        Some(Self {
+            pre_spawn_id: int(obj, CHECKPOINT_PRE_SPAWN_ID),
+            spawn_id: int(obj, TARGET_ITEM) as i16,
+            respawn_id: int(obj, CHECKPOINT_RESPAWN_ID),
+            target_pos: int(obj, TARGET_ITEM_2) as i16,
+            player_pos: flag(obj, CONTROLLING_PLAYER_1),
+        })
+    }
+}
